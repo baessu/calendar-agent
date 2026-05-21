@@ -261,3 +261,36 @@
   - MarkerInput/MarkerChanges는 lib/db/markers.ts에서 export, 배럴(lib/db) 재export로 import 가능. createMarker는 projectId 옵셔널이라 {kind,label,date}만으로 생성 OK.
   - US-014(범례+토글)가 마커 범례를 사이드바로 옮기거나 통합할 수 있음 — 현재 TaskListPanel 상단 .ed-legend-row에 둠(F탭 위치). US-014에서 프로젝트 범례 행을 그 위에 추가하면 자연스러움.
 ---
+
+## 2026-05-21T22:25:00 - US-010
+- 막대 드래그로 날짜 이동(기간 보존). 짧은 클릭=편집(US-009), 4px 넘는 드래그=이동. 미리보기는 착지 날짜 밴드 하이라이트.
+- 순수 로직 분리: `lib/calendar/move.ts`
+  - shiftRange(start,end,deltaDays): UTC-noon addDays로 양끝 시프트 → DateRange. 기간(일수) 보존, 주/월 경계는 순수 date 산술이라 무관.
+  - moveTaskByDrag(start,end,grabDate,dropDate): delta=diffDays(grab→drop) 후 shiftRange. grab=drop이면 원본 그대로.
+  - +11 단위 테스트: shiftRange(전진/후진/0/단일일/월·년 경계), moveTaskByDrag(grab=drop 불변/mid-bar grab/역방향/주·월 경계 기간보존).
+- `components/calendar/CalendarView.tsx`:
+  - BarDrag ref(taskId/startDate/endDate/grabDate/startX/startY/moved/dropDate) = window 핸들러 진실원본. justDraggedRef = 이동 후 트레일링 click 삼킴.
+  - 막대 onPointerDown→onBarPointerDown: grabDate=dateAtClientX(week rect 가로 비율 → 0~6열 → week[col].date). barDragRef 세팅. (기본 버튼만)
+  - window pointermove: 이동거리 MOVE_THRESHOLD(4px) 넘으면 moved=true→movingTaskId(state). dateUnderPoint=document.elementsFromPoint(x,y)로 막대를 뚫고 그 아래 [data-date] 셀 찾기(pointer-events 토글 불필요) → movePreview=moveTaskByDrag 결과. 그리드 밖이면 이전 미리보기 유지.
+  - window pointerup: moved면 justDraggedRef=true 후 onMoveTask(시작!=원본일 때만), 아니면 무동작(트레일링 click→onClick이 편집 오픈=US-009 경로 보존). pointercancel 리셋.
+  - 막대 onClick: justDraggedRef면 swallow+리셋(드래그 직후 편집 안 열림), 아니면 openEdit. onKeyDown(Enter/Space) 편집 유지.
+  - highlight memo: movePreview 최우선(.sel 밴드로 착지 위치 미리보기) → 드래그선택 → committed selection. 막대 .dragging(드래그 중 dim), ed-calwrap.is-moving(grabbing 커서).
+- `components/calendar/CalendarApp.tsx`: handleMoveTask(id,startDate,endDate) — updateTask({startDate,endDate}) DB + setTasks map merge(updatedAt 갱신). 날짜만 변경 → 캘린더 막대 슬라이드 + 패널 시작일 재정렬 즉시. onMoveTask prop 전달.
+- `app/globals.css`: .cal-bar cursor pointer→grab + user-select:none(라벨 선택 방지). .cal-bar.dragging{opacity:.45}. .ed-calwrap.is-moving{cursor:grabbing}(+막대도) + user-select:none.
+- 파일: lib/calendar/{move.ts,move.test.ts}(신규), components/calendar/{CalendarView.tsx,CalendarApp.tsx}, app/globals.css, scripts/ralph/{prd.json,progress.txt}
+- 품질: typecheck ✓ / lint ✓(0 errors/0 warnings) / test ✓(128 passed: 기존 117 + 신규 11 move). dev GET / 200, SSR 217셀·data-today 1·ed-list 렌더, 서버 에러/경고 없음(드래그는 클라 전용 — 인터랙션 후 동작).
+- Needs human browser verification:
+  - 막대를 잡고 드래그하는 동안 착지 날짜 칸들이 밴드로 하이라이트되고(미리보기), 원본 막대가 흐려지는지
+  - 놓으면 시작일이 잡은 날→놓은 날 만큼 이동하고 종료일(기간 길이)이 그대로 유지되는지
+  - 주/월 경계를 넘는 이동이 정확히 재배치되는지(예: 토→다음주 월, 5/30→6월)
+  - 짧은 클릭은 편집 창이 열리고(이동 없음), 4px 넘게 끌면 편집이 안 열리고 이동만 되는지
+  - 이동 후 새로고침 시 위치가 유지되는지(IndexedDB), 사이드 패널이 새 시작일로 재정렬되는지
+- Learnings for future iterations:
+  - document.elementsFromPoint(복수)로 막대(z-위)를 뚫고 그 아래 셀의 data-date를 읽음 → 드래그 중 막대 pointer-events:none 토글이 불필요(elementFromPoint 단수면 막대가 먼저 잡혀 토글 필요). 셀 자식(daynum/마커)도 closest('[data-date]')로 셀 해석.
+  - 클릭 vs 드래그: 막대 onPointerDown(드래그 후보 기록)→window pointermove(4px 임계)→window pointerup. moved면 justDraggedRef로 트레일링 click 무력화(US-009 onClick 편집 경로는 그대로 두고 드래그 시에만 차단). preventDefault 미사용(click 신뢰성 위해) + user-select:none CSS로 텍스트 선택만 차단. justDraggedRef는 다음 pointerdown에서도 false 리셋(트레일링 click 미발화 시 잔류 방지).
+  - grabDate는 elementFromPoint 대신 week rect 가로비율로 계산(pointerdown 시점엔 막대가 위에 있어 elementFromPoint가 셀을 못 잡음). week 배열은 렌더 클로저에서 캡처해 onBarPointerDown에 전달.
+  - 이동은 onMoveTask(날짜 전용) 신설 — US-009 onUpdateTask(EditTaskDraft 전체 필드) 계약을 느슨하게 하지 않음. handleMoveTask는 updateTask{startDate,endDate}만. 둘 다 tasks 단일 진실원본(CalendarApp) 갱신이라 막대·패널 동시 반영.
+  - 미리보기는 별도 고스트 막대 대신 .sel 셀 밴드 재사용(US-004 드래그선택과 동형) — 주 경계 넘는 세그먼트 재계산 불필요하고 스위스 모노크롬 일관. 원본 막대는 .dragging으로 dim해 "여기서→저기로" 읽힘.
+  - window pointermove/up 핸들러 내 setState는 effect 본문이 아니라 이벤트 콜백이라 set-state-in-effect 룰 미저촉(기존 셀 드래그 effect와 동일 패턴). onMoveTask가 유일한 effect dep.
+  - US-016(가장자리 리사이즈)은 이 위에 얹음: 막대 좌/우 끝 ~6px 존에서 pointerdown이면 move 대신 resize 모드(시작일 또는 종료일만 변경, start<=end 클램프). dateUnderPoint 재사용 가능.
+---

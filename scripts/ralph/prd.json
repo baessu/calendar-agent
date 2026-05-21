@@ -176,8 +176,8 @@
         "Verify in browser: 드래그 이동 동작"
       ],
       "priority": 5,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "lib/calendar/move.ts: shiftRange(start,end,delta)=UTC-noon addDays 양끝 → DateRange(기간 보존), moveTaskByDrag(start,end,grab,drop)=diffDays(grab→drop) delta로 shiftRange. 순수 date 산술이라 주/월 경계 무관. +11 단위 테스트(전/후/0 delta·단일일·월/년 경계·grab=drop 불변·mid-bar grab·역방향·기간보존 across week/month). CalendarView: BarDrag ref(taskId/startDate/endDate/grabDate/startX/Y/moved/dropDate) + justDraggedRef. 막대 onPointerDown→barDragRef 세팅(grabDate=dateAtClientX: week rect 비율로 0~6열→week[col].date). window pointermove(MOVE_THRESHOLD 4px 넘으면 moved=true→movingTaskId, dateUnderPoint=document.elementsFromPoint로 막대 뚫고 [data-date] 셀 찾기→movePreview=moveTaskByDrag)/pointerup(moved면 justDragged=true 후 onMoveTask, 아니면 onClick이 편집 오픈)/pointercancel 리셋. onClick은 justDraggedRef면 swallow(드래그 후 편집 안 열림) — US-009 클릭 편집 경로 보존. highlight memo에 movePreview 최우선 추가(.sel 밴드로 착지 위치 미리보기). 막대 .dragging(opacity .45)·ed-calwrap.is-moving(grabbing 커서). onMoveTask prop. CalendarApp: handleMoveTask(updateTask{startDate,endDate} DB + setTasks map merge updatedAt) — 날짜만 변경, 막대 슬라이드+패널 재정렬, 새로고침 유지(Dexie). cal-bar cursor pointer→grab + user-select:none. 128 tests green(+11). typecheck ✓ / lint ✓(0) / dev GET / 200, SSR 217셀·data-today 1·ed-list, 서버 에러/경고 없음(드래그는 클라 전용)."
     },
     {
       "id": "US-011",
