@@ -37,8 +37,8 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "lib/types.ts(Project/TaskType/Task/Marker) + Dexie v1 스키마(id 문자열 PK, order/visible/date/projectId 인덱스). 엔티티별 CRUD(projects/taskTypes/tasks/markers.ts), Task updatedAt 자동 갱신. seedIfEmpty 멱등(기본 프로젝트 블루 #3175B9 + 태스크종류 4개). DbInit 클라이언트 컴포넌트로 마운트 시 시드. fake-indexeddb로 9 tests green."
     },
     {
       "id": "US-003",
