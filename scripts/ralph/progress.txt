@@ -112,3 +112,29 @@
   - US-005는 CreatePopover를 확장: 제목 input(빈 제목 차단) + 프로젝트/태스크종류 select(현재 뷰 프로젝트 기본값) + 저장(createTask) → 팝오버 닫고 막대 렌더. selection 범위(start/end)를 그대로 createTask에 전달. 막대 분할/색은 US-005~007.
   - 막대(US-005)와 선택 하이라이트가 같은 셀에 공존: 하이라이트는 셀 배경, 막대는 .cal-week 위 absolute lane이므로 충돌 없음.
 ---
+
+## 2026-05-21T21:34:00 - US-005
+- 드래그 선택 → 등록 폼 → createTask 저장 → 캘린더 막대 렌더. 주 경계 분할 포함. 색 톤(US-006)/레인 패킹(US-007)은 후속.
+- 순수 로직 분리: `lib/calendar/segments.ts`
+  - weekSegments(week, tasks): 각 task를 그 주(week[0].ts~week[6].ts)에 클립 → {startCol(0~6), endCol(0~6), contL(이전주에서 연속), contR(다음주로 연속)}. 비교차 task 제외. parseDate/diffDays(UTC-noon)로 tz drift 없음. start 오름차순 + 동률 시 긴 막대 우선 정렬(naive lane 안정).
+- `components/calendar/CreatePopover.tsx`(US-004 셸 → 폼 확장):
+  - 제목 input(autofocus) + trim 빈값 저장 차단(인라인 "제목을 입력하세요", aria-invalid). 프로젝트 select(defaultProjectId=현재 뷰 프로젝트, fallback projects[0]) + 종류 select(taskTypes[0]). 저장 버튼(onSubmit/Enter, projects/taskTypes 없으면 disabled). onCreate{title,projectId,taskTypeId} 콜백 — 날짜 범위·DB는 부모가 처리. ESC/backdrop/✕ 닫힘 유지. 하이라인 input(밑줄)·select(테두리), 그림자 없음.
+- `components/calendar/CalendarView.tsx`:
+  - 마운트 시 seedIfEmpty()(DbInit와의 레이스 회피) 후 getAllProjects/getAllTaskTypes/getAllTasks 로드 → state. projectsById 맵.
+  - 주별 weekSegments 렌더: lane=세그먼트 배열 인덱스(naive — 겹침 비은폐, 비겹침도 각자 레인=공간 낭비, US-007이 패킹+레인 재사용+'+N개'로 대체). 막대 left=(startCol/7)*100%, width=calc(((endCol-startCol+1)/7*100)% - 4px), top=HEAD_H+lane*(BAR_H+BAR_GAP). 행 minHeight=max(ROW_MIN 88, HEAD_H 30 + segs*(BAR_H 20+BAR_GAP 3)+6). contL/contR 모서리 사각(연속처럼 보임).
+  - 저장: handleCreate→createTask(selection.start/end + draft)→tasks state append→팝오버 닫힘(즉시 막대). 새로고침 유지=Dexie 영속+마운트 로드.
+  - 막대 bg=project.color(원색 임시, applyTone+barText는 US-006), color=#fff. .cal-bar pointer-events:none(아래 셀 드래그선택 비차단; 막대 클릭/드래그=US-009/010). barIn(140ms fade/rise) 등장.
+- 파일: lib/calendar/{segments.ts,segments.test.ts}, components/calendar/{CreatePopover.tsx,CalendarView.tsx}, app/globals.css
+- 품질: typecheck ✓ / lint ✓(0) / test ✓(46 passed: 기존 38 + 신규 8 segments). dev 부팅 GET / 200, SSR 217셀·data-today 1·month-name 8 렌더, 서버 에러/경고 없음(막대는 클라 전용 — DB 로드 후 마운트되어 SSR HTML엔 없음 = 정상).
+- Needs human browser verification:
+  - 드래그→제목 입력→저장 시 선택 기간을 덮는 막대가 즉시 뜨는지
+  - 주 경계를 넘는 기간(예 토→다음주)이 주별 연속 막대로 분할되고 모서리가 이어져 보이는지
+  - 막대에 제목 텍스트가 보이고(길면 …말줄임), 새로고침 후에도 유지되는지
+  - 빈 제목 저장 차단 메시지
+- Learnings for future iterations:
+  - 막대 bg는 US-005에서 project.color 임시(현재 도달 가능한 상태=기본 블루 프로젝트뿐이라 흰 텍스트 대비 양호). US-006에서 lib/color/compose.ts(applyTone(project.color,{mode,k}) + barText(bg)→흑/백)로 교체하고 CalendarView 막대 style의 background/color를 거기서 계산. taskType은 이미 task에 저장됨 → 톤만 입히면 됨.
+  - lane=인덱스는 naive. US-007: lib/calendar/layout.ts에 인터벌 스케줄링(laneEnds[lane]>=startCol면 다음 레인, 아니면 재사용) + '+N개' 임계(행 3~4 초과)로 교체 + 단위 테스트. 막대 렌더 루프는 segs→layout 결과(lane 포함)로 바꾸면 됨.
+  - flex 컨테이너에선 bare text-node가 ellipsis 안 됨 → 제목을 .cal-bar-label span으로 감싸 overflow/ellipsis 적용.
+  - 막대는 'use client' 마운트 후 DB 로드 결과라 SSR/curl HTML엔 안 보임(정상). 시각 검증은 브라우저 필요. liveQuery(dexie-react-hooks) 미도입 — 현재 단일 컴포넌트라 state append로 충분. US-008 사이드패널이 같은 tasks를 공유해야 하면 그때 상위로 끌어올리거나 useLiveQuery 도입 검토.
+  - HEAD_H/BAR_H/BAR_GAP는 CalendarView 상수 + .cal-bar height/line은 inline. CSS .cal-bar는 위치 무관 스타일(폰트/색 외)만.
+---

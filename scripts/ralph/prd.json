@@ -92,8 +92,8 @@
         "Verify in browser: 드래그→입력→막대 흐름 완결"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "lib/calendar/segments.ts weekSegments(week,tasks): 주별 클립(startCol/endCol 0~6, contL/contR 인접주 연속 플래그) + start 오름차순·긴 막대 우선 정렬. parseDate/diffDays(UTC-noon) 사용 → tz drift 없음. +8 단위 테스트(주내/단일/좌우 연속/양끝 초과/비교차/정렬). CreatePopover 폼 확장: 제목 input(autofocus, trim 빈값 차단 '제목을 입력하세요' 인라인 에러), 프로젝트 select(defaultProjectId=현재 뷰 프로젝트, 없으면 projects[0]) + 종류 select(taskTypes[0]), 저장 버튼(onCreate{title,projectId,taskTypeId}, 데이터 없으면 disabled), ESC/backdrop/✕ 닫힘 유지. CalendarView: 마운트 시 seedIfEmpty(DbInit 레이스 회피) 후 projects/taskTypes/tasks 로드(state), 주별 weekSegments 렌더(lane=세그먼트 인덱스 naive — 겹침 미은폐, US-007이 패킹+'+N개' 대체), 막대 left%/width(calc -4px)/top=HEAD_H+lane*(BAR_H+BAR_GAP), 행 minHeight=max(88, HEAD_H+segs*(BAR_H+BAR_GAP)+6), contL/contR 모서리 사각. 저장 시 createTask→tasks state append(즉시 막대). 막대 bg=project.color 임시(applyTone+barText는 US-006), 흰 텍스트, pointer-events:none(드래그선택 비차단), barIn 등장 애니메이션. 46 tests green(+8). dev GET / 200, SSR 217셀·data-today 1·month-name 8 렌더, 서버 에러/경고 없음(막대는 클라 전용)."
     },
     {
       "id": "US-006",
