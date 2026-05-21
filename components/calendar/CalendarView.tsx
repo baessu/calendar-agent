@@ -33,6 +33,7 @@ import {
 import { todayDateString } from "@/lib/calendar/dates";
 import { isWithinRange, normalizeRange, type DateRange } from "@/lib/calendar/selection";
 import { weekSegments } from "@/lib/calendar/segments";
+import { barColors } from "@/lib/color/compose";
 import {
   createTask,
   getAllProjects,
@@ -106,6 +107,12 @@ export function CalendarView() {
     for (const p of projects) m.set(p.id, p);
     return m;
   }, [projects]);
+
+  const taskTypesById = useMemo(() => {
+    const m = new Map<string, TaskType>();
+    for (const tt of taskTypes) m.set(tt.id, tt);
+    return m;
+  }, [taskTypes]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const didInitialScroll = useRef(false);
@@ -320,11 +327,17 @@ export function CalendarView() {
                     })}
                     {segs.map((seg, lane) => {
                       const project = projectsById.get(seg.task.projectId);
+                      const taskType = taskTypesById.get(seg.task.taskTypeId);
                       const left = (seg.startCol / 7) * 100;
                       const width = ((seg.endCol - seg.startCol + 1) / 7) * 100;
                       const top = HEAD_H + lane * (BAR_H + BAR_GAP);
                       // Square the edge that continues into an adjacent week.
                       const r = (cont: boolean) => (cont ? "0" : "3px");
+                      // Bar bg = project color toned by task type; text auto-contrast.
+                      const { background, text } =
+                        project && taskType
+                          ? barColors(project.color, taskType)
+                          : { background: "var(--text)", text: "#FFFFFF" as const };
                       return (
                         <div
                           key={seg.task.id}
@@ -335,10 +348,8 @@ export function CalendarView() {
                             width: `calc(${width}% - 4px)`,
                             top,
                             height: BAR_H,
-                            // Tone-aware color (applyTone + barText) lands in US-006;
-                            // for now the bar uses the project identity color.
-                            background: project?.color ?? "var(--text)",
-                            color: "#fff",
+                            background,
+                            color: text,
                             borderRadius: `${r(seg.contL)} ${r(seg.contR)} ${r(seg.contR)} ${r(
                               seg.contL,
                             )}`,
