@@ -48,5 +48,6 @@ body { font-family: var(--font-sans); font-weight: 480; letter-spacing: -0.03em;
 
 ## 메모
 
-- 목업(docs/design/mockups)에서는 woff2 파일이 없어 `local()`로 설치 폰트만 표시되며, 미설치 시 시스템 폰트(또는 Pretendard) 폴백.
+- **Plain·MD Sans는 상용 폰트**(Optimo / 상용 한글) — 무료 CDN 없음. 라이선스 woff2를 `public/fonts/`에 호스팅해야 정식 적용.
+- 목업(docs/design/mockups)은 라이선스 부담 없는 **무료 대체로 미리보기**: 영문 **Inter**(Google Fonts) + 숫자·한글 **Pretendard**. Plain이 로컬 설치돼 있으면 `local()`로 우선 사용. 실제 빌드 스펙은 위(Plain/MD Sans) 그대로 유지.
 - Tailwind 적용 시 `theme.fontFamily.sans`에 위 스택, 기본 weight 480으로 설정.
