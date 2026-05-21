@@ -56,3 +56,143 @@ body {
   letter-spacing: -0.03em; /* -3% base tracking (docs/design/typography.md) */
   -webkit-font-smoothing: antialiased;
 }
+
+/*
+ * Editorial (Swiss) calendar — mirrors docs/design/mockups/calendar-layouts.html
+ * (F tab). Monochrome shell + hairlines, line-less minimal grid. Color is
+ * reserved for task bars (US-005+); nothing here is colored.
+ */
+.app-shell {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.ed-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Top bar: month title (tracks scroll) + 오늘 button. */
+.ed-bar {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding: 22px 30px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.ed-ttl {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.ed-ttl .sl {
+  color: var(--faint);
+  font-weight: 300;
+  margin: 0 5px;
+}
+.ed-today {
+  font-size: 12px;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  padding: 4px 11px;
+  cursor: pointer;
+  background: none;
+  font-family: inherit;
+  letter-spacing: -0.03em;
+}
+.ed-today:hover {
+  color: var(--text);
+  border-color: var(--text);
+}
+
+/* Scroll container for the continuous months. */
+.ed-calwrap {
+  flex: 1;
+  overflow: auto;
+  padding: 0 30px 40px;
+}
+
+/* Sticky per-month header: month name + weekday row. */
+.month-head {
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 3;
+  padding-top: 16px;
+}
+.month-name {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  padding: 0 10px 8px;
+}
+.month-head .cal-head {
+  border-bottom: 1px solid var(--border-soft);
+}
+.month-body {
+  padding: 4px 0 14px;
+}
+
+/* Weekday header row. */
+.cal-head {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  background: transparent;
+}
+.cal-hd {
+  font-weight: 500;
+  color: var(--faint);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  padding: 6px 10px;
+  text-align: left;
+  text-transform: uppercase;
+  border: none;
+}
+
+/* Line-less week row. min-height gives the spacious minimal look; bars (US-005)
+   will later set an explicit height per row based on lane count. */
+.cal-week {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border: none;
+  margin-bottom: 4px;
+  min-height: 88px;
+}
+.cal-cell {
+  border: none;
+  padding: 12px 13px;
+  min-width: 0;
+}
+.cal-cell.out {
+  opacity: 0.4; /* other-month days dimmed */
+}
+.cal-daynum {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  height: 20px;
+}
+/* today = filled black circle, white digits. */
+.cal-cell.today .cal-daynum {
+  background: var(--text);
+  color: #fff;
+  border-radius: 50%;
+  width: 20px;
+  min-width: 20px;
+  height: 20px;
+  justify-content: center;
+  font-size: 12px;
+}

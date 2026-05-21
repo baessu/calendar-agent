@@ -1,11 +1,11 @@
-// Blank home shell — calendar UI lands in US-003.
+import { CalendarView } from "@/components/calendar/CalendarView";
+
+// Editorial shell. Right "할일" panel + project tabs arrive in later stories
+// (US-008 / US-013); for now the calendar fills the main column.
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center px-6 text-center">
-      <h1 className="text-2xl tracking-tight">캘린더</h1>
-      <p className="mt-3 text-sm text-[var(--muted)]">
-        먼슬리 캘린더 셸을 준비 중입니다.
-      </p>
+    <main className="app-shell">
+      <CalendarView />
     </main>
   );
 }
