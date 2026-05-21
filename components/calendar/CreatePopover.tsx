@@ -1,20 +1,33 @@
 "use client";
 
 /**
- * Creation popover (US-004 shell).
+ * Creation popover (US-005).
  *
  * Opens when a drag-selection (or single-cell click) is committed, prefilled
- * with the chosen date range. For now it only shows the range and closes on
- * ESC / outside click — the title field + project/task-type pickers + save
- * land in US-005, which extends this component.
+ * with the chosen date range. The user types a title and picks a project +
+ * task type, then saves — the parent persists the task and the calendar paints
+ * a bar across the range. Empty titles are blocked with an inline message.
  *
  * No shadow (Swiss editorial = hairlines only); a transparent backdrop catches
  * outside clicks. Positioned near the pointer-release point, clamped to the
- * viewport.
+ * viewport. ESC / backdrop click / ✕ cancels.
  */
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { DateString } from "@/lib/types";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import type { DateString, Project, TaskType } from "@/lib/types";
 import { formatRangeLabel } from "@/lib/calendar/selection";
+
+/** Values the form collects; the parent adds the date range + persists. */
+export interface CreateTaskDraft {
+  title: string;
+  projectId: string;
+  taskTypeId: string;
+}
 
 interface CreatePopoverProps {
   start: DateString;
@@ -22,14 +35,42 @@ interface CreatePopoverProps {
   /** Pointer-release viewport coordinates used to anchor the card. */
   x: number;
   y: number;
+  projects: Project[];
+  taskTypes: TaskType[];
+  /** Project pre-selected (the current view's project). */
+  defaultProjectId: string | null;
   onClose: () => void;
+  onCreate: (draft: CreateTaskDraft) => void;
 }
 
 const MARGIN = 12;
 
-export function CreatePopover({ start, end, x, y, onClose }: CreatePopoverProps) {
+export function CreatePopover({
+  start,
+  end,
+  x,
+  y,
+  projects,
+  taskTypes,
+  defaultProjectId,
+  onClose,
+  onCreate,
+}: CreatePopoverProps) {
   const cardRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [pos, setPos] = useState({ left: x, top: y });
+
+  const [title, setTitle] = useState("");
+  const [projectId, setProjectId] = useState(
+    defaultProjectId ?? projects[0]?.id ?? "",
+  );
+  const [taskTypeId, setTaskTypeId] = useState(taskTypes[0]?.id ?? "");
+  const [error, setError] = useState<string | null>(null);
+
+  const canSave = useMemo(
+    () => projects.length > 0 && taskTypes.length > 0,
+    [projects.length, taskTypes.length],
+  );
 
   // Clamp the card inside the viewport once its real size is known.
   useLayoutEffect(() => {
@@ -41,6 +82,11 @@ export function CreatePopover({ start, end, x, y, onClose }: CreatePopoverProps)
     setPos({ left, top });
   }, [x, y]);
 
+  // Focus the title field on open.
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
   // ESC closes.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -49,6 +95,17 @@ export function CreatePopover({ start, end, x, y, onClose }: CreatePopoverProps)
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+
+  function submit() {
+    const trimmed = title.trim();
+    if (!trimmed) {
+      setError("제목을 입력하세요");
+      inputRef.current?.focus();
+      return;
+    }
+    if (!canSave || !projectId || !taskTypeId) return;
+    onCreate({ title: trimmed, projectId, taskTypeId });
+  }
 
   return (
     <div className="cp-backdrop" onPointerDown={onClose}>
@@ -68,6 +125,64 @@ export function CreatePopover({ start, end, x, y, onClose }: CreatePopoverProps)
           </button>
         </div>
         <div className="cp-range">{formatRangeLabel(start, end)}</div>
+
+        <form
+          className="cp-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            submit();
+          }}
+        >
+          <input
+            ref={inputRef}
+            className="cp-input"
+            type="text"
+            value={title}
+            placeholder="할일 제목"
+            aria-label="할일 제목"
+            aria-invalid={error ? true : undefined}
+            onChange={(e) => {
+              setTitle(e.target.value);
+              if (error) setError(null);
+            }}
+          />
+          {error && <p className="cp-err">{error}</p>}
+
+          <div className="cp-row">
+            <label className="cp-field">
+              <span className="cp-label">프로젝트</span>
+              <select
+                className="cp-select"
+                value={projectId}
+                onChange={(e) => setProjectId(e.target.value)}
+              >
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="cp-field">
+              <span className="cp-label">종류</span>
+              <select
+                className="cp-select"
+                value={taskTypeId}
+                onChange={(e) => setTaskTypeId(e.target.value)}
+              >
+                {taskTypes.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <button type="submit" className="cp-save" disabled={!canSave}>
+            저장
+          </button>
+        </form>
       </div>
     </div>
   );

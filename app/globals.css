@@ -267,3 +267,124 @@ body {
     transform: translateY(0);
   }
 }
+
+/* Creation form (US-005): hairline inputs/selects, monochrome. */
+.cp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+.cp-input {
+  font-family: inherit;
+  font-size: 13px;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  background: var(--bg);
+  border: none;
+  border-bottom: 1px solid var(--border);
+  padding: 6px 2px;
+  outline: none;
+}
+.cp-input::placeholder {
+  color: var(--faint);
+}
+.cp-input:focus {
+  border-bottom-color: var(--text);
+}
+.cp-input[aria-invalid="true"] {
+  border-bottom-color: var(--text);
+}
+.cp-err {
+  margin: -4px 0 0;
+  font-size: 11px;
+  color: var(--text);
+}
+.cp-row {
+  display: flex;
+  gap: 12px;
+}
+.cp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+.cp-label {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.cp-select {
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  padding: 5px 6px;
+  outline: none;
+  cursor: pointer;
+}
+.cp-select:focus {
+  border-color: var(--text);
+}
+.cp-save {
+  margin-top: 2px;
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: #fff;
+  background: var(--text);
+  border: 1px solid var(--text);
+  padding: 7px 14px;
+  cursor: pointer;
+}
+.cp-save:hover {
+  background: #000;
+}
+.cp-save:disabled {
+  background: var(--faint);
+  border-color: var(--faint);
+  cursor: not-allowed;
+}
+
+/*
+ * Task bars (US-005). Color (project identity) is the only color on the
+ * monochrome grid. Positioned absolutely within a .cal-week (left/width/top set
+ * inline from the week segment). No shadow (Swiss editorial). pointer-events are
+ * off so a bar never blocks drag-to-select beneath it (bar click/drag = US-009/010).
+ * Subtle enter animation per the micro-interaction rule.
+ */
+.cal-bar {
+  position: absolute;
+  margin-left: 2px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  overflow: hidden;
+  border-radius: 2px;
+  pointer-events: none;
+  animation: barIn 140ms ease-out;
+}
+.cal-bar-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@keyframes barIn {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

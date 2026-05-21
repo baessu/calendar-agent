@@ -32,14 +32,30 @@ import {
 } from "@/lib/calendar/infinite";
 import { todayDateString } from "@/lib/calendar/dates";
 import { isWithinRange, normalizeRange, type DateRange } from "@/lib/calendar/selection";
-import type { DateString } from "@/lib/types";
-import { CreatePopover } from "./CreatePopover";
+import { weekSegments } from "@/lib/calendar/segments";
+import {
+  createTask,
+  getAllProjects,
+  getAllTaskTypes,
+  getAllTasks,
+  seedIfEmpty,
+} from "@/lib/db";
+import type { DateString, Project, Task, TaskType } from "@/lib/types";
+import { CreatePopover, type CreateTaskDraft } from "./CreatePopover";
 
 // Months shown on either side of today at first paint.
 const INITIAL_BACK = 3;
 const INITIAL_FWD = 3;
 // Distance (px) from a scroll edge that triggers growing the range by one month.
 const EXPAND_PX = 600;
+
+// Bar geometry within a week row (px). HEAD_H clears the day-number area; bars
+// stack downward in lanes. US-007 replaces the naive one-lane-per-segment
+// stacking with packed lanes + a "+N개" overflow summary.
+const BAR_H = 20;
+const BAR_GAP = 3;
+const HEAD_H = 30;
+const ROW_MIN = 88;
 
 function ymFromDate(date: string): YearMonth {
   const [year, month] = date.split("-").map(Number);
@@ -58,6 +74,38 @@ export function CalendarView() {
     () => groupWeeksByMonth(buildWeeksRange(from, to, today)),
     [from, to, today],
   );
+
+  // --- Persisted data (US-005) ----------------------------------------------
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [taskTypes, setTaskTypes] = useState<TaskType[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+
+  // Seed (idempotent) then load all data on mount. Seeding here too avoids a
+  // race with <DbInit>, so the popover always has a project/task-type to pick.
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      await seedIfEmpty();
+      const [ps, tts, ts] = await Promise.all([
+        getAllProjects(),
+        getAllTaskTypes(),
+        getAllTasks(),
+      ]);
+      if (!alive) return;
+      setProjects(ps);
+      setTaskTypes(tts);
+      setTasks(ts);
+    })().catch((err) => console.error("calendar data load failed", err));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const projectsById = useMemo(() => {
+    const m = new Map<string, Project>();
+    for (const p of projects) m.set(p.id, p);
+    return m;
+  }, [projects]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const didInitialScroll = useRef(false);
@@ -187,6 +235,23 @@ export function CalendarView() {
     setDragCurrent(null);
   }, []);
 
+  // Persist a new task across the committed selection, then show its bar.
+  const handleCreate = useCallback(
+    async (draft: CreateTaskDraft) => {
+      if (!selection) return;
+      const task = await createTask({
+        projectId: draft.projectId,
+        taskTypeId: draft.taskTypeId,
+        title: draft.title,
+        startDate: selection.start,
+        endDate: selection.end,
+      });
+      setTasks((prev) => [...prev, task]);
+      closePopover();
+    },
+    [selection, closePopover],
+  );
+
   // The range to paint as highlighted: the live drag while dragging, otherwise
   // the committed selection (so cells stay lit while the popover is open).
   const highlight = useMemo<DateRange | null>(() => {
@@ -225,28 +290,67 @@ export function CalendarView() {
               </div>
             </div>
             <div className="month-body">
-              {g.weeks.map((week) => (
-                <div className="cal-week" key={week[0].date}>
-                  {week.map((dy) => {
-                    const selected =
-                      highlight != null &&
-                      isWithinRange(dy.date, highlight.start, highlight.end);
-                    return (
-                      <div
-                        key={dy.date}
-                        className={`cal-cell${dy.month !== g.month ? " out" : ""}${
-                          dy.isToday ? " today" : ""
-                        }${selected ? " sel" : ""}`}
-                        data-today={dy.isToday ? "true" : undefined}
-                        onPointerDown={(e) => onCellPointerDown(dy.date, e)}
-                        onPointerEnter={() => onCellPointerEnter(dy.date)}
-                      >
-                        <span className="cal-daynum">{dy.day}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
+              {g.weeks.map((week) => {
+                // Clip tasks to this week; one lane per segment for now (US-007
+                // packs lanes + adds overflow). Row grows to fit the lanes.
+                const segs = weekSegments(week, tasks);
+                const weekMinH = Math.max(
+                  ROW_MIN,
+                  HEAD_H + segs.length * (BAR_H + BAR_GAP) + 6,
+                );
+                return (
+                  <div className="cal-week" key={week[0].date} style={{ minHeight: weekMinH }}>
+                    {week.map((dy) => {
+                      const selected =
+                        highlight != null &&
+                        isWithinRange(dy.date, highlight.start, highlight.end);
+                      return (
+                        <div
+                          key={dy.date}
+                          className={`cal-cell${dy.month !== g.month ? " out" : ""}${
+                            dy.isToday ? " today" : ""
+                          }${selected ? " sel" : ""}`}
+                          data-today={dy.isToday ? "true" : undefined}
+                          onPointerDown={(e) => onCellPointerDown(dy.date, e)}
+                          onPointerEnter={() => onCellPointerEnter(dy.date)}
+                        >
+                          <span className="cal-daynum">{dy.day}</span>
+                        </div>
+                      );
+                    })}
+                    {segs.map((seg, lane) => {
+                      const project = projectsById.get(seg.task.projectId);
+                      const left = (seg.startCol / 7) * 100;
+                      const width = ((seg.endCol - seg.startCol + 1) / 7) * 100;
+                      const top = HEAD_H + lane * (BAR_H + BAR_GAP);
+                      // Square the edge that continues into an adjacent week.
+                      const r = (cont: boolean) => (cont ? "0" : "3px");
+                      return (
+                        <div
+                          key={seg.task.id}
+                          className="cal-bar"
+                          title={seg.task.title}
+                          style={{
+                            left: `${left}%`,
+                            width: `calc(${width}% - 4px)`,
+                            top,
+                            height: BAR_H,
+                            // Tone-aware color (applyTone + barText) lands in US-006;
+                            // for now the bar uses the project identity color.
+                            background: project?.color ?? "var(--text)",
+                            color: "#fff",
+                            borderRadius: `${r(seg.contL)} ${r(seg.contR)} ${r(seg.contR)} ${r(
+                              seg.contL,
+                            )}`,
+                          }}
+                        >
+                          <span className="cal-bar-label">{seg.task.title}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
             </div>
           </section>
         ))}
@@ -258,7 +362,11 @@ export function CalendarView() {
           end={selection.end}
           x={popoverPos.x}
           y={popoverPos.y}
+          projects={projects}
+          taskTypes={taskTypes}
+          defaultProjectId={projects[0]?.id ?? null}
           onClose={closePopover}
+          onCreate={handleCreate}
         />
       )}
     </div>
