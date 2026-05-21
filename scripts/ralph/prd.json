@@ -17,8 +17,8 @@
         "Verify in browser: dev 서버에서 빈 홈 화면이 에러 없이 렌더"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Next.js 16 + React 19 + Tailwind v4 + Dexie 4 + Vitest 4 scaffolded. Monochrome base + script-split fonts in globals.css. Empty CalendarDB in lib/db/. Dev server returns GET / 200."
     },
     {
       "id": "US-002",
