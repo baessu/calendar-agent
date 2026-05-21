@@ -323,3 +323,33 @@
   - US-014(보이기/숨기기 토글)는 이 .ed-proj 범례 행에 토글을 얹으면 됨(proj-chip에 visible 상태 + 클릭 분기 또는 별도 토글). US-013(상단 탭)은 .ed-proj와 별개로 .ed-bar 아래 .ptabs(F탭) 추가. 프로젝트 mutate 핸들러(handleSaveProject/handleDeleteProject)는 이미 CalendarApp 단일 진실원본이라 양쪽 뷰 자동 갱신.
   - ProjectPopover는 CalendarView가 아닌 CalendarApp에서 렌더(프로젝트는 우측 패널에서 트리거, 캘린더 셀/막대와 무관). 팝오버 상호배타는 각자 cp-backdrop(z-50)로 보장 — 패널에서 여는 동안 캘린더 팝오버는 닫혀 있음.
 ---
+
+## 2026-05-21T22:40:00 - US-012
+- 태스크 종류 관리(전역/이름/톤/삭제) — 생성·이름변경·톤 변경·삭제(소속 할일 기본 종류로 이동). ProjectPopover(US-011) 패턴 재사용. 색은 막대에만 규칙 유지(범례 톤 스와치=데이터 색 허용).
+- 순수 로직 분리: `lib/taskType/manage.ts`
+  - TONE_STEPS: TASK_TYPE_TONES에서 {mode,k}만 추출(4단계 진함→연함). 색상 시스템 불변경 — 이미 확정된 톤만 선택지로 제공.
+  - defaultTaskTypeId(taskTypes): min order → createdAt → id 타이브레이크. **order가 1순위인 이유**: 시드 4종(마감/작업/회의/리서치)이 한 트랜잭션에서 동일 createdAt(ts)로 생성되므로 createdAt 1순위면 id(UUID) 랜덤 폴백 → '마감'이 기본이 안 됨. order(마감=0)를 1순위로 두어 안정적 기본 보장.
+  - isDefaultTaskType / nextTaskTypeOrder(max order+1) / exceedsRecommendedTaskTypes(count>=RECOMMENDED 4 → 다음 추가가 권장 초과, AC6 안내 트리거) / toneStepIndex(매칭 단계 인덱스, custom=-1) / unusedToneStep(미사용 첫 톤, 전부 사용 시 darkest 폴백 = create 기본값, unusedProjectColor 대응).
+  - +15 단위 테스트(TONE_STEPS 동기화, defaultTaskTypeId order/타이브레이크, nextOrder, exceeds 경계+custom max, toneStepIndex, unusedToneStep).
+- `components/calendar/TaskTypePopover.tsx`(신규, 생성/편집/삭제 겸용): 이름 input(trim 빈값 차단 '이름을 입력하세요') + 톤 단계 픽커(.pp-palette role=radiogroup, 4 .tt-sw 스와치 = applyTone(블루 #3175B9 PREVIEW_HUE, step) 미리보기, 선택=검은 링, 진함↔연함 endpoint 라벨 .tt-ends). 생성=unusedToneStep 기본, 편집={mode,k} prefill. AC6: 생성 & taskTypes.length>=4면 pp-note 안내. 삭제=2단계 인라인 확인(단일 reassign — AC4가 '기본 종류로 이동'만 요구): 할일 있으면 '할일 N개 기본 종류로 이동 [이동 후 삭제][취소]', 없으면 '삭제할까요? [삭제][취소]'. 기본 타입=삭제 숨김+'기본 태스크종류는 삭제할 수 없습니다'(AC5). ESC/✕/backdrop 닫힘, 클램프, cpIn. cp-* 재사용.
+- `components/calendar/CalendarApp.tsx`: createTaskType/updateTaskType/deleteTaskType import. taskTypePopover state + taskCountByTaskType memo. open/close/handleSaveTaskType(편집=update+map merge / 생성=create{order:nextTaskTypeOrder}+append)/handleDeleteTaskType(dest=defaultTaskTypeId(잔여) → affected updateTask taskTypeId 일괄 → deleteTaskType → setTasks map+setTaskTypes filter; dest 없으면=마지막 타입 noop). TaskTypePopover를 ProjectPopover 형제로 렌더, onAddTaskType/onEditTaskType를 TaskListPanel에 전달.
+- `components/calendar/TaskListPanel.tsx`: taskTypes props + .ed-type 태스크종류 범례(헤더 '태스크 종류'+＋종류, type chip=applyTone(블루,tt) 톤 스와치+이름, 클릭→onEditTaskType) — ed-proj-head/list·proj-chip/proj-sw 재사용. applyTone/DEFAULT_PROJECT_COLOR import.
+- `app/globals.css`: .tt-sw(.on/focus 검은 링, 1px border-soft로 연한 틴트 가시화)/.tt-ends(진함↔연함 캡션) + .ed-type 섹션.
+- 즉시 반영(AC3): 막대 색=barColors(project.color, taskTypesById.get(...))가 렌더마다 재계산. taskTypes state 갱신 → taskTypesById memo → CalendarView 막대 톤 + 패널 tp-dot 스와치 + Create/EditPopover 종류 select 옵션 모두 자동 갱신.
+- 파일: lib/taskType/{manage.ts,manage.test.ts}(신규), components/calendar/{TaskTypePopover.tsx(신규),CalendarApp.tsx,TaskListPanel.tsx}, app/globals.css, scripts/ralph/{prd.json,progress.txt}
+- 품질: typecheck ✓ / lint ✓(0 errors/warnings) / test ✓(153 passed: 기존 138 + 신규 15). dev GET / 200, SSR에 ed-type/'태스크 종류'/＋ 종류 렌더, 서버 에러/경고 없음(종류 칩은 클라 DB 로드 후 마운트 = SSR엔 범례 헤더/버튼만, 정상).
+- Needs human browser verification:
+  - 패널 ＋종류 → 팝오버에서 이름·톤 단계 선택 후 추가 시 범례에 칩이 뜨고, 그 종류로 할일 생성 시 막대가 해당 톤으로 칠해지는지
+  - 종류 칩 클릭 → 편집에서 이름/톤 변경 저장 시 해당 종류의 모든 막대 톤이 즉시 바뀌고 패널 스와치도 일치하는지(AC3, Verify in browser)
+  - 톤 단계 픽커 4 스와치가 진함→연함 사다리로 보이고 선택 링이 명확한지(특히 가장 연한 리서치 톤이 흰 배경에서 하이라인으로 구분되는지)
+  - 종류 삭제 2단계 확인 후 소속 할일이 기본 종류(마감)로 이동하고 막대 톤이 기본으로 바뀌는지, 새로고침 후 유지
+  - 기본 태스크종류(마감) 칩 편집 시 삭제 버튼 대신 '삭제할 수 없습니다' 노트가 보이는지(AC5)
+  - 종류 4개 초과 추가 시도 시 권장 단계 안내(AC6)가 표시되는지
+- Learnings for future iterations:
+  - 시드 4종이 동일 createdAt → "기본" 판정은 createdAt이 아니라 **order**가 1순위여야 함(UUID id 폴백 회피). 프로젝트(시드 1개라 createdAt로 충분)와 다른 점. defaultProjectId vs defaultTaskTypeId가 갈리는 이유.
+  - 톤 선택지는 확정된 4단계(TONE_STEPS)만 — 임의 k 슬라이더 미도입(color-system 32조합 AA↑ 보장 범위 유지, "색상 재생성 금지" 규칙). 향후 단계 확장 시 TASK_TYPE_TONES에 추가 + WCAG 재검증 필요.
+  - 톤 스와치 미리보기는 고정 PREVIEW_HUE(블루) — 태스크종류는 전역이라 특정 프로젝트 색에 종속되지 않음. 범례 칩 스와치도 동일(블루 톤). 실제 막대는 각 프로젝트 색×이 톤.
+  - 삭제 reassign 단일 모드(AC4 '기본 종류로 이동'만) — 프로젝트(reassign/deleteTasks 2모드)와 달리 할일을 함께 지우는 옵션 없음. dest=defaultTaskTypeId(잔여)는 삭제 대상이 비-기본이라 전체 기본과 동일. 마지막 1개 타입 삭제는 dest=null → noop(기본은 어차피 삭제 숨김이라 비도달).
+  - AC2(전역 공유)는 US-002부터 구조적으로 충족(taskTypes 단일 테이블, 프로젝트 무관). 별도 작업 불필요 — 범례/팝오버가 전역 1세트를 편집.
+  - US-014 범례+토글: .ed-type/.ed-proj 범례에 토글 얹는 패턴 동일. US-015 종류 필터도 이 범례에서 on/off → CalendarApp 공유 필터 상태로 양쪽 적용.
+---

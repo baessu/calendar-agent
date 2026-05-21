@@ -16,13 +16,16 @@
 import { useMemo } from "react";
 import { parseDate } from "@/lib/calendar/dates";
 import { formatRangeLabel } from "@/lib/calendar/selection";
-import { barColors } from "@/lib/color/compose";
+import { applyTone, barColors } from "@/lib/color/compose";
+import { DEFAULT_PROJECT_COLOR } from "@/lib/color/tokens";
 import type { Project, Task, TaskType } from "@/lib/types";
 
 interface TaskListPanelProps {
   tasks: Task[];
   /** All projects, ordered — drives the project legend (US-011). */
   projects: Project[];
+  /** All task types, ordered — drives the task-type legend (US-012). */
+  taskTypes: TaskType[];
   projectsById: Map<string, Project>;
   taskTypesById: Map<string, TaskType>;
   /** Highlight a task's bar in the calendar. */
@@ -37,11 +40,16 @@ interface TaskListPanelProps {
   onAddProject: (x: number, y: number) => void;
   /** Open the project popover to edit/delete a project (legend chip click). */
   onEditProject: (project: Project, x: number, y: number) => void;
+  /** Open the task-type popover to create a new type (legend "＋ 종류"). */
+  onAddTaskType: (x: number, y: number) => void;
+  /** Open the task-type popover to edit/delete a type (legend chip click). */
+  onEditTaskType: (taskType: TaskType, x: number, y: number) => void;
 }
 
 export function TaskListPanel({
   tasks,
   projects,
+  taskTypes,
   projectsById,
   taskTypesById,
   onSelectTask,
@@ -50,6 +58,8 @@ export function TaskListPanel({
   onAddMarker,
   onAddProject,
   onEditProject,
+  onAddTaskType,
+  onEditTaskType,
 }: TaskListPanelProps) {
   // Start-date ascending; ties broken by title for a stable order.
   const sorted = useMemo(
@@ -94,6 +104,40 @@ export function TaskListPanel({
             >
               <span className="proj-sw" style={{ background: p.color }} aria-hidden />
               {p.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Task-type legend (US-012): tone swatch (previewed on a reference hue)
+          + name. Click a chip to rename/retone/delete; "＋ 종류" creates one.
+          Task types are global (shared by all projects). */}
+      <div className="ed-type">
+        <div className="ed-proj-head">
+          태스크 종류
+          <button
+            type="button"
+            className="mk-add"
+            onClick={(e) => onAddTaskType(e.clientX, e.clientY)}
+          >
+            ＋ 종류
+          </button>
+        </div>
+        <div className="ed-proj-list">
+          {taskTypes.map((tt) => (
+            <button
+              key={tt.id}
+              type="button"
+              className="proj-chip"
+              onClick={(e) => onEditTaskType(tt, e.clientX, e.clientY)}
+              aria-label={`${tt.name} 태스크 종류 관리`}
+            >
+              <span
+                className="proj-sw"
+                style={{ background: applyTone(DEFAULT_PROJECT_COLOR, tt) }}
+                aria-hidden
+              />
+              {tt.name}
             </button>
           ))}
         </div>

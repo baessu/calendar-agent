@@ -14,9 +14,11 @@ import {
   createMarker,
   createProject,
   createTask,
+  createTaskType,
   deleteMarker,
   deleteProject,
   deleteTask,
+  deleteTaskType,
   getAllMarkers,
   getAllProjects,
   getAllTaskTypes,
@@ -25,10 +27,15 @@ import {
   updateMarker,
   updateProject,
   updateTask,
+  updateTaskType,
   type MarkerChanges,
   type MarkerInput,
 } from "@/lib/db";
 import { defaultProjectId, nextProjectOrder } from "@/lib/project/manage";
+import {
+  defaultTaskTypeId,
+  nextTaskTypeOrder,
+} from "@/lib/taskType/manage";
 import type { DateString, Marker, Project, Task, TaskType } from "@/lib/types";
 import { CalendarView } from "./CalendarView";
 import type { EditTaskDraft } from "./EditPopover";
@@ -38,6 +45,7 @@ import {
   type ProjectDraft,
 } from "./ProjectPopover";
 import { TaskListPanel } from "./TaskListPanel";
+import { TaskTypePopover, type TaskTypeDraft } from "./TaskTypePopover";
 
 /** A new task's fields; dates come from the calendar's committed selection. */
 export interface NewTaskInput {
@@ -273,6 +281,86 @@ export function CalendarApp() {
     [projectPopover, tasks, projects],
   );
 
+  // --- Task-type management (US-012) ----------------------------------------
+  // One popover handles create (taskType:null) and edit/delete. Task types are
+  // global; renaming or retoning re-shades every bar of that type at once (both
+  // views derive bar colors from the task type in this shared state).
+  const [taskTypePopover, setTaskTypePopover] = useState<{
+    taskType: TaskType | null;
+    x: number;
+    y: number;
+  } | null>(null);
+
+  // Per-type task counts, for the delete confirmation copy.
+  const taskCountByTaskType = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const t of tasks) m.set(t.taskTypeId, (m.get(t.taskTypeId) ?? 0) + 1);
+    return m;
+  }, [tasks]);
+
+  const openTaskTypeCreate = useCallback(
+    (x: number, y: number) => setTaskTypePopover({ taskType: null, x, y }),
+    [],
+  );
+  const openTaskTypeEdit = useCallback(
+    (taskType: TaskType, x: number, y: number) =>
+      setTaskTypePopover({ taskType, x, y }),
+    [],
+  );
+  const closeTaskTypePopover = useCallback(() => setTaskTypePopover(null), []);
+
+  const handleSaveTaskType = useCallback(
+    async (draft: TaskTypeDraft) => {
+      const editing = taskTypePopover?.taskType;
+      if (editing) {
+        await updateTaskType(editing.id, {
+          name: draft.name,
+          mode: draft.mode,
+          k: draft.k,
+        });
+        setTaskTypes((prev) =>
+          prev.map((tt) => (tt.id === editing.id ? { ...tt, ...draft } : tt)),
+        );
+      } else {
+        const created = await createTaskType({
+          name: draft.name,
+          mode: draft.mode,
+          k: draft.k,
+          order: nextTaskTypeOrder(taskTypes),
+        });
+        setTaskTypes((prev) => [...prev, created]);
+      }
+      setTaskTypePopover(null);
+    },
+    [taskTypePopover, taskTypes],
+  );
+
+  // Delete a task type (AC4/AC5): its tasks move to the default type (the
+  // remaining type with the smallest order). The default type never reaches
+  // here — the popover hides delete for it.
+  const handleDeleteTaskType = useCallback(async () => {
+    const target = taskTypePopover?.taskType;
+    if (!target) return;
+    const dest = defaultTaskTypeId(taskTypes.filter((tt) => tt.id !== target.id));
+    if (!dest) return; // never delete the last task type
+    const affected = tasks.filter((t) => t.taskTypeId === target.id);
+
+    await Promise.all(
+      affected.map((t) => updateTask(t.id, { taskTypeId: dest })),
+    );
+    await deleteTaskType(target.id);
+
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.taskTypeId === target.id
+          ? { ...t, taskTypeId: dest, updatedAt: Date.now() }
+          : t,
+      ),
+    );
+    setTaskTypes((prev) => prev.filter((tt) => tt.id !== target.id));
+    setTaskTypePopover(null);
+  }, [taskTypePopover, tasks, taskTypes]);
+
   return (
     <>
       <CalendarView
@@ -297,6 +385,7 @@ export function CalendarApp() {
       <TaskListPanel
         tasks={tasks}
         projects={projects}
+        taskTypes={taskTypes}
         projectsById={projectsById}
         taskTypesById={taskTypesById}
         onSelectTask={handleSelectTask}
@@ -305,6 +394,8 @@ export function CalendarApp() {
         onAddMarker={handleAddMarker}
         onAddProject={openProjectCreate}
         onEditProject={openProjectEdit}
+        onAddTaskType={openTaskTypeCreate}
+        onEditTaskType={openTaskTypeEdit}
       />
       {projectPopover && (
         <ProjectPopover
@@ -320,6 +411,22 @@ export function CalendarApp() {
           onClose={closeProjectPopover}
           onSave={handleSaveProject}
           onDelete={projectPopover.project ? handleDeleteProject : undefined}
+        />
+      )}
+      {taskTypePopover && (
+        <TaskTypePopover
+          taskType={taskTypePopover.taskType}
+          x={taskTypePopover.x}
+          y={taskTypePopover.y}
+          taskTypes={taskTypes}
+          taskCount={
+            taskTypePopover.taskType
+              ? taskCountByTaskType.get(taskTypePopover.taskType.id) ?? 0
+              : 0
+          }
+          onClose={closeTaskTypePopover}
+          onSave={handleSaveTaskType}
+          onDelete={taskTypePopover.taskType ? handleDeleteTaskType : undefined}
         />
       )}
     </>
