@@ -213,3 +213,26 @@
   - 패널 항목은 <button>이라 자식은 phrasing content만 가능(div 금지) → tp-body/title/meta를 <span>+display:block으로 구성.
   - addNonce/highlightNonce 패턴: 초기값 0은 마운트 시 무시(addNonce===0 가드). 클릭마다 +1.
 ---
+
+## 2026-05-21T22:05:00 - US-009
+- 막대 클릭 → 편집/삭제 팝오버. 편집/삭제가 캘린더+사이드 패널 양쪽에 즉시 반영(공유 tasks state 덕). 드래그 이동(4px 임계)은 US-010 범위.
+- `components/calendar/EditPopover.tsx`(신규): 막대 클릭 시 기존 값 prefill(title/project/type/start/end). 제목 input(autofocus+select, trim 빈값 차단 '제목을 입력하세요' 인라인). native `<input type=date>` 2개(시작/종료) — 값=YYYY-MM-DD라 DateString과 직결, 별도 파싱 불필요. 저장 시 normalizeRange(start>end면 자동 스왑 — US-004 드래그 규칙과 동일하게 forgiving)로 보정 후 onSave(EditTaskDraft). 라이브 기간 라벨(formatRangeLabel)이 날짜 입력 따라 갱신. 삭제=2단계 인라인 확인(삭제 클릭→'삭제할까요? [삭제][취소]') — native confirm() 대신 인라인(스위스 하이라인/그림자 없음 유지, 테스트·a11y 용이). ESC/✕/투명 backdrop 닫힘, 뷰포트 클램프, cpIn 애니메이션. cp-* 스타일 재사용.
+- `components/calendar/CalendarView.tsx`: 막대 div에 role="button"+tabIndex=0+aria-label "{제목} — 편집" + onClick(openEdit, e.clientX/Y 앵커) + onKeyDown(Enter/Space → e.currentTarget.getBoundingClientRect()로 위치, preventDefault). editingTaskId/editPos state, editingTask=useMemo(tasks.find). openEdit는 진행 중 create selection 닫음(상호배타). handleEditSave→onUpdateTask 후 closeEdit, handleEditDelete→onDeleteTask 후 closeEdit. EditPopover를 CreatePopover와 나란히 조건부 렌더. onUpdateTask/onDeleteTask props 추가.
+- `components/calendar/CalendarApp.tsx`: handleUpdateTask(updateTask DB + setTasks map으로 changes merge + updatedAt=Date.now())/handleDeleteTask(deleteTask DB + setTasks filter + 삭제 대상이 현재 highlight면 해제). CalendarView에 두 핸들러 전달. handleDeleteTask는 setHighlightedTaskId 선언 이후로 이동(아래 학습 참고).
+- `app/globals.css`: .cal-bar pointer-events:none→auto + cursor:pointer + hover(1.5px)/focus-visible(2px) 모노크롬 outline(색은 막대 fill에만 유지). .cp-select에 .cp-date 묶어 동일 하이라인 스타일 + tabular-nums. .cp-foot(삭제 좌/저장 우)/.cp-del/.cp-confirm(-q/-yes/-no) 추가.
+- 파일: components/calendar/{EditPopover.tsx(신규),CalendarView.tsx,CalendarApp.tsx}, app/globals.css, scripts/ralph/{prd.json,progress.txt}
+- 품질: typecheck ✓ / lint ✓(0) / test ✓(112 passed — 신규 순수 로직 없음: 날짜 정규화는 기존 normalizeRange 재사용, 이미 12 selection 테스트로 커버). dev GET / 200, SSR 217셀·data-today 1·ed-list 렌더, 서버 에러/경고 없음(팝오버는 클라 전용 — 인터랙션 후 마운트).
+- Needs human browser verification:
+  - 막대 클릭 시 편집 창이 클릭 위치 근처에 뜨고 기존 값(제목/기간/프로젝트/종류)이 채워지는지
+  - 제목/시작·종료일/프로젝트/종류 변경 후 저장이 막대에 반영되고, 프로젝트·종류 변경 시 막대 색(색조/톤)이 즉시 바뀌는지
+  - 삭제 2단계 확인 후 막대가 사라지고 사이드 패널 목록·카운트가 즉시 갱신되는지
+  - 시작일을 종료일보다 뒤로 입력해도 정상 범위로 정규화되는지
+  - 키보드(Tab으로 막대 포커스 → Enter/Space)로도 편집 창이 열리는지, ESC/바깥클릭 닫힘
+- Learnings for future iterations:
+  - React Compiler 린트(react-hooks/preserve-manual-memoization + 'Cannot access variable before it is declared'): useCallback 본문이 **뒤에 선언된** useState 세터를 참조하면 에러. setHighlightedTaskId를 쓰는 handleDeleteTask는 반드시 그 useState 선언 **아래** 배치할 것. (런타임은 클로저라 OK여도 컴파일러 분석이 막음.)
+  - 막대 pointer-events:auto로 전환 — 이제 막대 위에서는 드래그-셀렉션(US-004)이 시작 안 됨(막대가 pointerdown 가로챔). 의도된 동작(막대=편집/이동, 빈 칸=새 선택). US-010 드래그 이동은 이 막대 pointer 이벤트 위에 4px 임계로 click(편집) vs drag(이동) 구분을 얹으면 됨 — onPointerDown에서 시작점 기록, 4px 넘으면 이동 모드, 안 넘고 release면 openEdit 호출.
+  - 날짜 편집은 native `<input type=date>`로 충분(값=YYYY-MM-DD=DateString). tz 없는 문자열 그대로라 parseDate 불필요. 정규화만 normalizeRange로.
+  - 편집/삭제 즉시 반영의 핵심=CalendarApp이 tasks 단일 진실원본. mutate 핸들러가 DB + setTasks 둘 다 갱신하면 캘린더(막대 색=barColors 렌더마다 재계산)와 패널(스와치/메타) 자동 동기화. US-011/012(프로젝트·종류 편집)도 같은 패턴: projects/taskTypes mutate 핸들러 추가 → 막대 색 자동 재계산.
+  - 삭제 확인은 인라인 2단계가 native confirm()보다 디자인(그림자 없는 하이라인)·테스트 친화적. 파괴적 확정 버튼만 채운 검정, 나머지는 하이라인.
+  - 막대 hover/focus는 모노크롬 outline(색 규칙 위반 없이 affordance 제공). .hl(패널 강조 2px) vs hover(1.5px) vs focus-visible(2px) outline 공존 — z-index로 우선순위(focus 2 > hover 1).
+---

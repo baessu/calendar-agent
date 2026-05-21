@@ -159,8 +159,8 @@
         "Verify in browser: 편집·삭제가 양쪽 뷰 반영"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "components/calendar/EditPopover.tsx(신규): 막대 클릭 시 기존 값 prefill(title/projectId/taskTypeId/startDate/endDate). 제목 input(빈값 차단 '제목을 입력하세요'), native date input 2개(시작/종료, .cp-date), 프로젝트·종류 select. 저장 시 normalizeRange(역방향 자동정규화 — US-004 규칙 재사용)로 start<=end 보정 후 onSave(EditTaskDraft). 삭제=2단계 인라인 확인('삭제할까요? [삭제][취소]', native confirm 미사용 — 스위스 하이라인 유지). cp-* 스타일 공유 + .cp-foot/.cp-del/.cp-confirm-yes/no 추가. ESC/✕/backdrop 닫힘, 뷰포트 클램프. CalendarView: 막대 div에 role=button/tabIndex/aria-label + onClick(openEdit at clientX/Y) + onKeyDown(Enter/Space → bar rect 기준 위치). .cal-bar pointer-events:none→auto + cursor:pointer + hover/focus-visible 모노크롬 outline(드래그선택은 빈 칸에서 시작). editingTaskId/editPos state, editingTask=tasks.find. onUpdateTask/onDeleteTask props. CalendarApp: handleUpdateTask(updateTask DB + setTasks map merge, updatedAt 갱신)/handleDeleteTask(deleteTask DB + setTasks filter + 해당 highlight 해제). 양 뷰가 공유 tasks state에서 렌더 → 편집/삭제·색조/톤 변경 즉시 반영(캘린더 막대 + 패널 스와치). handleDeleteTask는 setHighlightedTaskId 선언 뒤로 배치(React Compiler 'access before declared' 회피). 112 tests green(신규 순수로직 없음 — normalizeRange 재사용, 이미 테스트됨). typecheck ✓ / lint ✓(0) / dev GET / 200, SSR 217셀·data-today 1·ed-list, 서버 에러/경고 없음."
     },
     {
       "id": "US-010",
