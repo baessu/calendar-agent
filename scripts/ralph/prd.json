@@ -142,8 +142,8 @@
         "Verify in browser: 할일 추가 시 패널 즉시 갱신"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "CalendarApp(상위 클라이언트)가 projects/taskTypes/tasks·projectsById/taskTypesById를 소유하고 CalendarView(.ed-main)+TaskListPanel(.ed-list)을 fragment로 렌더 → page.tsx는 .app-shell flex 컨테이너. 데이터/시드 로드를 CalendarView에서 CalendarApp으로 이관, CalendarView는 props 기반(presentational)으로 전환·createTask는 onCreateTask 콜백 위임. TaskListPanel: 시작일 오름차순(동률 title) 정렬, 빈 상태 '일칸을 드래그해 첫 할일을 추가하세요', 항목=tp-dot(barColors 톤 스와치=색조+톤)+제목+메타(formatRangeLabel · 프로젝트명 · 종류명), numbadge 카운트, ＋할일추가 푸터(onAdd→addNonce). 패널 클릭 강조: highlightedTaskId(.cal-bar.hl 모노크롬 outline 링)+highlightNonce(반복클릭 재스크롤), CalendarApp이 1.8s 후 자동 해제. CalendarView highlight effect: weekKeysInRange로 막대 덮는 주 자동 펼침 후 rAF에서 [data-date=startDate] 셀 중앙 스크롤. set-state-in-effect 회피 위해 highlight/add effect 모두 rAF 내부에서 setState. infinite.ts weekKeyOf(일요일 키)/weekKeysInRange(+7 tests). 112 tests green(+7). dev GET / 200, SSR ed-list/numbadge/tp-empty/ed-contact·cal-cell 217·data-today 1, 서버 에러/경고 없음(막대·목록은 클라 로드 후)."
     },
     {
       "id": "US-009",

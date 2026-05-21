@@ -185,3 +185,31 @@
   - DEFAULT_MAX_LANES=3은 lib/calendar/layout.ts 상수. US-008 사이드패널/US-013 통합 뷰에서 막대 수↑ 시 임계 조정 가능(open question §3 기본 3~4 유지).
   - US-009 편집/삭제·US-010 이동으로 tasks 변하면 layoutWeek가 렌더마다 재계산(주당 가벼움). 막대 클릭(US-009)/드래그(US-010)는 .cal-bar pointer-events:none을 그 스토리에서 풀어야 함 — '+N개' 칩은 이미 auto라 충돌 없음.
 ---
+
+## 2026-05-21T21:55:00 - US-008
+- 오른쪽 "할일" 사이드 패널(날짜순 목록) + 패널↔캘린더 연결. 공유 상태를 상위로 끌어올림(US-005 노트 예고대로).
+- 구조 리팩터:
+  - `components/calendar/CalendarApp.tsx`(use client, 신규): projects/taskTypes/tasks + projectsById/taskTypesById를 소유. 마운트 시 seedIfEmpty+getAll* 로드(CalendarView에서 이관). createTask는 handleCreateTask에서 수행 후 tasks append. fragment로 <CalendarView/>(.ed-main)+<TaskListPanel/>(.ed-list) 렌더 → page.tsx의 .app-shell이 flex 컨테이너라 둘이 형제 flex child.
+  - `app/page.tsx`: <CalendarView/> → <CalendarApp/>.
+  - `CalendarView.tsx`: 자체 데이터 state/로드/seed 제거, props 기반 presentational로 전환. handleCreate→onCreateTask(NewTaskInput) 위임. projectsById/taskTypesById도 props로 받음.
+- `components/calendar/TaskListPanel.tsx`(use client, 신규): tasks를 parseDate(startDate) 오름차순(동률 title.localeCompare) 정렬. 항목=버튼(.tp-item): tp-dot(barColors(project.color,taskType).background = 색조+톤 스와치, 막대색과 동일)+tp-title(말줄임)+tp-meta(formatRangeLabel · 프로젝트명 · 종류명). 헤더 numbadge=tasks.length + "날짜순". 빈 상태 .tp-empty("일칸을 드래그해 첫 할일을 추가하세요"). 푸터 .ed-contact "↳ ＋ 할일 추가"(onAdd).
+- 패널→캘린더 강조(AC4): CalendarApp이 highlightedTaskId(.cal-bar.hl 모노크롬 outline 링)+highlightNonce(반복 클릭 재스크롤) 보유, handleSelectTask가 1.8s 후 자동 해제(타이머 ref, 언마운트 정리). CalendarView highlight effect: weekKeysInRange로 막대가 덮는 모든 주를 expandedWeeks에 추가(오버플로로 숨은 막대도 표시) 후 rAF에서 [data-date=task.startDate] 셀을 뷰포트 중앙으로 smooth 스크롤(셀은 항상 렌더되므로 펼침 전에도 스크롤 타깃 존재). 막대에 data-task-id, 셀에 data-date 부여.
+- 패널 "＋ 할일 추가"(AC 외 레이아웃 보강): addNonce 증가 → CalendarView가 오늘 날짜(start=end=today)로 popover 오픈(뷰포트 중앙 근처, 클램프).
+- 순수 로직: `lib/calendar/infinite.ts` weekKeyOf(date)=그 주 일요일 키(buildWeeksRange의 week[0].date와 동일), weekKeysInRange(start,end)=구간이 덮는 일요일 키 배열. +7 단위 테스트(중간일/일/토, week[0].date 일치, 동주/2주/3주).
+- 파일: components/calendar/{CalendarApp.tsx(신규),TaskListPanel.tsx(신규),CalendarView.tsx}, app/{page.tsx,globals.css}, lib/calendar/{infinite.ts,infinite.test.ts}
+- 품질: typecheck ✓ / lint ✓(0) / test ✓(112 passed: 기존 105 + 신규 7). dev GET / 200, SSR에 .ed-list/numbadge/tp-empty/ed-contact + cal-cell 217·data-today 1 렌더, 서버 에러/경고 없음(막대·목록 항목은 클라 DB 로드 후 마운트 = SSR엔 빈 패널/빈 상태가 정상).
+- Needs human browser verification:
+  - 할일 추가 시 우측 패널이 즉시 갱신되고 numbadge 카운트가 오르는지
+  - 항목 클릭 시 캘린더가 해당 막대로 스크롤되고 모노크롬 링으로 강조되는지(오버플로로 숨었던 막대면 그 주가 펼쳐져 보이는지)
+  - tp-dot 색이 실제 막대색(색조+톤)과 일치하는지, 메타에 기간/프로젝트/종류가 맞게 표시되는지
+  - 빈 상태 문구 표시, ＋할일추가 클릭 시 오늘 날짜 popover 오픈
+  - 좁은 화면에서 패널(300px 고정)이 캘린더를 과하게 압박하지 않는지(반응형 접힘은 US 미정의 — 현재 항상 표시)
+- Learnings for future iterations:
+  - set-state-in-effect(react-hooks 신규 룰): 이펙트 본문에서 동기 setState 금지. 형제 컴포넌트 nonce 트리거에 반응하는 이펙트는 requestAnimationFrame 콜백 안에서 setState하면 룰 통과 + 커밋 단계 밖으로 지연(코드베이스의 기존 패턴=중첩 콜백 안 setState와 일관).
+  - 상태 소유 이전: CalendarView가 더 이상 데이터를 로드하지 않음 → tasks/projects/taskTypes는 CalendarApp이 진실원본. US-009 편집/삭제·US-010 이동·US-011/012 관리도 CalendarApp에 mutate 핸들러(onUpdateTask/onDeleteTask 등) 추가하고 양쪽에 내려주면 패널·캘린더 동시 갱신. (현재 onCreateTask만 존재)
+  - DbInit(컴포넌트)와 CalendarApp 둘 다 seedIfEmpty 호출 — seedIfEmpty가 멱등이라 안전. CalendarApp에서 로드 전에 seed 보장.
+  - 강조 링은 막대에만 outline(모노크롬). 패널 tp-dot은 막대색과 동일(barColors)이라 패널↔막대 시각적 동일성 확보 — US-009에서 색 변경 시 양쪽 자동 일치.
+  - AC "현재 뷰/필터와 동기화": 아직 뷰 전환(US-013)·표시토글(US-014)·종류필터(US-015) 미구현 → 현재는 캘린더·패널 둘 다 전체 tasks를 필터 없이 렌더하므로 자동 동기화. 그 스토리들에서 필터를 공유 상태(CalendarApp)에 두고 양쪽에 적용하면 동기 유지.
+  - 패널 항목은 <button>이라 자식은 phrasing content만 가능(div 금지) → tp-body/title/meta를 <span>+display:block으로 구성.
+  - addNonce/highlightNonce 패턴: 초기값 0은 마운트 시 무시(addNonce===0 가드). 클릭마다 +1.
+---
