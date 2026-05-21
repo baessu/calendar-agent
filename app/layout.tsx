@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { DbInit } from "@/components/db-init";
 
 export const metadata: Metadata = {
   title: "캘린더",
@@ -13,7 +14,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko" className="h-full antialiased">
-      <body className="min-h-full">{children}</body>
+      <body className="min-h-full">
+        <DbInit />
+        {children}
+      </body>
     </html>
   );
 }
