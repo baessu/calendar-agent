@@ -227,8 +227,8 @@
         "Verify in browser: 뷰 전환 시 막대 집합이 올바르게 변경"
       ],
       "priority": 6,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "lib/calendar/view.ts(신규) filterTasksByProject(tasks, selectedProjectId): null=전체(통합, 입력 그대로 반환)·그 외=projectId 일치 필터(순서 보존). +6 단위 테스트(null=전체 동일참조/빈배열/개별필터/순서보존/미존재 id 빈/빈입력). CalendarApp: selectedProjectId state(null=전체) + handleSelectProject + visibleTasks=filterTasksByProject(tasks, selectedProjectId) memo. visibleTasks를 CalendarView·TaskListPanel 둘 다 tasks prop으로 전달 → 캘린더 막대·패널 목록·numbadge가 활성 탭과 동기화(AC: 막대 집합 변경). taskCountByProject/taskCountByTaskType는 전체 tasks 유지(삭제 확인 카운트 정확). handleDeleteProject: 삭제 대상이 활성 탭이면 selectedProjectId→null 폴백. CalendarView: selectedProjectId/onSelectProject props + .ptabs 렌더(.ed-bar와 .ed-calwrap 사이, F탭 IA) — 전체 탭(role=tab, aria-selected) + 프로젝트별 탭(.pd 색점=프로젝트 정체성색 color-system §2 허용 + 이름), .ptab.on=검은 밑줄(밑줄형). CreatePopover defaultProjectId=selectedProjectId로 교체: 개별 뷰=그 프로젝트 기본값(AC4), 통합 뷰(null)=projectId '' 시작 + '프로젝트 선택' placeholder option(disabled) + 저장 시 미선택이면 '프로젝트를 선택하세요' 인라인 에러(error를 {field:'title'|'project',msg}로 확장해 필드별 aria-invalid/메시지 위치 분리). globals.css: .ptabs/.ptab(.on 검은 밑줄)/.pd. 통합 뷰 색 구분=AC2(barColors 색조), 개별 뷰 톤 유지=AC3(barColors 톤). 159 tests green(+6). typecheck ✓ / lint ✓(0) / dev GET / 200, SSR에 .ptabs+전체 탭·cal-cell 217 렌더(프로젝트별 탭은 클라 DB 로드 후), 서버 에러/경고 없음."
     },
     {
       "id": "US-014",

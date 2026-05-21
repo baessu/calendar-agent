@@ -114,6 +114,10 @@ interface CalendarViewProps {
   markers: Marker[];
   projectsById: Map<string, Project>;
   taskTypesById: Map<string, TaskType>;
+  /** Active project tab: null = 전체(통합), else an individual project (US-013). */
+  selectedProjectId: string | null;
+  /** Switch the active project tab. */
+  onSelectProject: (id: string | null) => void;
   /** Persist a new task across the committed selection. */
   onCreateTask: (input: NewTaskInput) => Promise<void> | void;
   /** Patch an existing task (title/dates/project/task-type) — US-009. */
@@ -145,6 +149,8 @@ export function CalendarView({
   markers,
   projectsById,
   taskTypesById,
+  selectedProjectId,
+  onSelectProject,
   onCreateTask,
   onUpdateTask,
   onMoveTask,
@@ -573,6 +579,35 @@ export function CalendarView({
         </button>
       </div>
 
+      {/* Project tabs (US-013): 전체(통합) + each project, underline-active. The
+          merged view shows all bars (distinguished by hue); an individual tab
+          filters to that project (task-type tone preserved). Project identity
+          colors are allowed on the dot (color-system §2), unlike grid chrome. */}
+      <div className="ptabs" role="tablist" aria-label="프로젝트 뷰">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={selectedProjectId === null}
+          className={`ptab${selectedProjectId === null ? " on" : ""}`}
+          onClick={() => onSelectProject(null)}
+        >
+          전체
+        </button>
+        {projects.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            role="tab"
+            aria-selected={selectedProjectId === p.id}
+            className={`ptab${selectedProjectId === p.id ? " on" : ""}`}
+            onClick={() => onSelectProject(p.id)}
+          >
+            <span className="pd" style={{ background: p.color }} aria-hidden />
+            {p.name}
+          </button>
+        ))}
+      </div>
+
       <div
         className={`ed-calwrap${isDragging ? " is-selecting" : ""}${
           movingTaskId ? " is-moving" : ""
@@ -758,7 +793,7 @@ export function CalendarView({
           y={popoverPos.y}
           projects={projects}
           taskTypes={taskTypes}
-          defaultProjectId={projects[0]?.id ?? null}
+          defaultProjectId={selectedProjectId}
           onClose={closePopover}
           onCreate={handleCreate}
         />

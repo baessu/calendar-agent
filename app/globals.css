@@ -111,6 +111,46 @@ body {
   border-color: var(--text);
 }
 
+/* Project tabs (US-013): 전체(통합) + each project, underline-active. Mirrors
+   the F-tab editorial IA — flat, no fill, the active tab carries a black
+   underline. The dot uses the project identity color (color-system §2). */
+.ptabs {
+  display: flex;
+  gap: 0;
+  padding: 0 30px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.ptab {
+  border: none;
+  background: none;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  padding: 11px 14px 9px;
+  font-size: 12px;
+  margin-bottom: -1px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  letter-spacing: -0.03em;
+  cursor: pointer;
+  font-family: inherit;
+}
+.ptab:hover {
+  color: var(--text);
+}
+.ptab.on {
+  border-bottom-color: var(--text);
+  color: var(--text);
+  font-weight: 600;
+}
+.ptab .pd {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex: none;
+}
+
 /* Scroll container for the continuous months. */
 .ed-calwrap {
   flex: 1;

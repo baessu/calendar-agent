@@ -61,11 +61,14 @@ export function CreatePopover({
   const [pos, setPos] = useState({ left: x, top: y });
 
   const [title, setTitle] = useState("");
-  const [projectId, setProjectId] = useState(
-    defaultProjectId ?? projects[0]?.id ?? "",
-  );
+  // In the merged "전체" view (no defaultProjectId) the project is left unchosen
+  // so the user must pick one (US-013 AC4); an individual view preselects it.
+  const [projectId, setProjectId] = useState(defaultProjectId ?? "");
   const [taskTypeId, setTaskTypeId] = useState(taskTypes[0]?.id ?? "");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{
+    field: "title" | "project";
+    msg: string;
+  } | null>(null);
 
   const canSave = useMemo(
     () => projects.length > 0 && taskTypes.length > 0,
@@ -99,11 +102,15 @@ export function CreatePopover({
   function submit() {
     const trimmed = title.trim();
     if (!trimmed) {
-      setError("제목을 입력하세요");
+      setError({ field: "title", msg: "제목을 입력하세요" });
       inputRef.current?.focus();
       return;
     }
-    if (!canSave || !projectId || !taskTypeId) return;
+    if (!canSave || !taskTypeId) return;
+    if (!projectId) {
+      setError({ field: "project", msg: "프로젝트를 선택하세요" });
+      return;
+    }
     onCreate({ title: trimmed, projectId, taskTypeId });
   }
 
@@ -140,13 +147,13 @@ export function CreatePopover({
             value={title}
             placeholder="할일 제목"
             aria-label="할일 제목"
-            aria-invalid={error ? true : undefined}
+            aria-invalid={error?.field === "title" ? true : undefined}
             onChange={(e) => {
               setTitle(e.target.value);
-              if (error) setError(null);
+              if (error?.field === "title") setError(null);
             }}
           />
-          {error && <p className="cp-err">{error}</p>}
+          {error?.field === "title" && <p className="cp-err">{error.msg}</p>}
 
           <div className="cp-row">
             <label className="cp-field">
@@ -154,8 +161,18 @@ export function CreatePopover({
               <select
                 className="cp-select"
                 value={projectId}
-                onChange={(e) => setProjectId(e.target.value)}
+                aria-invalid={error?.field === "project" ? true : undefined}
+                onChange={(e) => {
+                  setProjectId(e.target.value);
+                  if (error?.field === "project") setError(null);
+                }}
               >
+                {/* Merged view: an empty placeholder forces a deliberate pick. */}
+                {!defaultProjectId && (
+                  <option value="" disabled>
+                    프로젝트 선택
+                  </option>
+                )}
                 {projects.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
@@ -178,6 +195,7 @@ export function CreatePopover({
               </select>
             </label>
           </div>
+          {error?.field === "project" && <p className="cp-err">{error.msg}</p>}
 
           <button type="submit" className="cp-save" disabled={!canSave}>
             저장

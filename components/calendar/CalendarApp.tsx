@@ -31,6 +31,7 @@ import {
   type MarkerChanges,
   type MarkerInput,
 } from "@/lib/db";
+import { filterTasksByProject } from "@/lib/calendar/view";
 import { defaultProjectId, nextProjectOrder } from "@/lib/project/manage";
 import {
   defaultTaskTypeId,
@@ -99,6 +100,20 @@ export function CalendarApp() {
     for (const tt of taskTypes) m.set(tt.id, tt);
     return m;
   }, [taskTypes]);
+
+  // --- View switch: 전체(통합) ↔ individual project (US-013) -----------------
+  // `null` = merged view (all projects, distinguished by hue); a project id =
+  // that project's bars only. The same filtered set feeds the calendar and the
+  // panel so both stay in sync with the active tab.
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const handleSelectProject = useCallback(
+    (id: string | null) => setSelectedProjectId(id),
+    [],
+  );
+  const visibleTasks = useMemo(
+    () => filterTasksByProject(tasks, selectedProjectId),
+    [tasks, selectedProjectId],
+  );
 
   // Persist a new task, then surface it in both views.
   const handleCreateTask = useCallback(async (input: NewTaskInput) => {
@@ -272,6 +287,8 @@ export function CalendarApp() {
           : prev.filter((t) => t.projectId !== target.id),
       );
       setProjects((prev) => prev.filter((p) => p.id !== target.id));
+      // If the deleted project was the active tab, fall back to 전체 (US-013).
+      setSelectedProjectId((cur) => (cur === target.id ? null : cur));
       if (!dest) {
         const removed = new Set(affected.map((t) => t.id));
         setHighlightedTaskId((cur) => (cur && removed.has(cur) ? null : cur));
@@ -366,10 +383,12 @@ export function CalendarApp() {
       <CalendarView
         projects={projects}
         taskTypes={taskTypes}
-        tasks={tasks}
+        tasks={visibleTasks}
         markers={markers}
         projectsById={projectsById}
         taskTypesById={taskTypesById}
+        selectedProjectId={selectedProjectId}
+        onSelectProject={handleSelectProject}
         onCreateTask={handleCreateTask}
         onUpdateTask={handleUpdateTask}
         onMoveTask={handleMoveTask}
@@ -383,7 +402,7 @@ export function CalendarApp() {
         markerAddNonce={markerAddNonce}
       />
       <TaskListPanel
-        tasks={tasks}
+        tasks={visibleTasks}
         projects={projects}
         taskTypes={taskTypes}
         projectsById={projectsById}

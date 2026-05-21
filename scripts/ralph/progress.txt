@@ -353,3 +353,28 @@
   - AC2(전역 공유)는 US-002부터 구조적으로 충족(taskTypes 단일 테이블, 프로젝트 무관). 별도 작업 불필요 — 범례/팝오버가 전역 1세트를 편집.
   - US-014 범례+토글: .ed-type/.ed-proj 범례에 토글 얹는 패턴 동일. US-015 종류 필터도 이 범례에서 on/off → CalendarApp 공유 필터 상태로 양쪽 적용.
 ---
+
+## 2026-05-21T22:48:00 - US-013
+- 뷰 전환(전체/통합 ↔ 개별 프로젝트) + 색 구분. 상단 프로젝트 탭(밑줄형) IA를 .ed-bar와 .ed-calwrap 사이에 추가. 활성 탭의 tasks 집합이 캘린더·패널 양쪽에 동기 반영.
+- 순수 로직 분리: `lib/calendar/view.ts` filterTasksByProject(tasks, selectedProjectId): null=전체(통합 — 입력 배열 그대로 반환), 그 외=projectId 일치만 필터(원래 순서 보존). +6 단위 테스트(null=동일참조/빈배열·개별필터·순서보존·미존재 id 빈·빈입력).
+- `CalendarApp.tsx`: selectedProjectId state(null=전체) + handleSelectProject(탭 전환). visibleTasks=filterTasksByProject(tasks, selectedProjectId) memo를 CalendarView·TaskListPanel 둘 다 `tasks` prop으로 전달 → 막대 집합·목록·numbadge가 활성 탭과 동기(US-008 노트의 '뷰/필터 동기화' 예고대로). 단, taskCountByProject/taskCountByTaskType는 전체 tasks 기준 유지(삭제 확인 카운트 정확성). handleDeleteProject에 '삭제 대상이 활성 탭이면 selectedProjectId→null 폴백' 추가(없는 프로젝트 탭으로 빈 뷰 고착 방지).
+- `CalendarView.tsx`: selectedProjectId/onSelectProject props + `.ptabs` 렌더 — 전체 탭(role=tab/tablist, aria-selected) + 프로젝트별 탭(`.pd` 색점=프로젝트 정체성색, color-system §2 허용 + 이름), `.ptab.on`=검은 밑줄(밑줄형 underline-active). CreatePopover의 defaultProjectId를 `projects[0]?.id` → `selectedProjectId`로 교체(AC4: 개별 뷰=현재 프로젝트 기본값, 통합 뷰=미선택).
+- `CreatePopover.tsx`: 통합 뷰(defaultProjectId=null)에선 projectId=''로 시작 + '프로젝트 선택' placeholder option(disabled) 표시 + 저장 시 미선택이면 '프로젝트를 선택하세요' 인라인 에러(AC4 '선택 필요'). error를 {field:'title'|'project', msg} 구조로 확장해 필드별 aria-invalid/메시지 위치 분리(제목 에러는 제목 아래, 프로젝트 에러는 .cp-row 아래). 개별 뷰는 placeholder 없이 그 프로젝트 기본 선택.
+- `app/globals.css`: .ptabs(하단 하이라인)/.ptab(.on=검은 밑줄 2px)/.pd(색점) — F탭 .v-editorial .ptabs 미러. 자간 -0.03em 통일.
+- 색 구분: AC2(통합 뷰 모든 프로젝트 막대를 색조로 구분)·AC3(개별 뷰 해당 프로젝트만 + 톤 유지)는 기존 barColors(project.color, taskType) 그대로 충족 — 필터만 추가, 색 로직 불변.
+- 파일: lib/calendar/{view.ts,view.test.ts}(신규), components/calendar/{CalendarApp.tsx,CalendarView.tsx,CreatePopover.tsx}, app/globals.css, scripts/ralph/{prd.json,progress.txt}
+- 품질: typecheck ✓ / lint ✓(0 errors/warnings) / test ✓(159 passed: 기존 153 + 신규 6 view). dev GET / 200, SSR에 .ptabs 컨테이너 + 전체 탭 + cal-cell 217 렌더(프로젝트별 탭은 클라 DB 로드 후 마운트 = SSR엔 전체 탭만, 정상), 서버 에러/경고 없음.
+- Needs human browser verification:
+  - 전체 탭 선택 시 모든 프로젝트 막대가 색조로 구분되어 함께 보이는지(AC2)
+  - 개별 프로젝트 탭 선택 시 그 프로젝트 막대만 남고(톤은 유지) 패널 목록·numbadge도 함께 줄어드는지(AC3, Verify in browser)
+  - 탭 전환이 즉시(막대 집합 변경) 반영되고, 활성 탭에 검은 밑줄이 또렷한지
+  - 개별 뷰에서 드래그→등록 시 프로젝트 select 기본값이 현재 탭 프로젝트인지(AC4)
+  - 통합 뷰에서 등록 시 '프로젝트 선택' placeholder가 뜨고 미선택 저장 차단('프로젝트를 선택하세요')되는지(AC4)
+  - 활성 탭 프로젝트를 삭제하면 전체 뷰로 자동 복귀하는지
+- Learnings for future iterations:
+  - 뷰 필터는 CalendarApp의 공유 상태(visibleTasks)로 두고 캘린더·패널 둘 다에 같은 set을 내려야 동기 유지 — US-014(프로젝트 visible 토글)·US-015(종류 필터)도 동일 패턴으로 visibleTasks 파생에 AND 조건 추가하면 됨(filterTasksByProject + visible 필터 + taskType 필터 합성). 현재 view.ts는 탭 선택만; 토글/종류는 그 위에 얹기.
+  - taskCount* 메모는 전체 tasks 기준(필터 무관) — 삭제 확인·관리 UI는 뷰와 독립적으로 실제 보유 수를 봐야 함. 필터된 visibleTasks를 카운트에 쓰지 말 것.
+  - 프로젝트 정체성 원색은 탭 .pd 색점·범례 스와치에 허용(color-system §2), 그리드 크롬은 모노크롬 유지 — 탭 텍스트/밑줄은 흑백, 색은 점에만.
+  - CreatePopover error를 단일 string→{field,msg}로 바꾼 이유: 제목/프로젝트 두 필드의 인라인 에러를 각자 위치에 정확히 표시(+aria-invalid 분리)하기 위함. 향후 필드 추가 시 같은 구조로 확장.
+  - 막대 색/톤 로직(barColors)은 US-006부터 불변 — 뷰 전환은 '어떤 task를 렌더하느냐'만 바꿈. 색 구분(색조/톤)은 이미 데이터에 내재.
+---
