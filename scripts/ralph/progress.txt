@@ -160,3 +160,28 @@
   - US-007(레인 패킹)은 막대 색 로직 불변 — barColors 그대로 사용, lane 계산만 lib/calendar/layout.ts로 교체. US-009 편집 시 프로젝트/종류 변경하면 barColors가 자동 재계산(렌더 시 호출)이라 색 즉시 반영됨.
   - 막대 색은 barColors 호출이 렌더마다 일어남(가벼운 산술이라 메모 불필요). 막대 수 급증 시 useMemo로 task→colors 캐시 고려.
 ---
+
+## 2026-05-21T21:45:00 - US-007
+- 겹치는 막대 레인 스택 레이아웃 + '+N개' 오버플로 요약/펼침. US-005의 naive lane=인덱스를 그리디 인터벌 스케줄링으로 교체.
+- 순수 로직 분리: `lib/calendar/layout.ts`
+  - layoutWeek(segments, maxLanes=DEFAULT_MAX_LANES 3): 그리디 인터벌 스케줄링. laneEnd[lane]=그 레인의 마지막 점유 열, seg.startCol이 그보다 크면(겹침 없음) 그 레인 재사용, 아니면 새 레인. findIndex로 "첫 빈 레인" 선택 → 인터벌 그래프 최소 레인 수(=최대 동시 겹침)와 일치. 겹침 판정=inclusive [startCol,endCol] 교차(한 열만 닿아도 겹침).
+  - 반환 WeekLayout{ segments: PlacedSegment[](각 seg + lane), laneCount, overflow: OverflowChip[] }. overflow=lane>=maxLanes 막대가 덮는 열별 카운트({col,count}) — collapsed일 때 '+N개' 칩 위치/개수.
+- `components/calendar/CalendarView.tsx`:
+  - weekSegments → layoutWeek(segs, 3)로 교체. expandedWeeks: Set<string>(주의 일요일 date 키) state + toggleWeek로 펼침/접힘.
+  - collapsed: lane<3 막대만 렌더 + overflow 열마다 '+N개' 칩(lane=3 행)을 그려 클릭 시 그 주 펼침. expanded: 전체 막대 + 좌측 '접기' 칩(lane=laneCount 행)으로 다시 접음. 막대 top=HEAD_H+seg.lane*(BAR_H+BAR_GAP). 행 minHeight=visibleLanes(+오버플로 시 칩 1행).
+  - .cal-more: 모노크롬 하이라인 칩(색은 막대에만 규칙 유지), barIn 등장, hover=var(--sel). 버튼이라 pointer-events 기본 auto(막대는 none) → 클릭 동작.
+- 파일: lib/calendar/{layout.ts,layout.test.ts}, components/calendar/CalendarView.tsx, app/globals.css
+- 품질: typecheck ✓ / lint ✓(0) / test ✓(105 passed: 기존 94 + 신규 11 layout). dev 부팅 GET / 200, SSR 217셀·data-today 1·month-name 8 렌더, 서버 에러/경고 없음(막대·칩은 클라 전용 — DB 로드 후 마운트라 SSR HTML엔 없음 = 정상).
+- Needs human browser verification:
+  - 같은 주에 기간이 겹치는 막대 3개가 서로 다른 레인에 모두 보이는지(가려짐 없음)
+  - 겹치지 않는 막대가 같은 레인을 재사용해 공간을 아끼는지
+  - 4개 이상 겹칠 때 '+N개' 칩이 뜨고, 클릭하면 펼쳐져 전부 보이고 '접기'로 다시 접히는지
+  - '+N개' 칩이 인접 열에서 겹쳐 보이지 않는지(열 폭이 좁아 칩이 붙는 드문 케이스)
+- Learnings for future iterations:
+  - 그리디 "첫 빈 레인" 배치는 weekSegments의 정렬(startCol↑, 긴 막대 우선)에 의존해 안정적. 정렬이 바뀌면 lane 배치(시각)도 바뀌니 segments.ts 정렬 변경 시 주의.
+  - 겹침=inclusive 교차 → 한 칸만 맞닿아도(예: A끝=B시작 같은 열) 다른 레인. 막대가 같은 칸을 시각적으로 공유하면 안 되므로 의도된 동작.
+  - overflow 칩은 열 단위(AC "한 칸에 막대가 너무 많으면"). 인접 열 둘 다 오버플로면 칩이 시각적으로 겹칠 수 있음(열 폭 ~14%, 칩 ~30px) — 드물고(4+ 막대 인접) 펼치면 해소. 필요 시 주당 칩 1개 요약으로 단순화 가능.
+  - 펼침 상태는 expandedWeeks(메모리)만 — 새로고침 시 초기화(접힘). 영속 불필요(뷰 상태). 주 키=week[0].date(일요일)라 무한 스크롤로 같은 주가 재마운트돼도 상태 유지.
+  - DEFAULT_MAX_LANES=3은 lib/calendar/layout.ts 상수. US-008 사이드패널/US-013 통합 뷰에서 막대 수↑ 시 임계 조정 가능(open question §3 기본 3~4 유지).
+  - US-009 편집/삭제·US-010 이동으로 tasks 변하면 layoutWeek가 렌더마다 재계산(주당 가벼움). 막대 클릭(US-009)/드래그(US-010)는 .cal-bar pointer-events:none을 그 스토리에서 풀어야 함 — '+N개' 칩은 이미 auto라 충돌 없음.
+---

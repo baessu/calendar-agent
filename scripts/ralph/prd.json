@@ -125,8 +125,8 @@
         "Verify in browser: 겹치는 일정 3개 이상 모두 보임"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "lib/calendar/layout.ts layoutWeek(segs,maxLanes=3): 그리디 인터벌 스케줄링 — laneEnd[lane]<startCol면 그 레인 재사용, 아니면 새 레인(첫 빈 레인 우선 = 최소 레인 수). 겹침=inclusive [startCol,endCol] 교차(한 칸만 닿아도 겹침). PlacedSegment{...seg,lane} + laneCount + overflow(per-column {col,count}: lane>=maxLanes 막대가 덮는 열별 카운트). +11 단위 테스트(빈/단일/겹침→별레인/touching=겹침/비겹침 재사용/최소레인=최대동시겹침/갭 재사용/maxLanes내 overflow없음/per-column overflow/기본 maxLanes). CalendarView: weekSegments→layoutWeek로 교체, expandedWeeks Set state + toggleWeek(주 Sunday date 키). collapsed=lane<3 막대만 + overflow열마다 '+N개' 칩(lane=3행, 클릭→펼침), expanded=전체 막대 + '접기' 칩. seg.lane으로 top, 행 minHeight=visibleLanes(+overflow시 칩행). .cal-more 모노크롬 하이라인 칩(색은 막대에만). 105 tests green(+11). dev GET / 200, SSR 217셀·data-today 1·month-name 8, 서버 에러/경고 없음(막대·칩은 클라 전용)."
     },
     {
       "id": "US-008",
