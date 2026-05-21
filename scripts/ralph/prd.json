@@ -289,8 +289,8 @@
         "Verify in browser: 지정 날짜에 마커 표시"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "lib/calendar/markers.ts groupMarkersByDate(markers): 날짜별 버킷 + 버킷 내 정렬(데드라인 우선 → createdAt 오름차순) 순수 함수 + 5 단위 테스트(빈/단일/다중날짜/데드라인우선/동종 createdAt 정렬). components/calendar/MarkerPopover.tsx(신규): 생성/편집 겸용 — kind 토글(⚑데드라인/◆이벤트 모노크롬 세그먼트, aria radiogroup) + 라벨 input(trim 빈값 차단 '라벨을 입력하세요') + native date input. marker?=null이면 생성(기본 deadline·defaultDate), 있으면 편집(prefill)+2단계 인라인 삭제 확인(native confirm 미사용, cp-foot/cp-confirm 재사용). ESC/✕/투명 backdrop 닫힘, 뷰포트 클램프, cpIn. CalendarView: markers props + markersByDate=groupMarkersByDate. 셀 daynum 뒤에 마커 칩(button.mk .mk-dl/.mk-ev, '⚑/◆ 라벨', onPointerDown stopPropagation으로 드래그선택 비차단, onClick→openMarkerEdit at clientX/Y). markerPopover state{marker,date,x,y} 생성/편집 겸용, openMarkerCreate(closeTaskPopovers 후)/openMarkerEdit, handleMarkerSave(marker면 onUpdateMarker, 아니면 onCreateMarker)/handleMarkerDelete. markerAddNonce effect(rAF)→openMarkerCreate(today, 중앙). CalendarApp: markers state + getAllMarkers 로드, handleCreate/Update/DeleteMarker(DB + setMarkers 미러링 → 캘린더 칩 즉시 갱신), markerAddNonce/handleAddMarker. TaskListPanel: ed-legend-row 마커 범례(mk-dl ⚑데드라인 / mk-ev ◆이벤트) + ＋마커 버튼(onAddMarker). globals.css: .mk/.mk-dl(검은 채움)/.mk-ev(외곽선) 칩(F탭 미러, button reset+focus 링), .ed-legend-row, .mk-add, .mk-kinds/.mk-kind(.on 검은 채움) 토글. 색은 막대에만 규칙 유지(마커=흑백). projectId는 v1 미설정(open question §6). 117 tests green(+5). typecheck ✓ / lint ✓(0) / dev GET / 200, SSR에 ed-legend-row/mk-dl/mk-ev/데드라인/이벤트/＋마커 + cal-cell 217·ed-list 렌더, 서버 에러/경고 없음(셀 마커 칩·팝오버는 클라 DB 로드 후 마운트 = SSR엔 범례만, 정상)."
     }
   ]
 }

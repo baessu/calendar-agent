@@ -236,3 +236,28 @@
   - 삭제 확인은 인라인 2단계가 native confirm()보다 디자인(그림자 없는 하이라인)·테스트 친화적. 파괴적 확정 버튼만 채운 검정, 나머지는 하이라인.
   - 막대 hover/focus는 모노크롬 outline(색 규칙 위반 없이 affordance 제공). .hl(패널 강조 2px) vs hover(1.5px) vs focus-visible(2px) outline 공존 — z-index로 우선순위(focus 2 > hover 1).
 ---
+
+## 2026-05-21T22:15:00 - US-017
+- 날짜 마커(이벤트/하드 데드라인) — 흑백 칩으로 색상 막대와 구분. Marker 엔티티/CRUD는 US-002에서 이미 존재 → 상태 소유·렌더·생성/편집/삭제 UI만 추가.
+- 순수 로직 분리: `lib/calendar/markers.ts` groupMarkersByDate(markers): 날짜별 버킷 Map + 버킷 내 정렬(데드라인 우선 → createdAt 오름차순). +5 단위 테스트(빈/단일/다중 날짜/데드라인 우선/동종 createdAt 정렬).
+- `components/calendar/MarkerPopover.tsx`(신규, 생성/편집 겸용): kind 토글(⚑데드라인 / ◆이벤트, 모노크롬 세그먼트 .mk-kind, role=radiogroup/radio + aria-checked) + 라벨 input(autofocus+select, trim 빈값 차단 인라인 '라벨을 입력하세요') + native `<input type=date>`. marker prop=null이면 생성(기본 kind='deadline', date=defaultDate), 있으면 편집(prefill) + 2단계 인라인 삭제 확인(native confirm 미사용 — cp-foot/cp-confirm-* 재사용으로 EditPopover와 일관). ESC/✕/투명 backdrop 닫힘, 뷰포트 클램프, cpIn 애니메이션. cp-* 스타일 공유.
+- `CalendarView.tsx`: markers props + markersByDate=groupMarkersByDate(useMemo). 셀 cal-daynum 뒤에 마커 칩 렌더 — `<button className="mk mk-dl|mk-ev">⚑/◆ 라벨` , onPointerDown e.stopPropagation()(셀 드래그선택 비차단) + onClick→openMarkerEdit(marker, e.clientX/Y). markerPopover state{marker,date,x,y}(생성=marker:null/편집 겸용), openMarkerCreate(closeTaskPopovers 후 — 팝오버 상호배타)/openMarkerEdit, closeMarkerPopover, handleMarkerSave(marker 있으면 onUpdateMarker, 없으면 onCreateMarker)/handleMarkerDelete. markerAddNonce effect(rAF→openMarkerCreate(today, 화면 중앙) — addNonce와 동형). MarkerPopover를 Create/Edit 팝오버와 나란히 조건부 렌더(onDelete는 편집 모드만).
+- `CalendarApp.tsx`: markers state + getAllMarkers를 마운트 Promise.all 로드에 추가. handleCreateMarker(createMarker DB + setMarkers append)/handleUpdateMarker(updateMarker + map merge)/handleDeleteMarker(deleteMarker + filter) — 캘린더 칩이 공유 state에서 렌더되어 즉시 반영. markerAddNonce/handleAddMarker(패널 트리거). CalendarView·TaskListPanel에 props 전달. projectId는 v1 미설정(open question §6 마커-프로젝트 연결 보류).
+- `TaskListPanel.tsx`: 마커 범례 행(.ed-legend-row) — mk-dl '⚑ 데드라인' + mk-ev '◆ 이벤트'(F탭 미러) + ＋마커 버튼(onAddMarker→markerAddNonce). onAddMarker prop 추가.
+- `app/globals.css`: .mk/.mk-dl(검은 채움 #141414)/.mk-ev(외곽선) 칩 — F탭 .mk 미러 + button reset(font-family inherit/background none/border none)·button.mk hover/focus-visible 모노크롬 링. .ed-legend-row(flex gap, 첫 칩 margin-left:0), .mk-add(우측 정렬 하이라인 버튼), .mk-kinds/.mk-kind(.on=검은 채움) 토글. 색은 막대에만 규칙 유지 — 마커는 전부 흑백.
+- 파일: lib/calendar/{markers.ts,markers.test.ts}(신규), components/calendar/{MarkerPopover.tsx(신규),CalendarApp.tsx,CalendarView.tsx,TaskListPanel.tsx}, app/globals.css, scripts/ralph/{prd.json,progress.txt}
+- 품질: typecheck ✓ / lint ✓(0 errors/0 warnings) / test ✓(117 passed: 기존 112 + 신규 5 markers). dev GET / 200, SSR에 ed-legend-row/mk mk-dl/mk mk-ev/데드라인/이벤트/＋마커 + cal-cell 217·ed-list 렌더, 서버 에러/경고 없음(셀 마커 칩·팝오버는 클라 DB 로드 후 마운트 = SSR HTML엔 범례만 보이는 게 정상).
+- Needs human browser verification:
+  - 패널 ＋마커 → 팝오버에서 종류(⚑/◆)·라벨·날짜 입력 후 저장 시 해당 날짜 칸에 흑백 칩이 뜨는지(데드라인=검은 채움 / 이벤트=외곽선)
+  - 마커 칩 클릭 시 편집 창이 기존 값으로 열리고, 종류/라벨/날짜 변경이 즉시 반영되는지
+  - 삭제 2단계 확인 후 칩이 사라지는지, 새로고침 후 마커가 유지되는지(IndexedDB)
+  - 마커 칩이 색상 막대와 시각적으로 구분되는지(흑백 vs 색), 칩이 막대 레인과 겹치지 않는지(같은 날 다중 마커가 줄바꿈해 레인 침범하는 드문 케이스)
+  - 패널 마커 범례(⚑ 데드라인 / ◆ 이벤트) 표시
+- Learnings for future iterations:
+  - 마커 생성 진입점=패널 ＋마커(markerAddNonce, addNonce 패턴 재사용). 캘린더 셀 드래그/클릭은 할일(Task) 생성 전용이라 마커와 충돌 회피 — 셀에서 직접 마커 추가는 비도입(필요 시 셀 단일클릭에 '할일/마커' 선택 분기 추가 가능, 단 CreatePopover 흐름 복잡화 주의).
+  - 팝오버 상호배타는 cp-backdrop(position:fixed inset:0 z-index:50)가 자연히 보장 — 어느 팝오버든 열리면 backdrop이 캘린더/패널 클릭을 가로채 다른 진입을 차단. openMarkerCreate의 closeTaskPopovers()는 방어적(현재 도달 불가 경로). 따라서 openEdit/onCellPointerDown에서 setMarkerPopover(null) 호출은 불필요(+React Compiler 'access before declared' 회피 — setMarkerPopover가 그보다 늦게 선언됨).
+  - 셀 마커 칩은 cal-daynum과 같은 줄(inline-block + vertical-align middle, top ~12~28px). 막대는 top:HEAD_H(30)부터라 단일 칩은 막대와 안 겹침. 같은 날 마커가 많아 줄바꿈하면 레인 영역 침범 가능 — 흔치 않고 시각 폴리시는 Phase C. 필요 시 칩 max 표시 수 + '+N' 요약 도입.
+  - 마커 칩 클릭이 드래그선택을 시작하지 않게 onPointerDown에서 stopPropagation → 셀 onPointerDown 미발화 → draggingRef false 유지 → window pointerup 무동작. onClick은 정상 발화(openMarkerEdit).
+  - MarkerInput/MarkerChanges는 lib/db/markers.ts에서 export, 배럴(lib/db) 재export로 import 가능. createMarker는 projectId 옵셔널이라 {kind,label,date}만으로 생성 OK.
+  - US-014(범례+토글)가 마커 범례를 사이드바로 옮기거나 통합할 수 있음 — 현재 TaskListPanel 상단 .ed-legend-row에 둠(F탭 위치). US-014에서 프로젝트 범례 행을 그 위에 추가하면 자연스러움.
+---
