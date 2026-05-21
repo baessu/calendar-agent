@@ -10,14 +10,14 @@
 - 캘린더: 무한 세로 스크롤(월 연속, sticky 월 헤더, 오늘로 자동 스크롤). 선 없는 미니멀 그리드
 - 색상: 프로젝트=같은 톤 8색조(S58 L46), 태스크종류=톤(dark/tint). applyTone. 32조합 WCAG AA↑. 정본 docs/design/color-system.md
 - 마커: 이벤트(◆ 외곽선)/하드 데드라인(⚑ 검은 칩) — 흑백, 막대와 별개
-- 타이포: 영문 Plain400 / 숫자·한글 MD Sans480, 자간 -3%. docs/design/typography.md
+- 타이포: 영문 Plain400(상용) / 숫자·한글 IBM Plex Sans KR(무료), 자간 -3%. docs/design/typography.md
 - 할일: 날짜 단위(시간 없음), 여러 날 기간 막대. 태스크종류 전역 공유
 
 ## 미해결(Open Questions, 구현 중 기본값으로 진행 가능)
 - '+N개' 요약 임계값 (기본: 행에 3~4개 초과 시)
 - 프로젝트/태스크종류/마커 삭제 시 소속 항목 처리 (기본: 기본으로 이동)
 - 무한 스크롤 가상화 시점 (성능 필요 시)
-- 폰트 woff2(Plain·MD Sans) 호스팅 경로 확보
+- 영문 Plain woff2 호스팅(숫자·한글 IBM Plex는 무료 CDN)
 - 할일 완료 체크: v1 비범위
 
 ---

@@ -26,7 +26,7 @@ The confirmed design is in `docs/design/` + the mockup. Match it. If the skills 
   - Bar text = `barText()` util: white/black by WCAG contrast (computed). All 32 combos are AA+ in color-system.md §4.
 - **Markers:** event/hard-deadline are point-date chips, monochrome (NOT colored): deadline = filled black `⚑ label`, event = outlined `◆ label`. Distinct from colored bars.
 - **Layout:** top project tabs (전체 + projects, underline-active) + center infinite-scroll calendar + right "할일" list (count badge, date-sorted, legends, ＋할일추가). Korean UI copy; English code comments.
-- **Typography:** `docs/design/typography.md` — `@font-face`+`unicode-range`: Latin=Plain(400), digits+Hangul=MD Sans(480). letter-spacing -0.03em. tabular-nums for dates. (woff2 files needed; fall back gracefully if absent.)
+- **Typography:** `docs/design/typography.md` — `@font-face`+`unicode-range`: Latin=Plain(400, paid), digits+Hangul=IBM Plex Sans KR(free, Google Fonts). letter-spacing -0.03em. tabular-nums for dates. (woff2 files needed; fall back gracefully if absent.)
 - **Micro-interactions** (US-004 drag-select, US-005 bar appear, US-010 drag-move): live preview during drag; subtle enter animation; clear hover; click(edit) vs drag(move) via 4px threshold. Subtle, not flashy.
 - **Dates:** store as `YYYY-MM-DD` strings; compare via UTC/local-midnight utils (no tz drift).
 - **Pure logic separated + tested:** `lib/calendar/layout.ts` (lane stacking), `lib/calendar/infinite.ts` (week range + month grouping), `lib/color/` (applyTone + barText) must have unit tests.
