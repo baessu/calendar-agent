@@ -11,15 +11,21 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  createMarker,
   createTask,
+  deleteMarker,
   deleteTask,
+  getAllMarkers,
   getAllProjects,
   getAllTaskTypes,
   getAllTasks,
   seedIfEmpty,
+  updateMarker,
   updateTask,
+  type MarkerChanges,
+  type MarkerInput,
 } from "@/lib/db";
-import type { DateString, Project, Task, TaskType } from "@/lib/types";
+import type { DateString, Marker, Project, Task, TaskType } from "@/lib/types";
 import { CalendarView } from "./CalendarView";
 import type { EditTaskDraft } from "./EditPopover";
 import { TaskListPanel } from "./TaskListPanel";
@@ -40,6 +46,7 @@ export function CalendarApp() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [taskTypes, setTaskTypes] = useState<TaskType[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [markers, setMarkers] = useState<Marker[]>([]);
 
   // Seed (idempotent) then load all data on mount. Seeding here avoids a race
   // with <DbInit> so the popover always has a project/task-type to pick.
@@ -47,15 +54,17 @@ export function CalendarApp() {
     let alive = true;
     (async () => {
       await seedIfEmpty();
-      const [ps, tts, ts] = await Promise.all([
+      const [ps, tts, ts, ms] = await Promise.all([
         getAllProjects(),
         getAllTaskTypes(),
         getAllTasks(),
+        getAllMarkers(),
       ]);
       if (!alive) return;
       setProjects(ps);
       setTaskTypes(tts);
       setTasks(ts);
+      setMarkers(ms);
     })().catch((err) => console.error("calendar data load failed", err));
     return () => {
       alive = false;
@@ -94,6 +103,31 @@ export function CalendarApp() {
     [],
   );
 
+  // --- Markers (US-017) -----------------------------------------------------
+  // Point-date marks (event / hard deadline). Persist + mirror to shared state
+  // so the calendar chips update at once. projectId is left unset (v1).
+  const handleCreateMarker = useCallback(async (input: MarkerInput) => {
+    const m = await createMarker(input);
+    setMarkers((prev) => [...prev, m]);
+  }, []);
+
+  const handleUpdateMarker = useCallback(
+    async (id: string, changes: MarkerChanges) => {
+      await updateMarker(id, changes);
+      setMarkers((prev) => prev.map((m) => (m.id === id ? { ...m, ...changes } : m)));
+    },
+    [],
+  );
+
+  const handleDeleteMarker = useCallback(async (id: string) => {
+    await deleteMarker(id);
+    setMarkers((prev) => prev.filter((m) => m.id !== id));
+  }, []);
+
+  // Panel "＋ 마커 추가" asks the calendar to open the marker form for today.
+  const [markerAddNonce, setMarkerAddNonce] = useState(0);
+  const handleAddMarker = useCallback(() => setMarkerAddNonce((n) => n + 1), []);
+
   // --- Panel -> calendar highlight ------------------------------------------
   // `highlightNonce` bumps on every click so repeat-clicking the same row
   // re-triggers the scroll; `highlightedTaskId` drives the bar ring.
@@ -130,14 +164,19 @@ export function CalendarApp() {
         projects={projects}
         taskTypes={taskTypes}
         tasks={tasks}
+        markers={markers}
         projectsById={projectsById}
         taskTypesById={taskTypesById}
         onCreateTask={handleCreateTask}
         onUpdateTask={handleUpdateTask}
         onDeleteTask={handleDeleteTask}
+        onCreateMarker={handleCreateMarker}
+        onUpdateMarker={handleUpdateMarker}
+        onDeleteMarker={handleDeleteMarker}
         highlightedTaskId={highlightedTaskId}
         highlightNonce={highlightNonce}
         addNonce={addNonce}
+        markerAddNonce={markerAddNonce}
       />
       <TaskListPanel
         tasks={tasks}
@@ -146,6 +185,7 @@ export function CalendarApp() {
         onSelectTask={handleSelectTask}
         selectedTaskId={highlightedTaskId}
         onAdd={handleAdd}
+        onAddMarker={handleAddMarker}
       />
     </>
   );

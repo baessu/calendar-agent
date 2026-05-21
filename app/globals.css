@@ -509,6 +509,107 @@ body {
 }
 
 /*
+ * Date markers (US-017) — mirrors the F-tab mockup's .mk chips. Point-date marks
+ * (event / hard deadline) rendered next to the day number, deliberately
+ * monochrome so they read as distinct from the colored task bars. Deadline =
+ * filled black "⚑ 라벨"; event = outlined "◆ 라벨". Used both as clickable cell
+ * chips and as static legend chips in the right panel.
+ */
+.mk {
+  display: inline-block;
+  font-family: inherit;
+  font-size: 10px;
+  line-height: 16px;
+  padding: 0 6px;
+  margin-left: 6px;
+  border: none;
+  border-radius: 2px;
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+  letter-spacing: 0;
+  color: var(--text);
+  background: none;
+}
+.mk-dl {
+  background: #141414;
+  color: #fff;
+  font-weight: 600;
+}
+.mk-ev {
+  border: 1px solid #141414;
+  color: #141414;
+}
+/* Clickable cell chips (edit on click) get a pointer + a B/W focus ring. */
+button.mk {
+  cursor: pointer;
+}
+button.mk:hover {
+  outline: 1px solid var(--text);
+  outline-offset: 1px;
+}
+button.mk:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 1px;
+}
+
+/* Marker legend row in the right panel; the "＋ 마커" button opens the form. */
+.ed-legend-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border-bottom: 1px solid var(--border);
+}
+.ed-legend-row .mk {
+  margin-left: 0; /* rely on the flex gap, not the chip's own margin */
+}
+.mk-add {
+  margin-left: auto;
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: -0.02em;
+  color: var(--muted);
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+}
+.mk-add:hover {
+  color: var(--text);
+}
+
+/* Marker popover kind toggle (US-017): monochrome segmented control. Active =
+   filled black (UI chrome stays B/W; markers carry no color). */
+.mk-kinds {
+  display: flex;
+  gap: 8px;
+}
+.mk-kind {
+  flex: 1;
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  padding: 7px 8px;
+  cursor: pointer;
+}
+.mk-kind:hover {
+  border-color: var(--text);
+}
+.mk-kind.on {
+  background: var(--text);
+  color: #fff;
+  border-color: var(--text);
+}
+
+/*
  * Right "할일" panel (US-008) — mirrors the F-tab mockup's .ed-list. Hairline
  * borders, monochrome chrome; the only color is the per-task data swatch.
  */

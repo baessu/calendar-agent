@@ -38,11 +38,14 @@ import { todayDateString } from "@/lib/calendar/dates";
 import { isWithinRange, normalizeRange, type DateRange } from "@/lib/calendar/selection";
 import { weekSegments } from "@/lib/calendar/segments";
 import { DEFAULT_MAX_LANES, layoutWeek } from "@/lib/calendar/layout";
+import { groupMarkersByDate } from "@/lib/calendar/markers";
 import { barColors } from "@/lib/color/compose";
-import type { DateString, Project, Task, TaskType } from "@/lib/types";
+import type { MarkerChanges, MarkerInput } from "@/lib/db";
+import type { DateString, Marker, Project, Task, TaskType } from "@/lib/types";
 import type { NewTaskInput } from "./CalendarApp";
 import { CreatePopover, type CreateTaskDraft } from "./CreatePopover";
 import { EditPopover, type EditTaskDraft } from "./EditPopover";
+import { MarkerPopover, type MarkerDraft } from "./MarkerPopover";
 
 // Months shown on either side of today at first paint.
 const INITIAL_BACK = 3;
@@ -67,6 +70,8 @@ interface CalendarViewProps {
   projects: Project[];
   taskTypes: TaskType[];
   tasks: Task[];
+  /** Point-date markers (event / hard deadline) — US-017. */
+  markers: Marker[];
   projectsById: Map<string, Project>;
   taskTypesById: Map<string, TaskType>;
   /** Persist a new task across the committed selection. */
@@ -75,26 +80,39 @@ interface CalendarViewProps {
   onUpdateTask: (id: string, changes: EditTaskDraft) => Promise<void> | void;
   /** Delete a task — US-009. */
   onDeleteTask: (id: string) => Promise<void> | void;
+  /** Persist a new marker — US-017. */
+  onCreateMarker: (input: MarkerInput) => Promise<void> | void;
+  /** Patch an existing marker (kind/label/date) — US-017. */
+  onUpdateMarker: (id: string, changes: MarkerChanges) => Promise<void> | void;
+  /** Delete a marker — US-017. */
+  onDeleteMarker: (id: string) => Promise<void> | void;
   /** Task whose bar should be ringed (from a panel row click). */
   highlightedTaskId: string | null;
   /** Bumps on each panel click so repeat clicks re-scroll. */
   highlightNonce: number;
   /** Bumps when the panel's "＋ 할일 추가" asks to create for today. */
   addNonce: number;
+  /** Bumps when the panel's "＋ 마커 추가" asks to add a marker for today. */
+  markerAddNonce: number;
 }
 
 export function CalendarView({
   projects,
   taskTypes,
   tasks,
+  markers,
   projectsById,
   taskTypesById,
   onCreateTask,
   onUpdateTask,
   onDeleteTask,
+  onCreateMarker,
+  onUpdateMarker,
+  onDeleteMarker,
   highlightedTaskId,
   highlightNonce,
   addNonce,
+  markerAddNonce,
 }: CalendarViewProps) {
   const today = useMemo(() => todayDateString(), []);
   const todayYM = useMemo(() => ymFromDate(today), [today]);
@@ -107,6 +125,9 @@ export function CalendarView({
     () => groupWeeksByMonth(buildWeeksRange(from, to, today)),
     [from, to, today],
   );
+
+  // Markers keyed by date so each cell can render its chips (US-017).
+  const markersByDate = useMemo(() => groupMarkersByDate(markers), [markers]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const didInitialScroll = useRef(false);
@@ -289,6 +310,57 @@ export function CalendarView({
     closeEdit();
   }, [editingTaskId, onDeleteTask, closeEdit]);
 
+  // --- Markers: add / click-to-edit (US-017) --------------------------------
+  // One popover handles both create (marker:null) and edit. Opening it clears any
+  // pending task create/edit so the popovers stay mutually exclusive.
+  const [markerPopover, setMarkerPopover] = useState<{
+    marker: Marker | null;
+    date: DateString;
+    x: number;
+    y: number;
+  } | null>(null);
+
+  const closeTaskPopovers = useCallback(() => {
+    setSelection(null);
+    setPopoverPos(null);
+    setEditingTaskId(null);
+    setEditPos(null);
+  }, []);
+
+  const openMarkerCreate = useCallback(
+    (date: DateString, x: number, y: number) => {
+      closeTaskPopovers();
+      setMarkerPopover({ marker: null, date, x, y });
+    },
+    [closeTaskPopovers],
+  );
+
+  const openMarkerEdit = useCallback(
+    (marker: Marker, x: number, y: number) => {
+      closeTaskPopovers();
+      setMarkerPopover({ marker, date: marker.date, x, y });
+    },
+    [closeTaskPopovers],
+  );
+
+  const closeMarkerPopover = useCallback(() => setMarkerPopover(null), []);
+
+  const handleMarkerSave = useCallback(
+    async (draft: MarkerDraft) => {
+      if (!markerPopover) return;
+      if (markerPopover.marker) await onUpdateMarker(markerPopover.marker.id, draft);
+      else await onCreateMarker(draft);
+      closeMarkerPopover();
+    },
+    [markerPopover, onCreateMarker, onUpdateMarker, closeMarkerPopover],
+  );
+
+  const handleMarkerDelete = useCallback(async () => {
+    if (!markerPopover?.marker) return;
+    await onDeleteMarker(markerPopover.marker.id);
+    closeMarkerPopover();
+  }, [markerPopover, onDeleteMarker, closeMarkerPopover]);
+
   // The range to paint as highlighted: the live drag while dragging, otherwise
   // the committed selection (so cells stay lit while the popover is open).
   const highlight = useMemo<DateRange | null>(() => {
@@ -349,6 +421,16 @@ export function CalendarView({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fire only when the panel requests it
   }, [addNonce]);
 
+  // --- Panel "＋ 마커 추가" -> open the marker form for today (US-017) -------
+  useEffect(() => {
+    if (markerAddNonce === 0) return; // skip the initial mount value
+    const raf = requestAnimationFrame(() => {
+      openMarkerCreate(today, window.innerWidth / 2, window.innerHeight / 3);
+    });
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fire only when the panel requests it
+  }, [markerAddNonce]);
+
   return (
     <div className="ed-main">
       <div className="ed-bar">
@@ -408,6 +490,7 @@ export function CalendarView({
                       const selected =
                         highlight != null &&
                         isWithinRange(dy.date, highlight.start, highlight.end);
+                      const cellMarkers = markersByDate.get(dy.date);
                       return (
                         <div
                           key={dy.date}
@@ -420,6 +503,25 @@ export function CalendarView({
                           onPointerEnter={() => onCellPointerEnter(dy.date)}
                         >
                           <span className="cal-daynum">{dy.day}</span>
+                          {/* Point-date markers: monochrome chips (US-017),
+                              distinct from the colored task bars. Click to edit;
+                              swallow pointerdown so the cell drag-select doesn't
+                              start. */}
+                          {cellMarkers?.map((mk) => (
+                            <button
+                              key={mk.id}
+                              type="button"
+                              className={`mk ${mk.kind === "deadline" ? "mk-dl" : "mk-ev"}`}
+                              title={mk.label}
+                              aria-label={`${
+                                mk.kind === "deadline" ? "데드라인" : "이벤트"
+                              } ${mk.label} — 편집`}
+                              onPointerDown={(e) => e.stopPropagation()}
+                              onClick={(e) => openMarkerEdit(mk, e.clientX, e.clientY)}
+                            >
+                              {mk.kind === "deadline" ? "⚑" : "◆"} {mk.label}
+                            </button>
+                          ))}
                         </div>
                       );
                     })}
@@ -532,6 +634,18 @@ export function CalendarView({
           onClose={closeEdit}
           onSave={handleEditSave}
           onDelete={handleEditDelete}
+        />
+      )}
+
+      {markerPopover && (
+        <MarkerPopover
+          marker={markerPopover.marker}
+          defaultDate={markerPopover.date}
+          x={markerPopover.x}
+          y={markerPopover.y}
+          onClose={closeMarkerPopover}
+          onSave={handleMarkerSave}
+          onDelete={markerPopover.marker ? handleMarkerDelete : undefined}
         />
       )}
     </div>

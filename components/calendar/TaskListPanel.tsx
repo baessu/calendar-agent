@@ -29,6 +29,8 @@ interface TaskListPanelProps {
   selectedTaskId: string | null;
   /** Open the creation popover for a new task (footer "＋ 할일 추가"). */
   onAdd: () => void;
+  /** Open the marker form for a new marker (legend "＋ 마커"). */
+  onAddMarker: () => void;
 }
 
 export function TaskListPanel({
@@ -38,6 +40,7 @@ export function TaskListPanel({
   onSelectTask,
   selectedTaskId,
   onAdd,
+  onAddMarker,
 }: TaskListPanelProps) {
   // Start-date ascending; ties broken by title for a stable order.
   const sorted = useMemo(
@@ -55,6 +58,16 @@ export function TaskListPanel({
       <div className="ed-list-head">
         할일 <span className="numbadge">{tasks.length}</span>
         <span className="ed-list-sort">날짜순</span>
+      </div>
+
+      {/* Marker legend (US-017): monochrome chips, distinct from colored bars.
+          The "＋ 마커" button opens the marker form for today. */}
+      <div className="ed-legend-row">
+        <span className="mk mk-dl">⚑ 데드라인</span>
+        <span className="mk mk-ev">◆ 이벤트</span>
+        <button type="button" className="mk-add" onClick={onAddMarker}>
+          ＋ 마커
+        </button>
       </div>
 
       {sorted.length === 0 ? (
