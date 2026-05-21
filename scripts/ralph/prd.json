@@ -1,0 +1,276 @@
+{
+  "project": "Monthly Calendar App",
+  "branchName": "ralph/monthly-calendar",
+  "description": "드래그로 기간 할일을 등록하고 막대로 표시하는 깔끔한 먼슬리 캘린더. Next.js 16 + Dexie(IndexedDB) 로컬 저장. 이중축 색상: 색조=프로젝트, 명도·채도(톤)=태스크종류. 상세 PRD: tasks/prd-monthly-calendar.md, 색상 시스템: docs/design/color-system.md. 색조/톤 시드값은 docs/design/color-system.md의 PROJECT_HUES / TASK_TYPE_TONES를 그대로 사용한다.",
+  "techStack": "Next.js 16 (App Router), TypeScript, Tailwind CSS, Dexie, Vitest",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "프로젝트 스캐폴딩",
+      "description": "As a developer, I want a Next.js + TS + Tailwind + Dexie scaffold so that features have a foundation.",
+      "acceptanceCriteria": [
+        "create-next-app(App Router, TypeScript, Tailwind)으로 초기화",
+        "Dexie 설치 및 lib/db/에 빈 DB 인스턴스 생성",
+        "Vitest 설정",
+        "Typecheck passes",
+        "lint passes",
+        "Verify in browser: dev 서버에서 빈 홈 화면이 에러 없이 렌더"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "데이터 모델 & Dexie 스키마 (이중축)",
+      "description": "As a developer, I want Project/TaskType/Task schema + CRUD so that all features share consistent local storage.",
+      "acceptanceCriteria": [
+        "Project { id, name, hue(0-360), visible, order, createdAt } 정의",
+        "TaskType { id, name, saturation, lightness, order, createdAt } 정의 (전역 공유)",
+        "Task { id, projectId, taskTypeId, title, startDate(YYYY-MM-DD), endDate(YYYY-MM-DD), createdAt, updatedAt } 정의",
+        "최초 실행 시 기본 프로젝트('기본', hue 215) 1개 시드",
+        "최초 실행 시 태스크종류 4개 시드: 마감(S68 L38) 작업(S60 L49) 회의(S50 L68) 리서치(S42 L84) — docs/design/color-system.md 값 사용",
+        "Project/TaskType/Task CRUD 함수 제공",
+        "IndexedDB에 저장되어 새로고침 후 유지",
+        "CRUD 단위 테스트 통과",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "먼슬리 캘린더 그리드 렌더",
+      "description": "As a user, I want to see a 2026 monthly grid and navigate months.",
+      "acceptanceCriteria": [
+        "7열(일~토) x 주 단위 행으로 한 달 렌더",
+        "기본 표시 월 = 2026년 5월, 상단에 '2026년 5월' 표기",
+        "이전/다음 버튼으로 월 이동",
+        "타 달 날짜 칸은 흐리게, 오늘 칸은 강조",
+        "Typecheck passes",
+        "lint passes",
+        "Verify in browser: 월 이동 시 날짜가 올바르게 갱신"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "일칸 드래그로 기간 선택 → 등록 창 열기",
+      "description": "As a user, I want to drag across day cells to open a creation popover with the date range prefilled.",
+      "acceptanceCriteria": [
+        "칸을 누른 채 드래그하면 지나간 날짜 칸 하이라이트",
+        "드래그 종료 시 시작~종료일 확정 후 등록 창 열림",
+        "단일 칸 클릭 시 하루짜리(시작=종료) 등록 창",
+        "등록 창에 선택 기간(예 '5/21 ~ 5/24') 표시",
+        "역방향 드래그도 정규화",
+        "ESC/바깥 클릭으로 닫힘",
+        "Typecheck passes",
+        "Verify in browser: 드래그 범위와 표시 기간 일치"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "할일 생성 (프로젝트+태스크종류 선택) & 막대 렌더",
+      "description": "As a user, I want to enter a title and pick project/task-type, then see a bar spanning the range.",
+      "acceptanceCriteria": [
+        "제목 입력 필드, 빈 제목 저장 차단(검증 메시지)",
+        "프로젝트 선택 + 태스크종류 선택 UI (현재 뷰 프로젝트가 기본값)",
+        "저장 시 막대 생성·저장, 시작~종료일 기간을 가로로 덮음",
+        "주 경계를 넘는 기간은 주별 연속 막대로 분할",
+        "저장 후 등록 창 닫히고 막대에 제목 표시",
+        "새로고침 후 막대 유지",
+        "Typecheck passes",
+        "Verify in browser: 드래그→입력→막대 흐름 완결"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "이중축 색상 계산 (색조 + 톤)",
+      "description": "As a user, I want bar color to combine project hue + task-type tone with auto-contrast text.",
+      "acceptanceCriteria": [
+        "막대 배경색 = hsl(project.hue, taskType.saturation, taskType.lightness)",
+        "텍스트색 = 흰/검정 중 WCAG 대비 높은 쪽 자동 선택 (barText 유틸)",
+        "같은 프로젝트의 다른 태스크종류 막대가 톤(진하기)으로 구분",
+        "다른 프로젝트의 같은 태스크종류 막대가 색조로 구분",
+        "색 합성·대비 계산 로직 단위 테스트 (color-system.md 매트릭스와 일치)",
+        "Typecheck passes",
+        "Verify in browser: 색이 2축으로 구분됨"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "겹치는 막대 레인(lane) 스택 레이아웃",
+      "description": "As a user, I want overlapping bars stacked into lanes so none are hidden.",
+      "acceptanceCriteria": [
+        "한 주 행에서 겹치는 막대는 서로 다른 세로 레인에 배치",
+        "겹치지 않으면 같은 레인 재사용",
+        "막대 과다 시 '+N개' 요약, 클릭 시 펼침",
+        "레이아웃 계산 로직 단위 테스트(겹침/비겹침/경계)",
+        "Typecheck passes",
+        "Verify in browser: 겹치는 일정 3개 이상 모두 보임"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "오른쪽 사이드 패널 — 날짜순 할일 목록",
+      "description": "As a user, I want a right panel listing tasks sorted by date.",
+      "acceptanceCriteria": [
+        "우측 패널에 할일을 시작일 오름차순 정렬 나열",
+        "각 항목: 제목, 기간, 프로젝트(색조)·태스크종류(톤/라벨)",
+        "현재 뷰/필터와 목록 동기화",
+        "항목 클릭 시 캘린더 해당 막대 강조",
+        "빈 상태 안내",
+        "Typecheck passes",
+        "Verify in browser: 할일 추가 시 패널 즉시 갱신"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "막대 클릭 → 편집 / 삭제",
+      "description": "As a user, I want to click a bar to edit title/dates/project/task-type or delete it.",
+      "acceptanceCriteria": [
+        "막대 클릭 시 편집 창 열림, 기존 값 채워짐",
+        "제목/시작일/종료일/프로젝트/태스크종류 변경 저장",
+        "프로젝트·태스크종류 변경 시 막대 색(색조/톤) 즉시 반영",
+        "삭제는 확인 단계 후 수행",
+        "편집/삭제가 캘린더·사이드 패널에 즉시 반영",
+        "Typecheck passes",
+        "Verify in browser: 편집·삭제가 양쪽 뷰 반영"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "막대 드래그로 날짜 이동",
+      "description": "As a user, I want to drag a bar to move dates while preserving duration.",
+      "acceptanceCriteria": [
+        "드래그 중 이동 위치 미리보기",
+        "놓으면 시작일 이동, 종료일은 동일 기간(일수) 유지",
+        "주 경계를 넘는 이동도 정확히 재배치",
+        "이동 결과 DB 저장, 새로고침 후 유지",
+        "짧은 클릭=편집, 드래그=이동 구분(이동 임계 4px)",
+        "Typecheck passes",
+        "Verify in browser: 드래그 이동 동작"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "프로젝트 관리 (생성/이름변경/색조/삭제)",
+      "description": "As a user, I want to create/rename/recolor/delete projects.",
+      "acceptanceCriteria": [
+        "프로젝트 추가 시 이름 입력 + 색조 선택(휠/팔레트)",
+        "색조 기본 추천값은 미사용 hue 우선 제시",
+        "이름/색조 변경 저장 및 막대 색 즉시 반영",
+        "삭제 시 소속 할일 처리(함께 삭제 또는 기본 프로젝트로 이동) 확인 단계",
+        "기본 프로젝트는 삭제 불가",
+        "Typecheck passes",
+        "Verify in browser: 색조 변경이 막대 반영"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "태스크 종류 관리 (전역/이름/톤/삭제)",
+      "description": "As a user, I want to manage global task types (name, tone).",
+      "acceptanceCriteria": [
+        "태스크종류 추가 시 이름 + 톤 단계(진함↔연함) 선택",
+        "모든 프로젝트에서 공유",
+        "이름/톤 변경 저장 및 막대 즉시 반영",
+        "삭제 시 소속 할일 기본 종류로 이동 확인 단계",
+        "기본 태스크종류는 삭제 불가",
+        "권장 단계 수(약 3~4) 초과 시 안내",
+        "Typecheck passes",
+        "Verify in browser: 톤 변경이 막대 반영"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "뷰 전환 (개별 ↔ 통합) + 색조 구분",
+      "description": "As a user, I want to switch between a single project view and a merged all-projects view.",
+      "acceptanceCriteria": [
+        "'전체(통합)' 또는 개별 프로젝트 선택",
+        "통합 뷰: 모든 프로젝트 막대를 색조로 구분해 표시",
+        "개별 뷰: 해당 프로젝트 막대만 (톤 유지)",
+        "새 할일 등록 시 현재 프로젝트가 기본값(통합 뷰에선 선택 필요)",
+        "Typecheck passes",
+        "Verify in browser: 뷰 전환 시 막대 집합이 올바르게 변경"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "사이드바 범례 + 프로젝트 보이기/숨기기 토글",
+      "description": "As a user, I want a sidebar with both legends and per-project visibility toggles.",
+      "acceptanceCriteria": [
+        "사이드바에 프로젝트 범례(색조 스와치+이름+토글) 나열",
+        "사이드바에 태스크종류 범례(톤 단계+이름) 표시",
+        "프로젝트 토글 off 시 캘린더·사이드 패널에서 숨김",
+        "토글 상태(visible) 저장, 새로고침 후 유지",
+        "Typecheck passes",
+        "Verify in browser: 토글 on/off 즉시 반영"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-015",
+      "title": "(선택) 태스크 종류 필터",
+      "description": "As a user, I want to filter bars by task type.",
+      "acceptanceCriteria": [
+        "태스크종류 범례에서 종류별 on/off 필터",
+        "프로젝트 필터와 AND 조합 동작",
+        "Typecheck passes",
+        "Verify in browser: 종류 필터 즉시 반영"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-016",
+      "title": "(선택) 막대 가장자리 드래그로 기간 조절",
+      "description": "As a user, I want to resize a bar by dragging its edges.",
+      "acceptanceCriteria": [
+        "좌측 끝 드래그=시작일, 우측 끝 드래그=종료일 변경",
+        "시작일이 종료일을 넘지 못함",
+        "변경 저장 및 즉시 반영",
+        "Typecheck passes",
+        "Verify in browser: 리사이즈 동작"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
