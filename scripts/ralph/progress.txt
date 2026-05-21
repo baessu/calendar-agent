@@ -138,3 +138,25 @@
   - 막대는 'use client' 마운트 후 DB 로드 결과라 SSR/curl HTML엔 안 보임(정상). 시각 검증은 브라우저 필요. liveQuery(dexie-react-hooks) 미도입 — 현재 단일 컴포넌트라 state append로 충분. US-008 사이드패널이 같은 tasks를 공유해야 하면 그때 상위로 끌어올리거나 useLiveQuery 도입 검토.
   - HEAD_H/BAR_H/BAR_GAP는 CalendarView 상수 + .cal-bar height/line은 inline. CSS .cal-bar는 위치 무관 스타일(폰트/색 외)만.
 ---
+
+## 2026-05-21T21:39:00 - US-006
+- 막대 색상 계산: 프로젝트 원색 + 태스크종류 톤(dark/tint) 합성 + WCAG 대비 자동 텍스트색. US-005의 임시 project.color 직접 사용을 톤 합성으로 교체.
+- 순수 로직 분리: `lib/color/compose.ts`
+  - applyTone(hex,{mode,k}): dark=c×(1-k), tint=c×(1-k)+255×k. 채널별 Math.round + [0,255] clamp.
+  - barText(bgHex): WCAG relative luminance(채널 sRGB 선형화 → 0.2126/0.7152/0.0722 가중) 기반 대비비 계산 → 흰(#FFFFFF)/근검정(#1A1A1A) 중 대비 높은 쪽. 마감=흰, 작업/회의/리서치=검(전 8색조).
+  - hexToRgb/rgbToHex(#붙임/없음 모두 파싱, 대문자 출력) + barColors(projectColor,taskType)={background,text} 편의 함수.
+- `components/calendar/CalendarView.tsx`: taskTypesById useMemo 맵 추가, 막대 렌더에서 project+taskType 있으면 barColors(project.color, taskType)로 background/color 결정(없으면 var(--text)/흰 폴백). seg.task.taskTypeId로 톤 조회.
+- 검증: docs/design/color-system.md §4의 8색조×4톤=32조합 매트릭스를 8×4=32 케이스로 1:1 비교(전부 일치 — 수기로도 채널별 재확인). barText는 매트릭스 괄호 규칙(마감 흰/나머지 검)과 순흑·순백 케이스 검증. AC3/4(동일 프로젝트 톤 구분, 타 프로젝트 색조 구분)는 Set 크기로 검증.
+- 파일: lib/color/{compose.ts,compose.test.ts}, components/calendar/CalendarView.tsx
+- 품질: typecheck ✓ / lint ✓(0) / test ✓(94 passed: 기존 46 + 신규 48 compose). dev 부팅 GET / 200, SSR 217셀·month-name 8·data-today 1 렌더, 서버 에러/경고 없음(막대는 클라 전용 — DB 로드 후 마운트라 SSR HTML엔 없음 = 정상).
+- Needs human browser verification:
+  - color-system.md §4 매트릭스처럼 같은 프로젝트의 4종류가 톤(진하기)으로, 다른 프로젝트가 색조로 구분되는지(실제 막대 색)
+  - 마감 막대 흰 글자 / 나머지 검은 글자 가독성(대비)
+  - (현재 시드는 기본 블루 프로젝트 1개 — 다중 프로젝트는 US-011에서 추가 후 색조 구분 시각 확인 가능)
+- Learnings for future iterations:
+  - applyTone은 채널별 Math.round일 때만 §4 매트릭스와 정확히 일치(예: 36.6→37=0x25). truncate/floor 쓰면 어긋남. clamp는 임의 hex 안전용(시드 8색은 범위 내).
+  - barText는 매트릭스를 하드코딩하지 않고 WCAG 대비비로 계산 → 32조합 전부 매트릭스 괄호 규칙과 자동 일치(마감만 흰). 향후 사용자 추가 색/톤도 자동 대응.
+  - barText 검은색은 #1A1A1A(compose.ts 시그니처) — UI 모노크롬 텍스트 #141414와 다름(막대 가독성 전용). 혼동 주의.
+  - US-007(레인 패킹)은 막대 색 로직 불변 — barColors 그대로 사용, lane 계산만 lib/calendar/layout.ts로 교체. US-009 편집 시 프로젝트/종류 변경하면 barColors가 자동 재계산(렌더 시 호출)이라 색 즉시 반영됨.
+  - 막대 색은 barColors 호출이 렌더마다 일어남(가벼운 산술이라 메모 불필요). 막대 수 급증 시 useMemo로 task→colors 캐시 고려.
+---

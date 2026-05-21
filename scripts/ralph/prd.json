@@ -109,8 +109,8 @@
         "Verify in browser: color-system.md 매트릭스처럼 색이 구분됨"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "lib/color/compose.ts: applyTone(hex,{mode,k}) — dark=base×(1-k), tint=base×(1-k)+255k, Math.round+clamp per channel → docs/design/color-system.md §4의 8색조×4톤=32조합과 정확히 일치(수기 검증). barText(bg)=WCAG relative-luminance 대비로 흰(#FFFFFF)/근검정(#1A1A1A) 자동 선택(마감=흰, 작업/회의/리서치=검). hexToRgb/rgbToHex + barColors(projectColor,taskType)={background,text} 편의 함수. 48 단위 테스트(matrix 32 + hex 왕복/클램프 + dark/tint k=0,1 엣지 + barText per-project + 동일프로젝트 톤 구분/타프로젝트 색조 구분). CalendarView: taskTypesById 맵 추가, 막대 style.background/color를 barColors(project.color, taskType)로 교체(임시 project.color 직접 사용 제거). 94 tests green(+48). dev GET / 200, SSR 217셀·month-name 8·data-today 1, 서버 에러/경고 없음(막대는 클라 전용)."
     },
     {
       "id": "US-007",
