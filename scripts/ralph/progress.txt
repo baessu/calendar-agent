@@ -87,3 +87,28 @@
   - 날짜 비교/연산은 전부 dates.ts(UTC-noon)로 — 컴포넌트에서 new Date 직접 계산 금지(tz drift).
   - CalendarView는 'use client' + SSR도 됨. useLayoutEffect SSR 경고 미발생 확인(GET 200, 로그 clean). today는 서버/클라 동일일자 가정(로컬 앱).
 ---
+
+## 2026-05-21T21:25:00 - US-004
+- 일칸 드래그로 기간 선택 → 등록 팝오버 오픈. 저장/폼은 US-005 범위(이번엔 선택+팝오버 셸까지).
+- 순수 로직 분리: `lib/calendar/selection.ts`
+  - normalizeRange(a,b): 역방향 드래그 정규화(start<=end). isWithinRange(date,start,end): 양끝 포함. formatRangeLabel: 단일 "5/21" / 다일 "5/21 ~ 5/24"(앞자리 0 제거, parseDate UTC-noon 비교).
+- `components/calendar/CreatePopover.tsx`(use client): 선택 기간 헤더 표시 + ✕/ESC/투명 backdrop 바깥클릭 닫힘. 그림자 없음(스위스=하이라인만), release 좌표에 앵커 후 useLayoutEffect로 뷰포트 클램프, subtle cpIn(120ms fade/rise). role=dialog. 카드 내부 pointerdown stopPropagation으로 backdrop 닫힘 방지.
+- `CalendarView.tsx`: pointer 기반 드래그 선택.
+  - onPointerDown(기본버튼만, e.preventDefault로 네이티브 텍스트선택 차단) → anchor/current = 그 날짜, 기존 selection 닫음. onPointerEnter → current 갱신(드래그 중일 때만). window pointerup → normalizeRange 확정 후 selection+popoverPos(e.clientX/Y) 세팅. pointercancel → 리셋(팝오버 안 염).
+  - draggingRef/anchorRef/currentRef = window 핸들러 진실원본(state stale 회피), isDragging/dragAnchor/dragCurrent state = 라이브 하이라이트 렌더. highlight=드래그 중이면 (anchor,current) 정규화, 아니면 committed selection(팝오버 열린 동안 셀 점등 유지).
+  - 단일 칸 클릭 = 하루(anchor=current → start=end). 셀에 .sel 클래스(모노크롬 var(--sel) fill, 인접 셀이 한 띠로 읽힘), .ed-calwrap.is-selecting{user-select:none}, .cal-cell{cursor:cell}.
+- 파일: lib/calendar/{selection.ts,selection.test.ts}, components/calendar/{CreatePopover.tsx,CalendarView.tsx}, app/globals.css
+- 품질: typecheck ✓ / lint ✓(0) / test ✓(38 passed: 기존 26 + 신규 12 selection). dev 부팅 GET / 200, SSR 217셀·data-today 1 렌더, 서버 에러/경고 없음(popover는 클라 전용 — 인터랙션 후 마운트).
+- Needs human browser verification:
+  - 드래그 시 지나간 칸들이 라이브로 하이라이트되고, 드래그 범위와 팝오버 표시 기간이 일치하는지
+  - 드래그 종료 시 팝오버가 release 위치 근처에 뜨고 뷰포트 밖으로 안 넘치는지
+  - 단일 클릭 시 하루짜리 팝오버
+  - 역방향 드래그(종료→시작)도 동일 범위로 정규화
+  - ESC/바깥 클릭으로 닫힘, 닫히면 하이라이트 해제
+- Learnings for future iterations:
+  - 드래그 멀티셀 선택은 setPointerCapture를 쓰면 안 됨 — 캡처하면 다른 셀의 pointerenter가 안 옴. 캡처 없이 cell별 onPointerEnter + window pointerup(바깥 release 캡처)로 구현. 마우스 우선(데스크톱) 전제.
+  - window 이벤트 핸들러 안에서는 state가 stale → anchorRef/currentRef/draggingRef로 읽고, 렌더용 state는 별도로 미러링.
+  - 팝오버는 그림자 금지(디자인 규칙) → 하이라인 카드 + 흰 배경 + subtle 페이드로 떠 보이게.
+  - US-005는 CreatePopover를 확장: 제목 input(빈 제목 차단) + 프로젝트/태스크종류 select(현재 뷰 프로젝트 기본값) + 저장(createTask) → 팝오버 닫고 막대 렌더. selection 범위(start/end)를 그대로 createTask에 전달. 막대 분할/색은 US-005~007.
+  - 막대(US-005)와 선택 하이라이트가 같은 셀에 공존: 하이라이트는 셀 배경, 막대는 .cal-week 위 absolute lane이므로 충돌 없음.
+---

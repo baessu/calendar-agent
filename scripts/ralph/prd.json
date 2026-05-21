@@ -74,8 +74,8 @@
         "Verify in browser: 드래그 범위와 표시 기간 일치"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "lib/calendar/selection.ts(normalizeRange 역방향 정규화 + isWithinRange 양끝 포함 + formatRangeLabel 'M/D ~ M/D'/단일 'M/D') 순수 로직 + 12 단위 테스트. CreatePopover.tsx: 선택 기간 표시·ESC/바깥클릭(투명 backdrop) 닫힘·그림자 없는 하이라인 카드·뷰포트 클램프·subtle cpIn 애니메이션(US-005가 제목/프로젝트/종류/저장 추가 예정). CalendarView: pointer 기반 드래그 — onPointerDown(기본버튼만, preventDefault로 텍스트선택 차단)→anchor, onPointerEnter→current 라이브 하이라이트(.cal-cell.sel 모노크롬 fill), window pointerup으로 확정 후 popover 오픈(release 좌표 앵커), pointercancel 리셋. 단일 클릭=하루(start=end). draggingRef/anchorRef/currentRef로 window 핸들러 stale 회피, isDragging/dragAnchor/dragCurrent state로 렌더. cursor:cell + is-selecting user-select:none. 38 tests green(+12). dev GET / 200, SSR 217셀 렌더·서버 에러 없음(popover는 클라 전용)."
     },
     {
       "id": "US-005",
