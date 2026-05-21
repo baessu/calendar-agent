@@ -378,3 +378,26 @@
   - CreatePopover error를 단일 string→{field,msg}로 바꾼 이유: 제목/프로젝트 두 필드의 인라인 에러를 각자 위치에 정확히 표시(+aria-invalid 분리)하기 위함. 향후 필드 추가 시 같은 구조로 확장.
   - 막대 색/톤 로직(barColors)은 US-006부터 불변 — 뷰 전환은 '어떤 task를 렌더하느냐'만 바꿈. 색 구분(색조/톤)은 이미 데이터에 내재.
 ---
+
+## 2026-05-21T22:58:00 - US-014
+- 사이드바 범례 + 프로젝트 보이기/숨기기 토글. 프로젝트 범례에 가시성 체크박스 추가 → off 시 캘린더·패널에서 그 프로젝트 막대/항목 숨김(영속). 태스크종류·마커 범례는 US-012/US-017에서 이미 존재(AC2 충족).
+- 순수 로직 분리: `lib/calendar/view.ts` filterTasksByVisibleProjects(tasks, projects): visible===false 프로젝트의 task를 hidden Set으로 제거(미존재 프로젝트는 방어적 보존), 숨김이 없으면 입력 배열 그대로 반환(메모 친화·filterTasksByProject 스타일과 일관). filterTasksByProject(US-013)와 AND 합성. +6 단위 테스트(전체 visible=동일참조/일부 숨김/전부 숨김=빈/순서보존/미존재 프로젝트 보존/빈입력).
+- `components/calendar/CalendarApp.tsx`: visibleTasks = filterTasksByProject(filterTasksByVisibleProjects(tasks, projects), selectedProjectId) — 가시성 필터 후 탭 필터(둘 다 순서 보존), useMemo deps에 projects 추가. handleToggleProjectVisible(id): updateProject({visible:!target.visible}) DB 저장 + setProjects map merge. projects state 갱신 → visibleTasks 재파생 → CalendarView 막대·TaskListPanel 목록·numbadge 즉시 동기(AC3/AC6). onToggleProjectVisible를 TaskListPanel에 전달.
+- `components/calendar/TaskListPanel.tsx`: onToggleProjectVisible prop. 프로젝트 범례 칩을 `<button.proj-chip>` → `<span.proj-row>`로 재구성: 체크박스(.proj-vis, aria-label '{이름} 캘린더에 표시', onChange→onToggleProjectVisible) + 이름 버튼(.proj-name, onClick→onEditProject, 내부 .proj-sw 색 스와치) = 스와치+이름+토글 3요소(AC1). 범례는 projects 전체(가시성 무관)로 렌더 → 숨긴 프로젝트도 다시 켤 수 있음. tasks(=visibleTasks)만 필터됨. 태스크종류 범례(.ed-type)는 여전히 .proj-chip 버튼 사용 → .proj-chip 공유 깨지지 않게 프로젝트는 .proj-row 신설.
+- `app/globals.css`: .proj-row(인라인플렉스 하이라인 칩)/.proj-vis(13px 체크박스, accent-color 검정 모노크롬 = 변형 B 목업 패턴)/.proj-name(버튼 리셋, hover 밑줄, focus 링)/.proj-row.off .proj-name(opacity 0.4 — 체크박스는 또렷이 유지해 다시 클릭 가능).
+- 파일: lib/calendar/{view.ts,view.test.ts}, components/calendar/{CalendarApp.tsx,TaskListPanel.tsx}, app/globals.css, scripts/ralph/{prd.json,progress.txt}
+- 품질: typecheck ✓ / lint ✓(0 errors/warnings) / test ✓(165 passed: 기존 159 + 신규 6 view). dev GET / 200, SSR에 ed-proj/＋프로젝트 + cal-cell 217·ed-list 렌더, 서버 에러/경고 없음(프로젝트 행·체크박스는 클라 DB 로드 후 마운트 = SSR엔 범례 헤더/＋버튼만, 정상).
+- Needs human browser verification:
+  - 프로젝트 범례 각 행에 체크박스(토글)+색 스와치+이름이 보이는지, 토글 off 시 그 프로젝트 막대가 캘린더에서 사라지고 우측 패널 목록·numbadge가 줄어드는지(즉시)
+  - 다시 토글 on 시 막대·항목이 즉시 복귀하는지
+  - 새로고침 후에도 토글 상태(visible)가 유지되는지(IndexedDB)
+  - 숨긴 프로젝트 행이 dim 처리되되 체크박스는 또렷해 다시 켤 수 있는지
+  - 태스크종류 범례(톤+이름)·마커 범례(⚑데드라인/◆이벤트)가 함께 보이는지(AC2)
+- Learnings for future iterations:
+  - 가시성 토글은 CalendarApp의 visibleTasks 파생에 AND 필터를 한 겹 더 얹는 패턴(US-013 노트 예고대로). 필터 순서: 가시성 → 탭. 둘 다 순서 보존이라 합성 안전. 막대/목록 즉시 반영의 핵심=projects 단일 진실원본(setProjects만 하면 visibleTasks 재계산).
+  - 개별 탭(US-013)으로 선택된 프로젝트를 숨기면 visibleTasks가 비어 캘린더가 빈 화면 — AC3('off 시 숨김')에 부합하는 의도된 동작(엣지). 탭 자체는 그대로 노출(필요 시 후속에서 숨긴 프로젝트 탭 숨김 가능).
+  - .proj-chip은 태스크종류 범례(.ed-type) 버튼이 공유 중 → 프로젝트 범례에 토글을 얹을 때 .proj-chip을 재정의하지 말고 .proj-row 신설. 두 범례 마크업이 갈라지지만 스타일 충돌·회귀 회피.
+  - 체크박스 = 변형 B 목업의 `.proj-item input{accent-color:var(--ink)}` 패턴 → 네이티브 input이라 a11y 무료(라벨 aria-label), 모노크롬 규칙 유지(색은 스와치=프로젝트 정체성, color-system §2 허용). 커스텀 토글 스위치 미도입(단순·접근성 우선).
+  - 숨김 dim은 .proj-name(스와치+라벨)에만 — 행 전체 opacity로 dim하면 체크박스도 흐려져 '다시 켜기' 어포던스가 약해짐. 체크박스는 항상 또렷.
+  - US-015(종류 필터)는 같은 자리: taskTypes 범례에 on/off 필터 상태를 CalendarApp 공유 상태로 두고 visibleTasks 파생에 filterTasksByVisibleTaskTypes를 AND로 한 겹 더 합성(가시성=visible 영속 vs 종류 필터=세션 상태일지 결정 필요). 프로젝트 visible은 DB 영속, 종류 필터는 뷰 상태로 둘 가능성.
+---

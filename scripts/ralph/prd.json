@@ -243,8 +243,8 @@
         "Verify in browser: 토글 on/off 즉시 반영"
       ],
       "priority": 6,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "lib/calendar/view.ts filterTasksByVisibleProjects(tasks, projects): visible===false 프로젝트의 task 제거(미존재 프로젝트는 방어적 보존), 숨김 없으면 입력 그대로 반환(메모 친화). filterTasksByProject와 AND 합성. +6 단위 테스트(전체 visible=동일참조/일부 숨김/전부 숨김/순서보존/미존재 프로젝트 보존/빈입력). CalendarApp: visibleTasks=filterTasksByProject(filterTasksByVisibleProjects(tasks, projects), selectedProjectId) — 가시성 필터 후 탭 필터(둘 다 순서 보존), deps에 projects 추가. handleToggleProjectVisible(id): updateProject({visible:!target.visible}) DB 저장 + setProjects map merge → projects state 갱신이 visibleTasks 재파생 → 캘린더 막대+패널 목록 즉시 숨김/표시(AC3/AC6). TaskListPanel: onToggleProjectVisible prop + 프로젝트 범례를 .proj-row(span)로 재구성 — 가시성 체크박스(.proj-vis, accent-color 검정 모노크롬, aria-label '{이름} 캘린더에 표시') + 이름 버튼(.proj-name, 클릭→onEditProject, 안에 .proj-sw 색 스와치) = 스와치+이름+토글 3요소(AC1). 숨김(.off) 시 .proj-name opacity 0.4(체크박스는 또렷). 태스크종류 범례(.ed-type 톤+이름)+마커 범례(.ed-legend-row ⚑데드라인/◆이벤트)는 US-012/017에서 이미 존재(AC2 충족). 범례는 projects 전체(가시성 무관) 기반이라 숨긴 프로젝트도 다시 켤 수 있음 — tasks(=visibleTasks)만 필터. .proj-chip은 태스크종류 버튼 전용 유지(공유 깨지지 않게 .proj-row 신설). updateProject/Project.visible는 US-002부터 존재 → Dexie 영속으로 새로고침 후 유지(AC4). globals.css: .proj-row/.proj-vis(13px 체크박스)/.proj-name(버튼 리셋, hover 밑줄)/.proj-row.off .proj-name(dim). 165 tests green(+6). typecheck ✓ / lint ✓(0) / dev GET / 200, SSR에 ed-proj/＋프로젝트 + cal-cell 217·ed-list 렌더, 서버 에러/경고 없음(프로젝트 행·체크박스는 클라 DB 로드 후 마운트)."
     },
     {
       "id": "US-015",

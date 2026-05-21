@@ -31,7 +31,10 @@ import {
   type MarkerChanges,
   type MarkerInput,
 } from "@/lib/db";
-import { filterTasksByProject } from "@/lib/calendar/view";
+import {
+  filterTasksByProject,
+  filterTasksByVisibleProjects,
+} from "@/lib/calendar/view";
 import { defaultProjectId, nextProjectOrder } from "@/lib/project/manage";
 import {
   defaultTaskTypeId,
@@ -110,9 +113,31 @@ export function CalendarApp() {
     (id: string | null) => setSelectedProjectId(id),
     [],
   );
+  // Visible set feeding both views: drop tasks of projects toggled off (US-014),
+  // then narrow to the active tab (US-013). Both filters preserve order.
   const visibleTasks = useMemo(
-    () => filterTasksByProject(tasks, selectedProjectId),
-    [tasks, selectedProjectId],
+    () =>
+      filterTasksByProject(
+        filterTasksByVisibleProjects(tasks, projects),
+        selectedProjectId,
+      ),
+    [tasks, projects, selectedProjectId],
+  );
+
+  // Toggle a project's visibility (US-014). Persisted to IndexedDB so the state
+  // survives a refresh; the shared `projects` state re-derives `visibleTasks`,
+  // hiding/showing its bars in the calendar and panel at once.
+  const handleToggleProjectVisible = useCallback(
+    async (id: string) => {
+      const target = projects.find((p) => p.id === id);
+      if (!target) return;
+      const visible = !target.visible;
+      await updateProject(id, { visible });
+      setProjects((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, visible } : p)),
+      );
+    },
+    [projects],
   );
 
   // Persist a new task, then surface it in both views.
@@ -413,6 +438,7 @@ export function CalendarApp() {
         onAddMarker={handleAddMarker}
         onAddProject={openProjectCreate}
         onEditProject={openProjectEdit}
+        onToggleProjectVisible={handleToggleProjectVisible}
         onAddTaskType={openTaskTypeCreate}
         onEditTaskType={openTaskTypeEdit}
       />

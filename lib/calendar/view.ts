@@ -1,4 +1,4 @@
-import type { Task } from "@/lib/types";
+import type { Project, Task } from "@/lib/types";
 
 /**
  * View filter for the top project tabs (US-013).
@@ -14,4 +14,22 @@ export function filterTasksByProject(
 ): Task[] {
   if (selectedProjectId === null) return tasks;
   return tasks.filter((t) => t.projectId === selectedProjectId);
+}
+
+/**
+ * Visibility filter for the per-project show/hide toggles (US-014).
+ *
+ * Drops tasks whose owning project is toggled off (`visible === false`) so the
+ * project disappears from both the calendar and the side panel. A task whose
+ * project is absent from `projects` is kept (defensive — should not happen).
+ * Order is preserved; with nothing hidden the input is returned unchanged.
+ * Composes (AND) with `filterTasksByProject`.
+ */
+export function filterTasksByVisibleProjects(
+  tasks: Task[],
+  projects: Project[],
+): Task[] {
+  const hidden = new Set(projects.filter((p) => !p.visible).map((p) => p.id));
+  if (hidden.size === 0) return tasks;
+  return tasks.filter((t) => !hidden.has(t.projectId));
 }

@@ -783,6 +783,54 @@ button.mk:focus-visible {
 }
 
 /*
+ * Project legend rows (US-014): visibility checkbox + identity swatch + name.
+ * The checkbox shows/hides the project's bars in both views; the name opens the
+ * manage popover. Monochrome chrome — only the swatch carries identity color.
+ * A hidden project dims its swatch + label (the checkbox stays crisp/clickable).
+ */
+.proj-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border-soft);
+  border-radius: 2px;
+  padding: 3px 8px;
+}
+.proj-vis {
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  accent-color: var(--text); /* monochrome check (mockup pattern) */
+  cursor: pointer;
+  flex: none;
+}
+.proj-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+.proj-name:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.proj-name:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+.proj-row.off .proj-name {
+  opacity: 0.4;
+}
+
+/*
  * Task-type legend (US-012) in the right panel — mirrors the project legend.
  * Each chip = tone swatch (previewed on a reference hue) + name; clicking opens
  * the manage popover. "＋ 종류" adds one. Reuses .ed-proj-head/.ed-proj-list/

@@ -40,6 +40,8 @@ interface TaskListPanelProps {
   onAddProject: (x: number, y: number) => void;
   /** Open the project popover to edit/delete a project (legend chip click). */
   onEditProject: (project: Project, x: number, y: number) => void;
+  /** Toggle a project's visibility (legend checkbox) — US-014. */
+  onToggleProjectVisible: (id: string) => void;
   /** Open the task-type popover to create a new type (legend "＋ 종류"). */
   onAddTaskType: (x: number, y: number) => void;
   /** Open the task-type popover to edit/delete a type (legend chip click). */
@@ -58,6 +60,7 @@ export function TaskListPanel({
   onAddMarker,
   onAddProject,
   onEditProject,
+  onToggleProjectVisible,
   onAddTaskType,
   onEditTaskType,
 }: TaskListPanelProps) {
@@ -79,9 +82,11 @@ export function TaskListPanel({
         <span className="ed-list-sort">날짜순</span>
       </div>
 
-      {/* Project legend (US-011): identity-color swatch + name. Click a chip to
-          rename/recolor/delete; "＋ 프로젝트" creates one. Project identity
-          colors are allowed here (legend), unlike the monochrome grid chrome. */}
+      {/* Project legend (US-011/US-014): visibility checkbox + identity-color
+          swatch + name. The checkbox shows/hides the project's bars in both
+          views (persisted); clicking the name opens the manage popover.
+          "＋ 프로젝트" creates one. Project identity colors are allowed here
+          (legend), unlike the monochrome grid chrome. */}
       <div className="ed-proj">
         <div className="ed-proj-head">
           프로젝트
@@ -95,16 +100,24 @@ export function TaskListPanel({
         </div>
         <div className="ed-proj-list">
           {projects.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              className="proj-chip"
-              onClick={(e) => onEditProject(p, e.clientX, e.clientY)}
-              aria-label={`${p.name} 프로젝트 관리`}
-            >
-              <span className="proj-sw" style={{ background: p.color }} aria-hidden />
-              {p.name}
-            </button>
+            <span key={p.id} className={`proj-row${p.visible ? "" : " off"}`}>
+              <input
+                type="checkbox"
+                className="proj-vis"
+                checked={p.visible}
+                onChange={() => onToggleProjectVisible(p.id)}
+                aria-label={`${p.name} 캘린더에 표시`}
+              />
+              <button
+                type="button"
+                className="proj-name"
+                onClick={(e) => onEditProject(p, e.clientX, e.clientY)}
+                aria-label={`${p.name} 프로젝트 관리`}
+              >
+                <span className="proj-sw" style={{ background: p.color }} aria-hidden />
+                {p.name}
+              </button>
+            </span>
           ))}
         </div>
       </div>
