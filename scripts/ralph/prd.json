@@ -56,8 +56,8 @@
         "Verify in browser: 월 경계가 끊김 없이 이어지고 오늘로 스크롤"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "lib/calendar/dates.ts(UTC-noon parse/format/addDays/diffDays/today) + infinite.ts(buildWeeksRange 그리드정렬 + groupWeeksByMonth 목요일 규칙 + addMonths). CalendarView.tsx(use client): 세로 무한 스크롤, sticky 월 헤더(월명+요일), 마운트 시 오늘 중앙 자동 스크롤, 스크롤 따라 타이틀 갱신, 오늘 버튼, 양 끝 근접 시 월 1개씩 지연 확장(prepend 시 scrollHeight 앵커로 점프 방지). 선 없는 그리드(F탭 미러), 오늘=검은 원, 타 월 흐림. 26 tests green(+17 신규 캘린더 로직). dev GET / 200, SSR 구조 렌더(month-name 8/cal-daynum 217/data-today 1)·서버 에러 없음."
     },
     {
       "id": "US-004",

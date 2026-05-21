@@ -59,3 +59,31 @@
   - Task 시간 정밀도: createdAt===updatedAt 가능(같은 ms). 비교는 >= 사용.
   - 다음(US-003) 캘린더 렌더는 getAllTasks(startDate 정렬)·getAllProjects(order)·getAllTaskTypes(order)·getAllMarkers(date) 사용. applyTone/barText는 US-006에서 lib/color/compose.ts로 추가 예정.
 ---
+
+## 2026-05-21T21:18:00 - US-003
+- 무한 스크롤 먼슬리 캘린더(선 없는 그리드). 막대/마커는 아직 없음(US-005/US-017) — 이번엔 그리드 셸만.
+- 순수 로직 분리:
+  - `lib/calendar/dates.ts`: UTC-noon 앵커 날짜 유틸 — parseDate/toDateString/addDays/diffDays/todayDateString. 노이즈(DST) 회피 위해 정오 고정.
+  - `lib/calendar/infinite.ts`: buildWeeksRange(from,to,today) 그리드정렬 주 생성(일~토) + groupWeeksByMonth(목요일=week[4] 규칙) + addMonths(연도 래핑) + monthLabel + WEEKDAYS.
+- `components/calendar/CalendarView.tsx`(use client):
+  - 초기 범위 today±3개월, 양 끝 EXPAND_PX(600) 근접 시 월 1개씩 확장. prepend 시 prependAnchor(이전 scrollHeight)로 useLayoutEffect에서 scrollTop 보정 → 위로 늘려도 점프 없음.
+  - 마운트 시 [data-today]를 뷰포트 중앙으로 자동 스크롤(centerToday). '오늘' 버튼=smooth로 동일 동작.
+  - 스크롤 시 sticky 헤더에 걸린 월(top-relative ≤8px의 마지막 section)로 상단 타이틀(YYYY/MM) 갱신.
+- `app/globals.css`: 에디토리얼(F탭) 그리드 CSS 포팅 — .app-shell/.ed-main/.ed-bar/.ed-ttl/.ed-today/.ed-calwrap/.month-head(sticky)/.month-name/.cal-head/.cal-hd/.cal-week(min-h 88, 선 없음)/.cal-cell(.out=opacity .4)/.cal-daynum/today=검은 원.
+- `app/page.tsx`: 빈 셸 → <main.app-shell><CalendarView/>. 우측 할일 패널·프로젝트 탭은 후속 스토리.
+- 파일: lib/calendar/{dates.ts,dates.test.ts,infinite.ts,infinite.test.ts}, components/calendar/CalendarView.tsx, app/{globals.css,page.tsx}
+- 품질: typecheck ✓ / lint ✓(0) / test ✓(26 passed: 기존 9 + 신규 17 캘린더 로직). dev 부팅 GET / 200, SSR HTML에 month-name 8·cal-daynum 217·data-today 1·ed-ttl 1 렌더, 서버 에러/경고 없음.
+- Needs human browser verification:
+  - 월 경계가 끊김 없이 세로로 이어지는지(시각)
+  - 로드 시 오늘(2026-05-21)로 자동 스크롤 + '오늘' 버튼 복귀
+  - 스크롤 시 상단 타이틀이 현재 월로 갱신
+  - 위/아래 스크롤 시 인접 월이 점프 없이 추가(특히 위로 prepend 시 앵커링)
+  - sticky 월 헤더 고정, 오늘=검은 원/타 월 흐림 등 미니멀 그리드 룩
+- Learnings for future iterations:
+  - 월 그룹=목요일 규칙이라 그리드정렬 특성상 범위 양 끝에 "1주짜리 인접 월 그룹"이 생길 수 있음(정상). today±3 버퍼로 중앙은 항상 온전한 월.
+  - 무한 확장 안정화: onScroll은 didInitialScroll 후에만 동작(초기 프로그램 스크롤이 확장 오발동 안 하게). prepend는 layout effect에서 scrollHeight 델타로 보정.
+  - useLayoutEffect 2개(초기 스크롤/ prepend 앵커)는 선언 순서대로 실행 — 초기 스크롤이 먼저, ref 가드로 1회만.
+  - US-005 막대: .cal-week에 lane 수 기반 inline height 부여 예정(현재 min-height 88 placeholder). left%/width%는 7열(/7*100) 기준. layoutWeek(인터벌 스케줄링)은 lib/calendar/layout.ts로 분리 + 테스트(US-007).
+  - 날짜 비교/연산은 전부 dates.ts(UTC-noon)로 — 컴포넌트에서 new Date 직접 계산 금지(tz drift).
+  - CalendarView는 'use client' + SSR도 됨. useLayoutEffect SSR 경고 미발생 확인(GET 200, 로그 clean). today는 서버/클라 동일일자 가정(로컬 앱).
+---
