@@ -6,7 +6,7 @@
  * which is the ISO convention and keeps each month visually self-contained.
  */
 import type { DateString } from "@/lib/types";
-import { addDays, toDateString, todayDateString } from "./dates";
+import { addDays, parseDate, toDateString, todayDateString } from "./dates";
 
 /** Korean weekday labels, Sunday-first. */
 export const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"] as const;
@@ -109,4 +109,28 @@ export function groupWeeksByMonth(weeks: CalendarWeek[]): MonthGroup[] {
 /** "YYYY년 M월" header label (month0 is 0-based). */
 export function monthLabel(year: number, month0: number): string {
   return `${year}년 ${month0 + 1}월`;
+}
+
+/**
+ * The grid-week key (the Sunday's "YYYY-MM-DD") of the week containing `date`.
+ * Weeks are Sunday-aligned, matching `buildWeeksRange`, so this is the same key
+ * `week[0].date` would produce — used to address a week's expand/collapse state.
+ */
+export function weekKeyOf(date: DateString): DateString {
+  const ts = parseDate(date);
+  const dow = new Date(ts).getUTCDay(); // 0 = Sunday
+  return toDateString(addDays(ts, -dow));
+}
+
+/**
+ * Every grid-week key (Sunday dates) spanned by [start..end] inclusive. Used to
+ * expand all weeks a task touches when its bar is highlighted from the panel.
+ */
+export function weekKeysInRange(start: DateString, end: DateString): DateString[] {
+  const endKey = weekKeyOf(end);
+  const keys: DateString[] = [];
+  for (let cur = weekKeyOf(start); cur <= endKey; cur = toDateString(addDays(parseDate(cur), 7))) {
+    keys.push(cur);
+  }
+  return keys;
 }

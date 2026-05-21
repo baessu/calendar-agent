@@ -4,6 +4,8 @@ import {
   buildWeeksRange,
   groupWeeksByMonth,
   monthLabel,
+  weekKeyOf,
+  weekKeysInRange,
   type CalendarWeek,
 } from "./infinite";
 
@@ -104,5 +106,46 @@ describe("monthLabel", () => {
   it("formats a 0-based month into a Korean label", () => {
     expect(monthLabel(2026, 4)).toBe("2026년 5월");
     expect(monthLabel(2027, 0)).toBe("2027년 1월");
+  });
+});
+
+describe("weekKeyOf", () => {
+  it("returns the Sunday of the week for a mid-week date", () => {
+    // 2026-05-21 is a Thursday; its grid week starts Sunday 2026-05-17.
+    expect(weekKeyOf("2026-05-21")).toBe("2026-05-17");
+  });
+  it("is idempotent on a Sunday", () => {
+    expect(weekKeyOf("2026-05-17")).toBe("2026-05-17");
+  });
+  it("maps a Saturday back to its week's Sunday", () => {
+    expect(weekKeyOf("2026-05-23")).toBe("2026-05-17");
+  });
+  it("agrees with buildWeeksRange's week[0].date", () => {
+    const weeks = buildWeeksRange({ year: 2026, month: 5 }, { year: 2026, month: 5 }, TODAY);
+    for (const week of weeks) {
+      for (const day of week) {
+        expect(weekKeyOf(day.date)).toBe(week[0].date);
+      }
+    }
+  });
+});
+
+describe("weekKeysInRange", () => {
+  it("returns a single week for a same-week range", () => {
+    expect(weekKeysInRange("2026-05-21", "2026-05-21")).toEqual(["2026-05-17"]);
+  });
+  it("spans two weeks across a Sunday boundary", () => {
+    // Thu 2026-05-21 .. Mon 2026-05-25 crosses into the next grid week.
+    expect(weekKeysInRange("2026-05-21", "2026-05-25")).toEqual([
+      "2026-05-17",
+      "2026-05-24",
+    ]);
+  });
+  it("enumerates every Sunday across a multi-week span", () => {
+    expect(weekKeysInRange("2026-05-17", "2026-06-06")).toEqual([
+      "2026-05-17",
+      "2026-05-24",
+      "2026-05-31",
+    ]);
   });
 });

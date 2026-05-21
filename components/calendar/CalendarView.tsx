@@ -10,9 +10,12 @@
  *
  * Dragging across day cells selects an inclusive range (US-004): passed cells
  * highlight live, and releasing opens the creation popover prefilled with the
- * range; a single click selects one day. No bars/markers here yet — those land
- * in US-005 / US-017. The grid is the line-less minimal Swiss layout from the
- * F-tab mockup.
+ * range; a single click selects one day. Saving paints a colored bar (US-005/006)
+ * stacked into lanes (US-007). Shared data (projects/task types/tasks) is owned
+ * by <CalendarApp>; this view is presentational over those props. A panel row
+ * click (US-008) arrives as `highlightNonce`/`highlightedTaskId` to scroll the
+ * matching bar into view and ring it. The grid is the line-less Swiss layout
+ * from the F-tab mockup.
  */
 import {
   useCallback,
@@ -27,6 +30,7 @@ import {
   buildWeeksRange,
   groupWeeksByMonth,
   monthLabel,
+  weekKeysInRange,
   WEEKDAYS,
   type YearMonth,
 } from "@/lib/calendar/infinite";
@@ -35,14 +39,8 @@ import { isWithinRange, normalizeRange, type DateRange } from "@/lib/calendar/se
 import { weekSegments } from "@/lib/calendar/segments";
 import { DEFAULT_MAX_LANES, layoutWeek } from "@/lib/calendar/layout";
 import { barColors } from "@/lib/color/compose";
-import {
-  createTask,
-  getAllProjects,
-  getAllTaskTypes,
-  getAllTasks,
-  seedIfEmpty,
-} from "@/lib/db";
 import type { DateString, Project, Task, TaskType } from "@/lib/types";
+import type { NewTaskInput } from "./CalendarApp";
 import { CreatePopover, type CreateTaskDraft } from "./CreatePopover";
 
 // Months shown on either side of today at first paint.
@@ -64,7 +62,33 @@ function ymFromDate(date: string): YearMonth {
   return { year, month };
 }
 
-export function CalendarView() {
+interface CalendarViewProps {
+  projects: Project[];
+  taskTypes: TaskType[];
+  tasks: Task[];
+  projectsById: Map<string, Project>;
+  taskTypesById: Map<string, TaskType>;
+  /** Persist a new task across the committed selection. */
+  onCreateTask: (input: NewTaskInput) => Promise<void> | void;
+  /** Task whose bar should be ringed (from a panel row click). */
+  highlightedTaskId: string | null;
+  /** Bumps on each panel click so repeat clicks re-scroll. */
+  highlightNonce: number;
+  /** Bumps when the panel's "＋ 할일 추가" asks to create for today. */
+  addNonce: number;
+}
+
+export function CalendarView({
+  projects,
+  taskTypes,
+  tasks,
+  projectsById,
+  taskTypesById,
+  onCreateTask,
+  highlightedTaskId,
+  highlightNonce,
+  addNonce,
+}: CalendarViewProps) {
   const today = useMemo(() => todayDateString(), []);
   const todayYM = useMemo(() => ymFromDate(today), [today]);
 
@@ -76,44 +100,6 @@ export function CalendarView() {
     () => groupWeeksByMonth(buildWeeksRange(from, to, today)),
     [from, to, today],
   );
-
-  // --- Persisted data (US-005) ----------------------------------------------
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [taskTypes, setTaskTypes] = useState<TaskType[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-
-  // Seed (idempotent) then load all data on mount. Seeding here too avoids a
-  // race with <DbInit>, so the popover always has a project/task-type to pick.
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      await seedIfEmpty();
-      const [ps, tts, ts] = await Promise.all([
-        getAllProjects(),
-        getAllTaskTypes(),
-        getAllTasks(),
-      ]);
-      if (!alive) return;
-      setProjects(ps);
-      setTaskTypes(tts);
-      setTasks(ts);
-    })().catch((err) => console.error("calendar data load failed", err));
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  const projectsById = useMemo(() => {
-    const m = new Map<string, Project>();
-    for (const p of projects) m.set(p.id, p);
-    return m;
-  }, [projects]);
-
-  const taskTypesById = useMemo(() => {
-    const m = new Map<string, TaskType>();
-    for (const tt of taskTypes) m.set(tt.id, tt);
-    return m;
-  }, [taskTypes]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const didInitialScroll = useRef(false);
@@ -243,21 +229,20 @@ export function CalendarView() {
     setDragCurrent(null);
   }, []);
 
-  // Persist a new task across the committed selection, then show its bar.
+  // Persist a new task across the committed selection (parent owns the data).
   const handleCreate = useCallback(
     async (draft: CreateTaskDraft) => {
       if (!selection) return;
-      const task = await createTask({
+      await onCreateTask({
         projectId: draft.projectId,
         taskTypeId: draft.taskTypeId,
         title: draft.title,
         startDate: selection.start,
         endDate: selection.end,
       });
-      setTasks((prev) => [...prev, task]);
       closePopover();
     },
-    [selection, closePopover],
+    [selection, onCreateTask, closePopover],
   );
 
   // The range to paint as highlighted: the live drag while dragging, otherwise
@@ -278,6 +263,47 @@ export function CalendarView() {
       return next;
     });
   }, []);
+
+  // --- Panel row click -> scroll + ring the bar (US-008) --------------------
+  // Expand every week the task spans (so an overflowed bar is drawn) and center
+  // its start cell. Both are deferred to the next frame (out of the effect's
+  // commit phase). The start-date cell always renders, so the scroll target
+  // exists regardless of expand. Keyed on highlightNonce so repeat clicks re-scroll.
+  useEffect(() => {
+    if (!highlightedTaskId) return;
+    const task = tasks.find((t) => t.id === highlightedTaskId);
+    if (!task) return;
+    const raf = requestAnimationFrame(() => {
+      setExpandedWeeks((prev) => {
+        const next = new Set(prev);
+        for (const key of weekKeysInRange(task.startDate, task.endDate)) next.add(key);
+        return next;
+      });
+      const el = scrollRef.current;
+      if (!el) return;
+      const cell = el.querySelector<HTMLElement>(`[data-date="${task.startDate}"]`);
+      if (!cell) return;
+      const offset =
+        cell.getBoundingClientRect().top -
+        el.getBoundingClientRect().top -
+        el.clientHeight / 2;
+      el.scrollTo({ top: el.scrollTop + offset, behavior: "smooth" });
+    });
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fire on click, not on every tasks change
+  }, [highlightNonce]);
+
+  // --- Panel "＋ 할일 추가" -> open the popover for today --------------------
+  // Deferred to the next frame so it runs after commit, not synchronously here.
+  useEffect(() => {
+    if (addNonce === 0) return; // skip the initial mount value
+    const raf = requestAnimationFrame(() => {
+      setSelection({ start: today, end: today });
+      setPopoverPos({ x: window.innerWidth / 2, y: window.innerHeight / 3 });
+    });
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fire only when the panel requests it
+  }, [addNonce]);
 
   return (
     <div className="ed-main">
@@ -345,6 +371,7 @@ export function CalendarView() {
                             dy.isToday ? " today" : ""
                           }${selected ? " sel" : ""}`}
                           data-today={dy.isToday ? "true" : undefined}
+                          data-date={dy.date}
                           onPointerDown={(e) => onCellPointerDown(dy.date, e)}
                           onPointerEnter={() => onCellPointerEnter(dy.date)}
                         >
@@ -368,8 +395,11 @@ export function CalendarView() {
                       return (
                         <div
                           key={seg.task.id}
-                          className="cal-bar"
+                          className={`cal-bar${
+                            seg.task.id === highlightedTaskId ? " hl" : ""
+                          }`}
                           title={seg.task.title}
+                          data-task-id={seg.task.id}
                           style={{
                             left: `${left}%`,
                             width: `calc(${width}% - 4px)`,

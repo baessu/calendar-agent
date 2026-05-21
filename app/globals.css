@@ -417,3 +417,136 @@ body {
 .cal-more:hover {
   background: var(--sel);
 }
+
+/*
+ * Panel-highlight ring (US-008). Clicking a row in the right "할일" list scrolls
+ * the bar into view and rings it. The ring is monochrome (UI chrome stays
+ * black/white; only the bar fill carries color) and clears after a moment.
+ */
+.cal-bar.hl {
+  outline: 2px solid var(--text);
+  outline-offset: 1px;
+  z-index: 2;
+}
+
+/*
+ * Right "할일" panel (US-008) — mirrors the F-tab mockup's .ed-list. Hairline
+ * borders, monochrome chrome; the only color is the per-task data swatch.
+ */
+.ed-list {
+  width: 300px;
+  flex: none;
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+.ed-list-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 21px 22px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  border-bottom: 1px solid var(--border);
+}
+.numbadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--text);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.ed-list-sort {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+
+.tp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+/* Row is a button (clickable -> highlight); reset native button chrome. */
+.tp-item {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  width: 100%;
+  padding: 13px 22px;
+  border: none;
+  border-bottom: 1px solid var(--border-soft);
+  background: none;
+  font-family: inherit;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.tp-item:hover,
+.tp-item.on {
+  background: var(--sel);
+}
+.tp-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  margin-top: 4px;
+}
+.tp-body {
+  display: block;
+  min-width: 0;
+}
+.tp-title {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tp-meta {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+/* Empty state: nudge the drag-to-create flow (PRD §8). */
+.tp-empty {
+  padding: 22px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+/* Footer "＋ 할일 추가" — opens the create popover for today. */
+.ed-contact {
+  margin-top: auto;
+  padding: 16px 22px;
+  border: none;
+  border-top: 1px solid var(--border);
+  background: none;
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+}
+.ed-contact:hover {
+  color: var(--muted);
+}

@@ -1,11 +1,12 @@
-import { CalendarView } from "@/components/calendar/CalendarView";
+import { CalendarApp } from "@/components/calendar/CalendarApp";
 
-// Editorial shell. Right "할일" panel + project tabs arrive in later stories
-// (US-008 / US-013); for now the calendar fills the main column.
+// Editorial shell: infinite-scroll calendar (.ed-main) + right "할일" panel
+// (.ed-list) as flex children. <CalendarApp> owns the shared task data so both
+// stay in sync. Project tabs arrive in a later story (US-013).
 export default function Home() {
   return (
     <main className="app-shell">
-      <CalendarView />
+      <CalendarApp />
     </main>
   );
 }
