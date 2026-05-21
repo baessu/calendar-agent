@@ -8,10 +8,20 @@
  * scroll anchoring so the viewport never jumps. The top title tracks the month
  * currently pinned under the sticky header, and "오늘" returns to today.
  *
- * No bars/markers here yet — those land in US-005 / US-017. The grid is the
- * line-less minimal Swiss layout from the F-tab mockup.
+ * Dragging across day cells selects an inclusive range (US-004): passed cells
+ * highlight live, and releasing opens the creation popover prefilled with the
+ * range; a single click selects one day. No bars/markers here yet — those land
+ * in US-005 / US-017. The grid is the line-less minimal Swiss layout from the
+ * F-tab mockup.
  */
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   addMonths,
   buildWeeksRange,
@@ -21,6 +31,9 @@ import {
   type YearMonth,
 } from "@/lib/calendar/infinite";
 import { todayDateString } from "@/lib/calendar/dates";
+import { isWithinRange, normalizeRange, type DateRange } from "@/lib/calendar/selection";
+import type { DateString } from "@/lib/types";
+import { CreatePopover } from "./CreatePopover";
 
 // Months shown on either side of today at first paint.
 const INITIAL_BACK = 3;
@@ -108,6 +121,79 @@ export function CalendarView() {
     }
   }, [updateTitle]);
 
+  // --- Drag-to-select a date range (US-004) ---------------------------------
+  // Refs are the source of truth inside the window pointerup handler (state can
+  // be stale there); mirror state drives the live highlight render.
+  const draggingRef = useRef(false);
+  const anchorRef = useRef<DateString | null>(null);
+  const currentRef = useRef<DateString | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragAnchor, setDragAnchor] = useState<DateString | null>(null);
+  const [dragCurrent, setDragCurrent] = useState<DateString | null>(null);
+  const [selection, setSelection] = useState<DateRange | null>(null);
+  const [popoverPos, setPopoverPos] = useState<{ x: number; y: number } | null>(null);
+
+  const onCellPointerDown = useCallback((date: DateString, e: React.PointerEvent) => {
+    // Primary button only; ignore right/middle clicks.
+    if (e.button !== 0) return;
+    e.preventDefault(); // suppress native text selection while dragging
+    setSelection(null);
+    setPopoverPos(null);
+    draggingRef.current = true;
+    anchorRef.current = date;
+    currentRef.current = date;
+    setIsDragging(true);
+    setDragAnchor(date);
+    setDragCurrent(date);
+  }, []);
+
+  const onCellPointerEnter = useCallback((date: DateString) => {
+    if (!draggingRef.current) return;
+    currentRef.current = date;
+    setDragCurrent(date);
+  }, []);
+
+  // Finalize the drag on release anywhere (also catches release outside a cell).
+  useEffect(() => {
+    function onPointerUp(e: PointerEvent) {
+      if (!draggingRef.current) return;
+      draggingRef.current = false;
+      setIsDragging(false);
+      const a = anchorRef.current;
+      const c = currentRef.current ?? a;
+      if (!a || !c) return;
+      setSelection(normalizeRange(a, c));
+      setPopoverPos({ x: e.clientX, y: e.clientY });
+    }
+    function onPointerCancel() {
+      if (!draggingRef.current) return;
+      draggingRef.current = false;
+      setIsDragging(false);
+      setDragAnchor(null);
+      setDragCurrent(null);
+    }
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onPointerCancel);
+    return () => {
+      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onPointerCancel);
+    };
+  }, []);
+
+  const closePopover = useCallback(() => {
+    setSelection(null);
+    setPopoverPos(null);
+    setDragAnchor(null);
+    setDragCurrent(null);
+  }, []);
+
+  // The range to paint as highlighted: the live drag while dragging, otherwise
+  // the committed selection (so cells stay lit while the popover is open).
+  const highlight = useMemo<DateRange | null>(() => {
+    if (isDragging && dragAnchor && dragCurrent) return normalizeRange(dragAnchor, dragCurrent);
+    return selection;
+  }, [isDragging, dragAnchor, dragCurrent, selection]);
+
   return (
     <div className="ed-main">
       <div className="ed-bar">
@@ -121,7 +207,11 @@ export function CalendarView() {
         </button>
       </div>
 
-      <div className="ed-calwrap" ref={scrollRef} onScroll={onScroll}>
+      <div
+        className={`ed-calwrap${isDragging ? " is-selecting" : ""}`}
+        ref={scrollRef}
+        onScroll={onScroll}
+      >
         {groups.map((g) => (
           <section className="month-sec" key={g.key} data-month-key={`${g.year}-${g.month + 1}`}>
             <div className="month-head">
@@ -137,23 +227,40 @@ export function CalendarView() {
             <div className="month-body">
               {g.weeks.map((week) => (
                 <div className="cal-week" key={week[0].date}>
-                  {week.map((dy) => (
-                    <div
-                      key={dy.date}
-                      className={`cal-cell${dy.month !== g.month ? " out" : ""}${
-                        dy.isToday ? " today" : ""
-                      }`}
-                      data-today={dy.isToday ? "true" : undefined}
-                    >
-                      <span className="cal-daynum">{dy.day}</span>
-                    </div>
-                  ))}
+                  {week.map((dy) => {
+                    const selected =
+                      highlight != null &&
+                      isWithinRange(dy.date, highlight.start, highlight.end);
+                    return (
+                      <div
+                        key={dy.date}
+                        className={`cal-cell${dy.month !== g.month ? " out" : ""}${
+                          dy.isToday ? " today" : ""
+                        }${selected ? " sel" : ""}`}
+                        data-today={dy.isToday ? "true" : undefined}
+                        onPointerDown={(e) => onCellPointerDown(dy.date, e)}
+                        onPointerEnter={() => onCellPointerEnter(dy.date)}
+                      >
+                        <span className="cal-daynum">{dy.day}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               ))}
             </div>
           </section>
         ))}
       </div>
+
+      {selection && popoverPos && (
+        <CreatePopover
+          start={selection.start}
+          end={selection.end}
+          x={popoverPos.x}
+          y={popoverPos.y}
+          onClose={closePopover}
+        />
+      )}
     </div>
   );
 }

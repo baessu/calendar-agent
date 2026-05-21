@@ -28,6 +28,7 @@
   --border-soft: #b6b6b6;
   --muted: #777777;
   --faint: #a6a6a6;
+  --sel: rgba(20, 20, 20, 0.07); /* drag-selection highlight (monochrome) */
 
   --font-sans: "Plain", "IBM Plex Sans KR", system-ui, -apple-system,
     "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
@@ -171,9 +172,18 @@ body {
   border: none;
   padding: 12px 13px;
   min-width: 0;
+  cursor: cell; /* hints drag-to-select */
 }
 .cal-cell.out {
   opacity: 0.4; /* other-month days dimmed */
+}
+/* Drag-selection highlight: monochrome fill; adjacent cells read as one band. */
+.cal-cell.sel {
+  background: var(--sel);
+}
+/* Suppress native text selection while dragging across cells. */
+.ed-calwrap.is-selecting {
+  user-select: none;
 }
 .cal-daynum {
   font-size: 13px;
@@ -195,4 +205,65 @@ body {
   height: 20px;
   justify-content: center;
   font-size: 12px;
+}
+
+/*
+ * Creation popover (US-004). Transparent full-screen backdrop catches outside
+ * clicks; the card itself is hairline-bordered with no shadow (Swiss editorial)
+ * and enters with a subtle, not-flashy fade/rise.
+ */
+.cp-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+}
+.create-pop {
+  position: fixed;
+  min-width: 200px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 14px 16px 16px;
+  letter-spacing: -0.03em;
+  animation: cpIn 120ms ease-out;
+}
+.cp-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+.cp-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.cp-x {
+  background: none;
+  border: none;
+  color: var(--faint);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px;
+  font-family: inherit;
+}
+.cp-x:hover {
+  color: var(--text);
+}
+.cp-range {
+  margin-top: 6px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+@keyframes cpIn {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
