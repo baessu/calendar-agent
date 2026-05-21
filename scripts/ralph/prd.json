@@ -1,7 +1,7 @@
 {
   "project": "Monthly Calendar App",
   "branchName": "ralph/monthly-calendar",
-  "description": "드래그로 기간 할일을 등록하고 막대로 표시하는 깔끔한 먼슬리 캘린더. Next.js 16 + Dexie(IndexedDB) 로컬 저장. 이중축 색상: 색조=프로젝트, 명도·채도(톤)=태스크종류. 상세 PRD: tasks/prd-monthly-calendar.md, 색상 시스템: docs/design/color-system.md. 색조/톤 시드값은 docs/design/color-system.md의 PROJECT_HUES / TASK_TYPE_TONES를 그대로 사용한다.",
+  "description": "드래그로 기간 할일을 등록하고 막대로 표시하는 깔끔한 먼슬리 캘린더(무한 스크롤). Next.js 16 + Dexie(IndexedDB) 로컬 저장. 디자인=스위스 모노크롬+하이라인, 선 없는 그리드, 색은 막대에만(프로젝트=같은 톤 8색조, 태스크종류=톤 dark/tint). 이벤트/하드데드라인 흑백 마커. 타이포 Plain400/MD Sans480 자간-3%. 정본: tasks/prd-monthly-calendar.md · 색상 docs/design/color-system.md · 타이포 docs/design/typography.md · 시각 레퍼런스 docs/design/mockups/calendar-layouts.html(F 탭).",
   "techStack": "Next.js 16 (App Router), TypeScript, Tailwind CSS, Dexie, Vitest",
   "userStories": [
     {
@@ -22,15 +22,16 @@
     },
     {
       "id": "US-002",
-      "title": "데이터 모델 & Dexie 스키마 (이중축)",
-      "description": "As a developer, I want Project/TaskType/Task schema + CRUD so that all features share consistent local storage.",
+      "title": "데이터 모델 & Dexie 스키마",
+      "description": "As a developer, I want Project/TaskType/Task/Marker schema + CRUD so that all features share consistent local storage.",
       "acceptanceCriteria": [
-        "Project { id, name, hue(0-360), visible, order, createdAt } 정의",
-        "TaskType { id, name, saturation, lightness, order, createdAt } 정의 (전역 공유)",
+        "Project { id, name, color(HEX), visible, order, createdAt } 정의 (color=같은 톤 8색조 중 하나)",
+        "TaskType { id, name, mode('dark'|'tint'), k(number), order, createdAt } 정의 (전역 공유)",
         "Task { id, projectId, taskTypeId, title, startDate(YYYY-MM-DD), endDate(YYYY-MM-DD), createdAt, updatedAt } 정의",
-        "최초 실행 시 기본 프로젝트('기본', hue 215) 1개 시드",
-        "최초 실행 시 태스크종류 4개 시드: 마감(S68 L38) 작업(S60 L49) 회의(S50 L68) 리서치(S42 L84) — docs/design/color-system.md 값 사용",
-        "Project/TaskType/Task CRUD 함수 제공",
+        "Marker { id, kind('event'|'deadline'), label, date(YYYY-MM-DD), projectId?, createdAt } 정의",
+        "최초 실행 시 기본 프로젝트 1개(8색 중 하나) 시드",
+        "최초 실행 시 태스크종류 4개 시드: 마감(dark 0.40) 작업(tint 0.32) 회의(tint 0.56) 리서치(tint 0.80) — docs/design/color-system.md 값 사용",
+        "Project/TaskType/Task/Marker CRUD 함수 제공",
         "IndexedDB에 저장되어 새로고침 후 유지",
         "CRUD 단위 테스트 통과",
         "Typecheck passes"
@@ -41,16 +42,18 @@
     },
     {
       "id": "US-003",
-      "title": "먼슬리 캘린더 그리드 렌더",
-      "description": "As a user, I want to see a 2026 monthly grid and navigate months.",
+      "title": "무한 스크롤 먼슬리 캘린더 (선 없는 그리드)",
+      "description": "As a user, I want a vertically continuous (infinite scroll) monthly calendar instead of month paging.",
       "acceptanceCriteria": [
-        "7열(일~토) x 주 단위 행으로 한 달 렌더",
-        "기본 표시 월 = 2026년 5월, 상단에 '2026년 5월' 표기",
-        "이전/다음 버튼으로 월 이동",
-        "타 달 날짜 칸은 흐리게, 오늘 칸은 강조",
+        "7열(일~토) x 주 단위로 여러 달을 세로로 연속 렌더 (월 그룹=그 주 목요일이 속한 월)",
+        "각 월 시작에 sticky 월 헤더(월 이름+요일)가 상단 고정",
+        "로드 시 오늘(2026-05-21)이 보이도록 자동 스크롤, '오늘' 버튼으로 복귀",
+        "상단 타이틀이 현재 스크롤 위치 월로 갱신",
+        "위/아래 스크롤 시 인접 월 추가(범위 확장/지연 로딩 허용)",
+        "선 없는 미니멀 그리드: 셀 테두리 없음, 큰 날짜+여백, 오늘=검은 원형, 타 월 흐리게",
         "Typecheck passes",
         "lint passes",
-        "Verify in browser: 월 이동 시 날짜가 올바르게 갱신"
+        "Verify in browser: 월 경계가 끊김 없이 이어지고 오늘로 스크롤"
       ],
       "priority": 2,
       "passes": false,
@@ -94,16 +97,16 @@
     },
     {
       "id": "US-006",
-      "title": "이중축 색상 계산 (색조 + 톤)",
-      "description": "As a user, I want bar color to combine project hue + task-type tone with auto-contrast text.",
+      "title": "막대 색상 계산 (원색 + 톤 dark/tint)",
+      "description": "As a user, I want bar color = applyTone(project.color, taskType) with auto-contrast text.",
       "acceptanceCriteria": [
-        "막대 배경색 = hsl(project.hue, taskType.saturation, taskType.lightness)",
+        "막대 배경색 = applyTone(project.color, taskType): dark=base×(1-k), tint=base×(1-k)+255k",
         "텍스트색 = 흰/검정 중 WCAG 대비 높은 쪽 자동 선택 (barText 유틸)",
         "같은 프로젝트의 다른 태스크종류 막대가 톤(진하기)으로 구분",
-        "다른 프로젝트의 같은 태스크종류 막대가 색조로 구분",
-        "색 합성·대비 계산 로직 단위 테스트 (color-system.md 매트릭스와 일치)",
+        "다른 프로젝트의 같은 태스크종류 막대가 색으로 구분",
+        "색 합성·대비 계산 로직 단위 테스트 (color-system.md 32조합 매트릭스와 일치)",
         "Typecheck passes",
-        "Verify in browser: 색이 2축으로 구분됨"
+        "Verify in browser: color-system.md 매트릭스처럼 색이 구분됨"
       ],
       "priority": 3,
       "passes": false,
@@ -178,16 +181,16 @@
     },
     {
       "id": "US-011",
-      "title": "프로젝트 관리 (생성/이름변경/색조/삭제)",
-      "description": "As a user, I want to create/rename/recolor/delete projects.",
+      "title": "프로젝트 관리 (생성/이름변경/색/삭제)",
+      "description": "As a user, I want to create/rename/recolor/delete projects using the 8-color palette.",
       "acceptanceCriteria": [
-        "프로젝트 추가 시 이름 입력 + 색조 선택(휠/팔레트)",
-        "색조 기본 추천값은 미사용 hue 우선 제시",
-        "이름/색조 변경 저장 및 막대 색 즉시 반영",
+        "프로젝트 추가 시 이름 입력 + 색 선택(같은 톤 8색 팔레트)",
+        "미사용 색을 기본 추천값으로 제시",
+        "이름/색 변경 저장 및 막대 색 즉시 반영",
         "삭제 시 소속 할일 처리(함께 삭제 또는 기본 프로젝트로 이동) 확인 단계",
         "기본 프로젝트는 삭제 불가",
         "Typecheck passes",
-        "Verify in browser: 색조 변경이 막대 반영"
+        "Verify in browser: 색 변경이 막대 반영"
       ],
       "priority": 5,
       "passes": false,
@@ -213,11 +216,11 @@
     },
     {
       "id": "US-013",
-      "title": "뷰 전환 (개별 ↔ 통합) + 색조 구분",
-      "description": "As a user, I want to switch between a single project view and a merged all-projects view.",
+      "title": "뷰 전환 (개별 ↔ 통합) + 색 구분",
+      "description": "As a user, I want to switch between single/merged views via top project tabs.",
       "acceptanceCriteria": [
-        "'전체(통합)' 또는 개별 프로젝트 선택",
-        "통합 뷰: 모든 프로젝트 막대를 색조로 구분해 표시",
+        "상단 프로젝트 탭(전체+프로젝트, 밑줄형)에서 '전체(통합)' 또는 개별 프로젝트 선택",
+        "통합 뷰: 모든 프로젝트 막대를 색으로 구분해 표시",
         "개별 뷰: 해당 프로젝트 막대만 (톤 유지)",
         "새 할일 등록 시 현재 프로젝트가 기본값(통합 뷰에선 선택 필요)",
         "Typecheck passes",
@@ -232,8 +235,8 @@
       "title": "사이드바 범례 + 프로젝트 보이기/숨기기 토글",
       "description": "As a user, I want a sidebar with both legends and per-project visibility toggles.",
       "acceptanceCriteria": [
-        "사이드바에 프로젝트 범례(색조 스와치+이름+토글) 나열",
-        "사이드바에 태스크종류 범례(톤 단계+이름) 표시",
+        "프로젝트 범례(8색 스와치+이름+토글) 나열",
+        "태스크종류 범례(톤 단계+이름) + 마커 범례(⚑ 데드라인/◆ 이벤트) 표시",
         "프로젝트 토글 off 시 캘린더·사이드 패널에서 숨김",
         "토글 상태(visible) 저장, 새로고침 후 유지",
         "Typecheck passes",
@@ -269,6 +272,23 @@
         "Verify in browser: 리사이즈 동작"
       ],
       "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-017",
+      "title": "날짜 마커 (이벤트 / 하드 데드라인)",
+      "description": "As a user, I want to mark specific dates as event or hard deadline, shown as monochrome chips separate from bars.",
+      "acceptanceCriteria": [
+        "날짜에 마커 추가 UI(종류 event/deadline + 라벨 입력)",
+        "하드 데드라인=검은 채운 칩 '⚑ 라벨', 이벤트=외곽선 칩 '◆ 라벨'로 해당 날짜 칸에 표시 (색상 막대와 구분되는 흑백)",
+        "마커 DB 저장 및 새로고침 후 유지",
+        "마커 클릭으로 편집/삭제(삭제는 확인 단계)",
+        "마커 범례(⚑ 데드라인/◆ 이벤트) 표시",
+        "Typecheck passes",
+        "Verify in browser: 지정 날짜에 마커 표시"
+      ],
+      "priority": 4,
       "passes": false,
       "notes": ""
     }

@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>먼슬리 캘린더 — 레이아웃 시안</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@latest/dist/web/static/pretendard.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600&display=swap" />
+<style>
+  :root{
+    --bg:#FBFCFD; --surface:#FFFFFF; --border:#E6EAF0; --border-soft:#EEF1F5;
+    --text:#1B2433; --muted:#6B7484; --faint:#AEB6C2; --hover:#F2F5F9;
+    --ink:#2C5282; --radius:12px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  /* 영문 = Plain 400 (라틴 글자만, 숫자 제외) / 숫자·한글 = MD Sans 480. 둘 다 local() — 설치돼 있으면 표시 */
+  @font-face{font-family:"Plain";src:local("Plain"),local("Plain-Regular");unicode-range:U+0041-005A,U+0061-007A,U+00C0-00FF,U+0100-024F;font-weight:400;font-style:normal;font-display:swap;}
+  body{font-family:"Plain","MD Sans",system-ui,-apple-system,"Segoe UI",Roboto,Oxygen,Ubuntu,Cantarell,"Open Sans","Helvetica Neue","Pretendard Variable",Pretendard,Arial,sans-serif;font-weight:480;letter-spacing:-0.03em;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;}
+  .tabbar{position:sticky;top:0;z-index:50;display:flex;gap:6px;align-items:center;padding:10px 16px;background:rgba(255,255,255,.85);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);}
+  .tabbar .brand{font-weight:700;font-size:14px;margin-right:8px;}
+  .tab{border:1px solid var(--border);background:var(--surface);padding:7px 13px;border-radius:999px;font-size:13px;cursor:pointer;color:var(--muted);font-family:inherit;}
+  .tab:hover{background:var(--hover);}
+  .tab.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .tab .sub{font-size:11px;opacity:.7;margin-left:4px;}
+  .hint{margin-left:auto;font-size:12px;color:var(--muted);}
+
+  .variant{height:calc(100vh - 57px);overflow:hidden;}
+  .variant.hidden{display:none;}
+  .rationale{font-size:12px;color:var(--muted);padding:8px 16px;background:#F7F9FC;border-bottom:1px solid var(--border-soft);}
+  .rationale b{color:var(--text);}
+
+  /* 공용 프레임 */
+  .frame{display:grid;height:calc(100% - 33px);}
+  .pane{overflow:auto;}
+  .sidebar{background:var(--surface);border-right:1px solid var(--border);padding:18px 14px;}
+  .panel{background:var(--surface);border-left:1px solid var(--border);}
+  .center{display:flex;flex-direction:column;min-width:0;}
+  .toolbar{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border-soft);}
+  .calwrap{padding:10px 18px 24px;flex:1;overflow:auto;}
+
+  .sec-title{font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--muted);text-transform:uppercase;margin:4px 0 8px;}
+  .seg{display:inline-flex;background:var(--hover);border-radius:9px;padding:3px;gap:2px;}
+  .seg button{border:none;background:none;padding:5px 12px;border-radius:7px;font-size:12px;color:var(--muted);cursor:pointer;font-family:inherit;}
+  .seg button.on{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.06);font-weight:600;}
+
+  .mtitle{font-size:18px;font-weight:700;}
+  .navbtn{width:30px;height:30px;border:1px solid var(--border);background:var(--surface);border-radius:8px;cursor:pointer;color:var(--muted);font-size:14px;}
+  .navbtn:hover{background:var(--hover);}
+  .today-btn{border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;color:var(--text);}
+  .add-btn{margin-left:auto;background:var(--ink);color:#fff;border:none;border-radius:9px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;}
+  .add-btn:hover{filter:brightness(1.08);}
+
+  /* 프로젝트 목록 / 범례 */
+  .proj-item{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:9px;cursor:pointer;font-size:13px;}
+  .proj-item:hover{background:var(--hover);}
+  .proj-item.compact{padding:5px 7px;font-size:12px;}
+  .proj-item input{accent-color:var(--ink);}
+  .proj-dot{width:12px;height:12px;border-radius:4px;flex:none;}
+  .proj-name{flex:1;}
+  .legend{display:flex;flex-wrap:wrap;}
+  .legend-chip{display:inline-block;padding:3px 11px;border-radius:6px;font-size:11px;font-weight:600;margin:0 5px 6px 0;}
+  .divider{height:1px;background:var(--border-soft);margin:16px 0;}
+
+  /* 캘린더 */
+  .calendar{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface);}
+  .cal-head{display:grid;grid-template-columns:repeat(7,1fr);background:#FAFBFD;}
+  .cal-hd{text-align:center;font-size:12px;color:var(--muted);padding:8px 0;font-weight:600;}
+  .cal-hd.sun{color:#C2603C;} .cal-hd.sat{color:#3C77C2;}
+  .cal-week{position:relative;display:grid;grid-template-columns:repeat(7,1fr);border-top:1px solid var(--border-soft);}
+  .cal-cell{border-right:1px solid var(--border-soft);padding:5px 7px;min-width:0;}
+  .cal-cell:last-child{border-right:none;}
+  .cal-cell.out{background:#FCFCFD;}
+  .cal-daynum{font-size:12px;color:var(--text);font-variant-numeric:tabular-nums;display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;}
+  .cal-cell.out .cal-daynum{color:var(--faint);}
+  .cal-cell.today .cal-daynum{background:var(--ink);color:#fff;border-radius:50%;width:20px;}
+  .cal-bar{position:absolute;margin-left:2px;padding:0 8px;font-size:12px;line-height:22px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500;box-shadow:0 1px 1.5px rgba(0,0,0,.08);}
+
+  /* 할일 패널 */
+  .panel-head{padding:16px 16px 10px;border-bottom:1px solid var(--border-soft);font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:space-between;}
+  .panel-head .count{font-size:12px;color:var(--muted);font-weight:500;}
+  .tp-item{display:flex;gap:10px;padding:11px 16px;border-bottom:1px solid var(--border-soft);}
+  .tp-item:hover{background:var(--hover);}
+  .tp-item.compact{padding:7px 14px;}
+  .tp-dot{width:9px;height:9px;border-radius:50%;margin-top:5px;flex:none;}
+  .tp-title{font-size:13px;font-weight:600;}
+  .tp-meta{font-size:11px;color:var(--muted);margin-top:2px;font-variant-numeric:tabular-nums;}
+
+  /* B: 캘린더 최대화 */
+  .rail{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:16px 0;gap:14px;}
+  .rail .logo{width:30px;height:30px;border-radius:8px;background:var(--ink);}
+  .rail .rdot{width:16px;height:16px;border-radius:5px;}
+  #proj-B-rail{display:flex;flex-direction:column;gap:10px;align-items:center;}
+  .drawer-handle{writing-mode:vertical-rl;text-orientation:mixed;font-size:11px;color:var(--muted);padding:8px 4px;border-left:1px solid var(--border);background:#FAFBFD;cursor:pointer;}
+
+  /* C: 상단 프로젝트 탭 IA */
+  .ptabs{display:flex;gap:4px;align-items:center;padding:10px 18px 0;flex-wrap:wrap;}
+  .ptab{border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:5px 12px;font-size:12px;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:6px;}
+  .ptab.on{border-color:var(--ink);color:var(--ink);background:#EEF3FA;font-weight:600;}
+  .ptab .pd{width:9px;height:9px;border-radius:3px;}
+
+  /* D: 여백형 */
+  .v-spacious .sidebar,.v-spacious .panel{padding:26px 20px;}
+  .v-spacious .toolbar{padding:24px 28px;}
+  .v-spacious .calwrap{padding:8px 28px 30px;}
+  .v-spacious .mtitle{font-size:28px;font-weight:800;letter-spacing:-.01em;}
+  .v-spacious .calendar{border-radius:18px;}
+
+  /* F: 에디토리얼 (Swiss) — 모노크롬 + 하이라인 그리드 + 그로테스크. 색은 데이터(막대)에만 */
+  .v-editorial{--bg:#FFFFFF;--border:#8E8E8E;--border-soft:#B6B6B6;--text:#141414;--muted:#777777;--faint:#A6A6A6;--hover:#F5F5F5;background:var(--bg);font-feature-settings:"tnum";}
+  .v-editorial .ed-shell{display:flex;height:calc(100% - 33px);}
+  .v-editorial .ed-main{flex:1;display:flex;flex-direction:column;min-width:0;}
+  .v-editorial .ed-bar{display:flex;align-items:baseline;gap:16px;padding:22px 30px 16px;border-bottom:1px solid var(--border);}
+  .v-editorial .ed-ttl{font-size:26px;font-weight:600;letter-spacing:-.03em;color:var(--text);}
+  .v-editorial .ed-ttl .sl{color:var(--faint);font-weight:300;margin:0 5px;}
+  .v-editorial .ed-nav{display:flex;gap:2px;}
+  .v-editorial .ed-nav button{border:none;background:none;color:var(--faint);font-size:16px;cursor:pointer;padding:0 5px;}
+  .v-editorial .ed-nav button:hover{color:var(--text);}
+  .v-editorial .ed-today{font-size:12px;color:var(--muted);border:1px solid var(--border);padding:4px 11px;cursor:pointer;background:none;}
+  .v-editorial .ed-today:hover{color:var(--text);border-color:var(--text);}
+  .v-editorial .ed-add{margin-left:auto;font-size:12px;color:var(--text);border:1px solid var(--text);background:none;padding:6px 14px;cursor:pointer;letter-spacing:.02em;}
+  .v-editorial .ed-add:hover{background:var(--text);color:#fff;}
+  .v-editorial .ptabs{display:flex;gap:0;padding:0 30px;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+  .v-editorial .ptab{border:none;background:none;border-radius:0;border-bottom:2px solid transparent;color:var(--muted);padding:11px 14px 9px;font-size:12px;margin-bottom:-1px;display:flex;align-items:center;gap:7px;letter-spacing:.01em;}
+  .v-editorial .ptab:hover{color:var(--text);}
+  .v-editorial .ptab.on{border-bottom-color:var(--text);color:var(--text);font-weight:600;}
+  .v-editorial .ptab .pd{width:8px;height:8px;border-radius:2px;}
+  .v-editorial .ed-calwrap{flex:1;overflow:auto;padding:0 30px 40px;}
+  /* 무한 스크롤: sticky 월 헤더 (월 이름 + 요일) */
+  .v-editorial .month-head{position:sticky;top:0;background:var(--bg);z-index:3;padding-top:16px;}
+  .v-editorial .month-name{display:block;font-size:15px;font-weight:700;letter-spacing:-.03em;color:var(--text);padding:0 10px 8px;}
+  .v-editorial .month-head .cal-head{border-bottom:1px solid var(--border-soft);}
+  .v-editorial .month-body{padding:4px 0 14px;}
+  /* 에디토리얼 그리드 = G3 (선 없음, 미니멀: 큰 날짜 + 여백) */
+  .v-editorial .calendar{border:none;border-radius:0;background:transparent;}
+  .v-editorial .cal-head{background:transparent;}
+  .v-editorial .cal-hd{font-weight:500;color:var(--faint);font-size:10px;letter-spacing:.12em;padding:6px 10px;text-align:left;text-transform:uppercase;border:none;}
+  .v-editorial .cal-week{border:none;margin-bottom:4px;}
+  .v-editorial .cal-cell{border:none;padding:12px 13px;}
+  .v-editorial .cal-cell.out{opacity:.4;}
+  .v-editorial .cal-daynum{font-size:13px;font-weight:600;color:var(--text);min-width:auto;justify-content:flex-start;}
+  .v-editorial .cal-cell.today .cal-daynum{background:var(--text);color:#fff;border-radius:50%;width:20px;height:20px;min-width:20px;justify-content:center;font-size:12px;}
+  /* 특정 날짜 마커 (이벤트/하드 데드라인) — 흑백 기호로 색상 막대와 구분 */
+  .v-editorial .mk{display:inline-block;font-size:10px;line-height:16px;padding:0 6px;margin-left:6px;border-radius:2px;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;letter-spacing:0;}
+  .v-editorial .mk-dl{background:#141414;color:#fff;font-weight:600;}
+  .v-editorial .mk-ev{border:1px solid #141414;color:#141414;}
+  .v-editorial .cal-bar{font-weight:500;box-shadow:none;font-size:11px;border-radius:2px !important;}
+  .v-editorial .ed-list{width:300px;flex:none;border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:auto;}
+  .v-editorial .ed-list-head{display:flex;align-items:center;gap:8px;padding:21px 22px 14px;font-size:14px;font-weight:600;border-bottom:1px solid var(--border);}
+  .v-editorial .numbadge{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:var(--text);color:#fff;font-size:10px;font-weight:600;}
+  .v-editorial .ed-legend-row{display:flex;flex-wrap:wrap;gap:5px;padding:12px 22px;border-bottom:1px solid var(--border);}
+  .v-editorial .ed-legend-row .legend-chip{font-size:10px;padding:2px 9px;border-radius:2px;margin:0;}
+  .v-editorial .tp-item{padding:13px 22px;border-bottom:1px solid var(--border-soft);align-items:baseline;}
+  .v-editorial .tp-item:hover{background:var(--hover);}
+  .v-editorial .tp-dot{border-radius:2px;width:8px;height:8px;margin-top:4px;}
+  .v-editorial .tp-title{font-size:13px;font-weight:500;}
+  .v-editorial .tp-meta{font-size:11px;color:var(--muted);}
+  .v-editorial .ed-contact{margin-top:auto;padding:16px 22px;border-top:1px solid var(--border);font-size:12px;color:var(--text);cursor:pointer;}
+  .v-editorial .ed-contact:hover{color:var(--muted);}
+
+  /* 팔레트 쇼케이스 */
+  .palette-wrap{height:calc(100vh - 57px);overflow:auto;padding:30px 40px;background:#FBFAF8;}
+  .palette-wrap h2{font-family:"Noto Serif KR",serif;font-weight:600;font-size:22px;margin:0 0 4px;}
+  .palette-wrap .psub{color:var(--muted);font-size:13px;margin-bottom:24px;}
+  .sw-title{font-weight:700;font-size:14px;margin:26px 0 12px;color:var(--text);}
+  .sw-grid{display:grid;gap:6px;align-items:stretch;}
+  .sw-corner{}
+  .sw-colh{font-size:11px;color:var(--muted);text-align:center;font-weight:600;padding-bottom:4px;align-self:end;}
+  .sw-rowh{font-size:12px;color:var(--text);font-weight:600;display:flex;align-items:center;}
+  .sw-cell{border-radius:8px;height:46px;display:flex;align-items:center;justify-content:center;font-size:10px;font-variant-numeric:tabular-nums;letter-spacing:.02em;}
+  .pcard{background:#fff;border:1px solid var(--border);border-radius:14px;padding:18px 22px 24px;margin-bottom:20px;}
+  .preco{display:inline-block;font-size:11px;font-weight:700;color:#3A567F;background:#EAF0F8;border-radius:999px;padding:3px 10px;margin-left:8px;vertical-align:middle;}
+
+  /* 그리드 시안 랩 */
+  .grid-lab{height:calc(100vh - 57px);overflow:auto;background:#fff;padding:26px 44px 70px;font-feature-settings:"tnum";}
+  .grid-lab .glab-h{font-size:20px;font-weight:700;margin:0 0 4px;letter-spacing:-.01em;}
+  .grid-lab .glab-sub{font-size:13px;color:#8C8C8C;margin-bottom:8px;}
+  .grid-lab .gblock{margin-top:34px;}
+  .grid-lab .gtitle{font-size:13px;font-weight:700;color:#141414;}
+  .grid-lab .gdesc{font-size:12px;color:#8C8C8C;margin:2px 0 14px;}
+  .grid-lab .calendar{border:none;border-radius:0;background:transparent;max-width:900px;}
+  .grid-lab .cal-head{background:transparent;}
+  .grid-lab .cal-bar{box-shadow:none;font-size:11px;font-weight:500;border-radius:2px !important;}
+  .grid-lab .cal-daynum{font-size:11px;justify-content:flex-start;min-width:auto;}
+  .grid-lab .cal-cell.out .cal-daynum{color:#C2C2C2;}
+
+  /* G1 · 풀 격자 (가는 선) */
+  .gs1 .calendar{border-top:1px solid #D6D6D6;border-left:1px solid #D6D6D6;}
+  .gs1 .cal-hd{border-right:1px solid #D6D6D6;border-bottom:1px solid #D6D6D6;color:#9C9C9C;font-size:11px;font-weight:500;padding:8px 0;text-align:center;}
+  .gs1 .cal-cell{border-right:1px solid #EAEAEA;border-bottom:1px solid #EAEAEA;padding:6px 7px;}
+  .gs1 .cal-cell.today .cal-daynum{background:#141414;color:#fff;border-radius:50%;width:18px;height:18px;min-width:18px;justify-content:center;}
+
+  /* G2 · 가로선만 (진하게) */
+  .gs2 .calendar{border-top:1.5px solid #141414;border-bottom:1px solid #C4C4C4;}
+  .gs2 .cal-hd{border-bottom:1px solid #141414;color:#141414;font-size:10px;letter-spacing:.14em;text-transform:uppercase;text-align:left;padding:9px 8px;font-weight:600;}
+  .gs2 .cal-week{border-top:1px solid #CFCFCF;}
+  .gs2 .cal-cell{border:none;padding:8px;}
+  .gs2 .cal-cell.today .cal-daynum{text-decoration:underline;text-underline-offset:3px;font-weight:700;}
+
+  /* G3 · 선 없음 (미니멀) */
+  .gs3 .calendar{border:none;}
+  .gs3 .cal-hd{color:#BBB;font-size:10px;letter-spacing:.12em;text-align:left;padding:6px 10px;text-transform:uppercase;border:none;font-weight:500;}
+  .gs3 .cal-week{border:none;margin-bottom:4px;}
+  .gs3 .cal-cell{border:none;padding:8px 10px;}
+  .gs3 .cal-cell.out{opacity:.45;}
+  .gs3 .cal-daynum{font-size:13px;font-weight:600;color:#141414;}
+  .gs3 .cal-cell.today .cal-daynum{background:#141414;color:#fff;border-radius:50%;width:20px;height:20px;min-width:20px;justify-content:center;font-size:12px;}
+</style>
+</head>
+<body>
+
+<div class="tabbar">
+  <span class="brand">📅 레이아웃 시안</span>
+  <button class="tab active" data-target="F">F<span class="sub">에디토리얼</span></button>
+  <button class="tab" data-target="GRID">그리드<span class="sub">시안 3</span></button>
+  <button class="tab" data-target="PAL">🎨<span class="sub">팔레트</span></button>
+  <button class="tab" data-target="A">A<span class="sub">균형</span></button>
+  <button class="tab" data-target="B">B<span class="sub">캘린더max</span></button>
+  <button class="tab" data-target="C">C<span class="sub">컴팩트</span></button>
+  <button class="tab" data-target="D">D<span class="sub">여백형</span></button>
+  <span class="hint">F = C+D 통합 에디토리얼 · 동일 데이터(2026년 5월)</span>
+</div>
+
+<!-- ───────── A. 균형 3분할 ───────── -->
+<section class="variant hidden" id="A">
+  <div class="rationale"><b>A · 균형 3분할:</b> 좌 사이드바(프로젝트+범례) · 중앙 캘린더 · 우 할일패널. 가장 표준적이고 안정적. 모든 정보가 항상 보임.</div>
+  <div class="frame" style="grid-template-columns:240px 1fr 320px;">
+    <aside class="pane sidebar">
+      <div class="sec-title">보기</div>
+      <div class="seg" style="margin-bottom:18px;"><button class="on">통합</button><button>프로젝트별</button></div>
+      <div class="sec-title">프로젝트</div>
+      <div id="proj-A"></div>
+      <div class="divider"></div>
+      <div class="sec-title">태스크 종류 (톤)</div>
+      <div class="legend" id="legend-A"></div>
+    </aside>
+    <main class="pane center">
+      <div class="toolbar">
+        <button class="navbtn">‹</button>
+        <span class="mtitle">2026년 5월</span>
+        <button class="navbtn">›</button>
+        <button class="today-btn">오늘</button>
+        <button class="add-btn">＋ 할일</button>
+      </div>
+      <div class="calwrap"><div class="calendar" id="cal-A"></div></div>
+    </main>
+    <aside class="pane panel">
+      <div class="panel-head">할일 <span class="count">날짜순 · 10</span></div>
+      <div id="tp-A"></div>
+    </aside>
+  </div>
+</section>
+
+<!-- ───────── B. 캘린더 최대화 ───────── -->
+<section class="variant hidden" id="B">
+  <div class="rationale"><b>B · 캘린더 최대화:</b> 좌측은 색상 점만 있는 얇은 레일, 캘린더가 화면 대부분 차지, 우측 할일패널은 접을 수 있는 드로어. 캘린더(주인공)에 집중.</div>
+  <div class="frame" style="grid-template-columns:56px 1fr 280px 28px;">
+    <aside class="pane rail">
+      <div class="logo"></div>
+      <div id="proj-B-rail"></div>
+    </aside>
+    <main class="pane center">
+      <div class="toolbar" style="border-bottom:1px solid var(--border-soft);">
+        <button class="navbtn">‹</button><span class="mtitle">2026년 5월</span><button class="navbtn">›</button>
+        <button class="today-btn">오늘</button>
+        <div class="seg" style="margin-left:auto;"><button class="on">통합</button><button>프로젝트별</button></div>
+        <button class="add-btn">＋ 할일</button>
+      </div>
+      <div class="calwrap"><div class="calendar" id="cal-B"></div></div>
+    </main>
+    <aside class="pane panel">
+      <div class="panel-head">할일 <span class="count">날짜순</span></div>
+      <div id="tp-B"></div>
+    </aside>
+    <div class="drawer-handle">패널 접기 ›</div>
+  </div>
+</section>
+
+<!-- ───────── C. 컴팩트·탭 IA ───────── -->
+<section class="variant hidden" id="C">
+  <div class="rationale"><b>C · 컴팩트·탭 IA:</b> 좌 사이드바 없이 <b>상단 프로젝트 탭</b>으로 전환. 셀·막대를 조밀하게, 화면당 정보량 최대. 파워유저용.</div>
+  <div style="display:flex;flex-direction:column;height:calc(100% - 33px);">
+    <div class="ptabs">
+      <button class="ptab on">전체</button>
+      <button class="ptab"><span class="pd" style="background:hsl(215 60% 49%)"></span>웹사이트 리뉴얼</button>
+      <button class="ptab"><span class="pd" style="background:hsl(142 60% 49%)"></span>모바일 앱</button>
+      <button class="ptab"><span class="pd" style="background:hsl(25 60% 49%)"></span>마케팅</button>
+      <button class="ptab"><span class="pd" style="background:hsl(272 60% 49%)"></span>개인</button>
+      <div class="legend" id="legend-C" style="margin-left:auto;align-items:center;"></div>
+    </div>
+    <div class="frame" style="grid-template-columns:1fr 300px;flex:1;height:auto;">
+      <main class="pane center">
+        <div class="toolbar" style="padding:10px 18px;">
+          <button class="navbtn">‹</button><span class="mtitle" style="font-size:16px;">2026년 5월</span><button class="navbtn">›</button>
+          <button class="today-btn">오늘</button>
+          <button class="add-btn">＋ 할일</button>
+        </div>
+        <div class="calwrap" style="padding:8px 18px 18px;"><div class="calendar" id="cal-C"></div></div>
+      </main>
+      <aside class="pane panel">
+        <div class="panel-head" style="padding:12px 14px 8px;">할일 <span class="count">날짜순 · 10</span></div>
+        <div id="tp-C"></div>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- ───────── D. 여백형 ───────── -->
+<section class="variant hidden v-spacious" id="D">
+  <div class="rationale"><b>D · 여백형(에디토리얼):</b> 넉넉한 여백, 큰 월 타이틀, 부드러운 면. 차분하고 프리미엄한 느낌. 정보 밀도보다 집중감 우선.</div>
+  <div class="frame" style="grid-template-columns:260px 1fr 340px;">
+    <aside class="pane sidebar">
+      <div class="seg" style="margin-bottom:22px;"><button class="on">통합</button><button>프로젝트별</button></div>
+      <div class="sec-title">프로젝트</div>
+      <div id="proj-D"></div>
+      <div class="divider"></div>
+      <div class="sec-title">태스크 종류 (톤)</div>
+      <div class="legend" id="legend-D"></div>
+    </aside>
+    <main class="pane center">
+      <div class="toolbar">
+        <span class="mtitle">5월</span>
+        <span style="font-size:14px;color:var(--muted);align-self:flex-end;margin-bottom:4px;">2026</span>
+        <button class="navbtn" style="margin-left:8px;">‹</button><button class="navbtn">›</button>
+        <button class="add-btn">＋ 할일 추가</button>
+      </div>
+      <div class="calwrap"><div class="calendar" id="cal-D"></div></div>
+    </main>
+    <aside class="pane panel">
+      <div class="panel-head" style="padding:24px 20px 12px;">다가오는 할일 <span class="count">날짜순</span></div>
+      <div id="tp-D"></div>
+    </aside>
+  </div>
+</section>
+
+<!-- ───────── 그리드 시안 3종 ───────── -->
+<section class="variant hidden" id="GRID">
+  <div class="grid-lab">
+    <div class="glab-h">캘린더 그리드 시안 3종</div>
+    <div class="glab-sub">동일 데이터(2026년 5월) · 8색조 색상 막대. 그리드 처리만 다름.</div>
+    <div class="gblock gs1">
+      <div class="gtitle">G1 · 풀 격자 (가는 선)</div>
+      <div class="gdesc">가로·세로 가는 하이라인. 정돈된 플래너 느낌, 날짜 경계 또렷.</div>
+      <div class="calendar" id="cal-G1"></div>
+    </div>
+    <div class="gblock gs2">
+      <div class="gtitle">G2 · 가로선만 (진하게)</div>
+      <div class="gdesc">세로선 없이 진한 가로 행 규칙. 강한 에디토리얼 리듬.</div>
+      <div class="calendar" id="cal-G2"></div>
+    </div>
+    <div class="gblock gs3">
+      <div class="gtitle">G3 · 선 없음 (미니멀)</div>
+      <div class="gdesc">선 제거, 큰 날짜 + 여백으로 구조. 가장 미니멀.</div>
+      <div class="calendar" id="cal-G3"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────── F. 에디토리얼 (Swiss 모노크롬) ───────── -->
+<section class="variant v-editorial" id="F">
+  <div class="rationale" style="background:#F7F7F7;border-color:#E2E2E2;"><b>F · 에디토리얼 (Swiss):</b> 모노크롬 + 하이라인 그리드 + 그로테스크 타이포. 색은 오직 할일 막대(데이터)에만 — 흑백 위에서 이중축 색이 또렷이 살아남.</div>
+  <div class="ed-shell">
+    <div class="ed-main">
+      <div class="ed-bar">
+        <span class="ed-ttl">2026<span class="sl">/</span>05</span>
+        <span class="ed-nav"><button>‹</button><button>›</button></span>
+        <button class="ed-today">오늘</button>
+        <button class="ed-add">＋ 할일 추가</button>
+      </div>
+      <div class="ptabs" id="ptabs-F"></div>
+      <div class="ed-calwrap"><div class="calendar" id="cal-F"></div></div>
+    </div>
+    <aside class="ed-list">
+      <div class="ed-list-head">할일 <span class="numbadge">10</span><span style="font-size:11px;color:var(--muted);font-weight:400;margin-left:auto;letter-spacing:.04em;">날짜순</span></div>
+      <div class="ed-legend-row" id="legend-F"></div>
+      <div class="ed-legend-row" style="gap:8px;">
+        <span class="mk mk-dl" style="margin-left:0;">⚑ 데드라인</span>
+        <span class="mk mk-ev">◆ 이벤트</span>
+      </div>
+      <div id="tp-F"></div>
+      <div class="ed-contact">↳ ＋ 할일 추가</div>
+    </aside>
+  </div>
+</section>
+
+<!-- ───────── 팔레트 쇼케이스 ───────── -->
+<section class="variant hidden" id="PAL">
+  <div class="palette-wrap">
+    <h2>이중축 색상 팔레트</h2>
+    <div class="psub">가로 = 프로젝트(색조 8) · 세로 = 태스크종류(톤 4) · 모든 칸 WCAG AA↑ (텍스트 자동 흑/백)</div>
+    <div class="pcard">
+      <div style="font-weight:700;">같은 톤 8색조<span class="preco">F에 적용됨 · 추천</span></div>
+      <div id="sw-ed"></div>
+    </div>
+    <div class="pcard">
+      <div style="font-weight:700;color:var(--muted);">표준 (기능형) — 기존 확정본</div>
+      <div id="sw-std"></div>
+    </div>
+  </div>
+</section>
+
+<script src="mockup.js"></script>
+</body>
+</html>
