@@ -12,13 +12,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createTask,
+  deleteTask,
   getAllProjects,
   getAllTaskTypes,
   getAllTasks,
   seedIfEmpty,
+  updateTask,
 } from "@/lib/db";
 import type { DateString, Project, Task, TaskType } from "@/lib/types";
 import { CalendarView } from "./CalendarView";
+import type { EditTaskDraft } from "./EditPopover";
 import { TaskListPanel } from "./TaskListPanel";
 
 /** A new task's fields; dates come from the calendar's committed selection. */
@@ -77,12 +80,33 @@ export function CalendarApp() {
     setTasks((prev) => [...prev, task]);
   }, []);
 
+  // Patch an existing task (US-009); both views re-render from this state, so a
+  // project/task-type change re-tones the bar and the panel swatch at once.
+  const handleUpdateTask = useCallback(
+    async (id: string, changes: EditTaskDraft) => {
+      await updateTask(id, changes);
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === id ? { ...t, ...changes, updatedAt: Date.now() } : t,
+        ),
+      );
+    },
+    [],
+  );
+
   // --- Panel -> calendar highlight ------------------------------------------
   // `highlightNonce` bumps on every click so repeat-clicking the same row
   // re-triggers the scroll; `highlightedTaskId` drives the bar ring.
   const [highlightedTaskId, setHighlightedTaskId] = useState<string | null>(null);
   const [highlightNonce, setHighlightNonce] = useState(0);
   const hlTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Delete a task (US-009); drop it from shared state and clear any highlight.
+  const handleDeleteTask = useCallback(async (id: string) => {
+    await deleteTask(id);
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+    setHighlightedTaskId((cur) => (cur === id ? null : cur));
+  }, []);
 
   const handleSelectTask = useCallback((id: string) => {
     setHighlightedTaskId(id);
@@ -109,6 +133,8 @@ export function CalendarApp() {
         projectsById={projectsById}
         taskTypesById={taskTypesById}
         onCreateTask={handleCreateTask}
+        onUpdateTask={handleUpdateTask}
+        onDeleteTask={handleDeleteTask}
         highlightedTaskId={highlightedTaskId}
         highlightNonce={highlightNonce}
         addNonce={addNonce}

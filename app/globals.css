@@ -317,7 +317,8 @@ body {
   text-transform: uppercase;
   color: var(--faint);
 }
-.cp-select {
+.cp-select,
+.cp-date {
   font-family: inherit;
   font-size: 12px;
   letter-spacing: -0.03em;
@@ -329,7 +330,11 @@ body {
   outline: none;
   cursor: pointer;
 }
-.cp-select:focus {
+.cp-date {
+  font-variant-numeric: tabular-nums;
+}
+.cp-select:focus,
+.cp-date:focus {
   border-color: var(--text);
 }
 .cp-save {
@@ -353,10 +358,73 @@ body {
 }
 
 /*
+ * Edit popover footer (US-009): delete on the left, save on the right. Delete
+ * takes a two-step inline confirmation (no native dialog). All chrome stays
+ * monochrome/hairline — the only filled control is the destructive confirm.
+ */
+.cp-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+}
+.cp-del {
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: -0.02em;
+  color: var(--muted);
+  background: none;
+  border: none;
+  padding: 7px 2px;
+  cursor: pointer;
+}
+.cp-del:hover {
+  color: var(--text);
+}
+.cp-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  letter-spacing: -0.02em;
+}
+.cp-confirm-q {
+  color: var(--text);
+}
+.cp-confirm-yes {
+  font-family: inherit;
+  font-size: 12px;
+  color: #fff;
+  background: var(--text);
+  border: 1px solid var(--text);
+  padding: 5px 10px;
+  cursor: pointer;
+}
+.cp-confirm-yes:hover {
+  background: #000;
+}
+.cp-confirm-no {
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--border);
+  padding: 5px 10px;
+  cursor: pointer;
+}
+.cp-confirm-no:hover {
+  color: var(--text);
+  border-color: var(--text);
+}
+
+/*
  * Task bars (US-005). Color (project identity) is the only color on the
  * monochrome grid. Positioned absolutely within a .cal-week (left/width/top set
- * inline from the week segment). No shadow (Swiss editorial). pointer-events are
- * off so a bar never blocks drag-to-select beneath it (bar click/drag = US-009/010).
+ * inline from the week segment). No shadow (Swiss editorial). Clicking a bar
+ * opens the edit/delete popover (US-009), so it takes pointer events and shows a
+ * pointer cursor; drag-to-select still starts from any uncovered cell. A subtle
+ * monochrome outline on hover/focus is the affordance (UI chrome stays B/W).
  * Subtle enter animation per the micro-interaction rule.
  */
 .cal-bar {
@@ -370,8 +438,19 @@ body {
   letter-spacing: -0.02em;
   overflow: hidden;
   border-radius: 2px;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
   animation: barIn 140ms ease-out;
+}
+.cal-bar:hover {
+  outline: 1.5px solid var(--text);
+  outline-offset: 1px;
+  z-index: 1;
+}
+.cal-bar:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 1px;
+  z-index: 2;
 }
 .cal-bar-label {
   overflow: hidden;

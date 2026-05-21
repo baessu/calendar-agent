@@ -42,6 +42,7 @@ import { barColors } from "@/lib/color/compose";
 import type { DateString, Project, Task, TaskType } from "@/lib/types";
 import type { NewTaskInput } from "./CalendarApp";
 import { CreatePopover, type CreateTaskDraft } from "./CreatePopover";
+import { EditPopover, type EditTaskDraft } from "./EditPopover";
 
 // Months shown on either side of today at first paint.
 const INITIAL_BACK = 3;
@@ -70,6 +71,10 @@ interface CalendarViewProps {
   taskTypesById: Map<string, TaskType>;
   /** Persist a new task across the committed selection. */
   onCreateTask: (input: NewTaskInput) => Promise<void> | void;
+  /** Patch an existing task (title/dates/project/task-type) — US-009. */
+  onUpdateTask: (id: string, changes: EditTaskDraft) => Promise<void> | void;
+  /** Delete a task — US-009. */
+  onDeleteTask: (id: string) => Promise<void> | void;
   /** Task whose bar should be ringed (from a panel row click). */
   highlightedTaskId: string | null;
   /** Bumps on each panel click so repeat clicks re-scroll. */
@@ -85,6 +90,8 @@ export function CalendarView({
   projectsById,
   taskTypesById,
   onCreateTask,
+  onUpdateTask,
+  onDeleteTask,
   highlightedTaskId,
   highlightNonce,
   addNonce,
@@ -245,6 +252,43 @@ export function CalendarView({
     [selection, onCreateTask, closePopover],
   );
 
+  // --- Click a bar -> edit / delete (US-009) --------------------------------
+  // Bars carry pointer-events now; clicking one opens the edit popover anchored
+  // at the click point. Opening edit clears any pending create selection.
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editPos, setEditPos] = useState<{ x: number; y: number } | null>(null);
+  const editingTask = useMemo(
+    () => (editingTaskId ? tasks.find((t) => t.id === editingTaskId) ?? null : null),
+    [editingTaskId, tasks],
+  );
+
+  const openEdit = useCallback((id: string, x: number, y: number) => {
+    setSelection(null);
+    setPopoverPos(null);
+    setEditingTaskId(id);
+    setEditPos({ x, y });
+  }, []);
+
+  const closeEdit = useCallback(() => {
+    setEditingTaskId(null);
+    setEditPos(null);
+  }, []);
+
+  const handleEditSave = useCallback(
+    async (changes: EditTaskDraft) => {
+      if (!editingTaskId) return;
+      await onUpdateTask(editingTaskId, changes);
+      closeEdit();
+    },
+    [editingTaskId, onUpdateTask, closeEdit],
+  );
+
+  const handleEditDelete = useCallback(async () => {
+    if (!editingTaskId) return;
+    await onDeleteTask(editingTaskId);
+    closeEdit();
+  }, [editingTaskId, onDeleteTask, closeEdit]);
+
   // The range to paint as highlighted: the live drag while dragging, otherwise
   // the committed selection (so cells stay lit while the popover is open).
   const highlight = useMemo<DateRange | null>(() => {
@@ -395,6 +439,9 @@ export function CalendarView({
                       return (
                         <div
                           key={seg.task.id}
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`${seg.task.title} — 편집`}
                           className={`cal-bar${
                             seg.task.id === highlightedTaskId ? " hl" : ""
                           }`}
@@ -410,6 +457,14 @@ export function CalendarView({
                             borderRadius: `${r(seg.contL)} ${r(seg.contR)} ${r(seg.contR)} ${r(
                               seg.contL,
                             )}`,
+                          }}
+                          onClick={(e) => openEdit(seg.task.id, e.clientX, e.clientY)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              openEdit(seg.task.id, rect.left, rect.bottom);
+                            }
                           }}
                         >
                           <span className="cal-bar-label">{seg.task.title}</span>
@@ -464,6 +519,19 @@ export function CalendarView({
           defaultProjectId={projects[0]?.id ?? null}
           onClose={closePopover}
           onCreate={handleCreate}
+        />
+      )}
+
+      {editingTask && editPos && (
+        <EditPopover
+          task={editingTask}
+          x={editPos.x}
+          y={editPos.y}
+          projects={projects}
+          taskTypes={taskTypes}
+          onClose={closeEdit}
+          onSave={handleEditSave}
+          onDelete={handleEditDelete}
         />
       )}
     </div>
