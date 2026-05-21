@@ -103,6 +103,20 @@ export function CalendarApp() {
     [],
   );
 
+  // Move a task's dates while keeping its duration (US-010); only the dates
+  // change, so the bar slides and the panel re-sorts on the new start date.
+  const handleMoveTask = useCallback(
+    async (id: string, startDate: DateString, endDate: DateString) => {
+      await updateTask(id, { startDate, endDate });
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === id ? { ...t, startDate, endDate, updatedAt: Date.now() } : t,
+        ),
+      );
+    },
+    [],
+  );
+
   // --- Markers (US-017) -----------------------------------------------------
   // Point-date marks (event / hard deadline). Persist + mirror to shared state
   // so the calendar chips update at once. projectId is left unset (v1).
@@ -169,6 +183,7 @@ export function CalendarApp() {
         taskTypesById={taskTypesById}
         onCreateTask={handleCreateTask}
         onUpdateTask={handleUpdateTask}
+        onMoveTask={handleMoveTask}
         onDeleteTask={handleDeleteTask}
         onCreateMarker={handleCreateMarker}
         onUpdateMarker={handleUpdateMarker}

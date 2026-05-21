@@ -32,10 +32,12 @@ import {
   monthLabel,
   weekKeysInRange,
   WEEKDAYS,
+  type CalendarWeek,
   type YearMonth,
 } from "@/lib/calendar/infinite";
 import { todayDateString } from "@/lib/calendar/dates";
 import { isWithinRange, normalizeRange, type DateRange } from "@/lib/calendar/selection";
+import { moveTaskByDrag } from "@/lib/calendar/move";
 import { weekSegments } from "@/lib/calendar/segments";
 import { DEFAULT_MAX_LANES, layoutWeek } from "@/lib/calendar/layout";
 import { groupMarkersByDate } from "@/lib/calendar/markers";
@@ -61,9 +63,47 @@ const BAR_GAP = 3;
 const HEAD_H = 30;
 const ROW_MIN = 88;
 
+// Pointer travel (px) past which a bar press becomes a move instead of a click
+// (US-010): below it the press opens the edit popover, at/above it the bar moves.
+const MOVE_THRESHOLD = 4;
+
 function ymFromDate(date: string): YearMonth {
   const [year, month] = date.split("-").map(Number);
   return { year, month };
+}
+
+/** The calendar date directly under a viewport point, or null if none. */
+function dateUnderPoint(x: number, y: number): DateString | null {
+  // elementsFromPoint sees through the bar (which sits above the cells), so we
+  // don't need to toggle the bar's pointer-events while dragging.
+  for (const el of document.elementsFromPoint(x, y)) {
+    const cell = (el as HTMLElement).closest?.<HTMLElement>("[data-date]");
+    if (cell?.dataset.date) return cell.dataset.date as DateString;
+  }
+  return null;
+}
+
+/** Which day of `week` a horizontal viewport position falls on (0=Sun..6=Sat). */
+function dateAtClientX(weekEl: HTMLElement, week: CalendarWeek, clientX: number): DateString {
+  const rect = weekEl.getBoundingClientRect();
+  const ratio = rect.width > 0 ? (clientX - rect.left) / rect.width : 0;
+  const col = Math.min(6, Math.max(0, Math.floor(ratio * 7)));
+  return week[col].date;
+}
+
+/** In-flight bar drag state (mutable; read by the window pointer handlers). */
+interface BarDrag {
+  taskId: string;
+  startDate: DateString;
+  endDate: DateString;
+  /** Date the press landed on, used as the move's reference point. */
+  grabDate: DateString;
+  startX: number;
+  startY: number;
+  /** True once travel passed MOVE_THRESHOLD (a move, not a click). */
+  moved: boolean;
+  /** Latest date under the pointer while moving. */
+  dropDate: DateString | null;
 }
 
 interface CalendarViewProps {
@@ -78,6 +118,8 @@ interface CalendarViewProps {
   onCreateTask: (input: NewTaskInput) => Promise<void> | void;
   /** Patch an existing task (title/dates/project/task-type) — US-009. */
   onUpdateTask: (id: string, changes: EditTaskDraft) => Promise<void> | void;
+  /** Move a task's dates, preserving its duration — US-010. */
+  onMoveTask: (id: string, startDate: DateString, endDate: DateString) => Promise<void> | void;
   /** Delete a task — US-009. */
   onDeleteTask: (id: string) => Promise<void> | void;
   /** Persist a new marker — US-017. */
@@ -105,6 +147,7 @@ export function CalendarView({
   taskTypesById,
   onCreateTask,
   onUpdateTask,
+  onMoveTask,
   onDeleteTask,
   onCreateMarker,
   onUpdateMarker,
@@ -310,6 +353,90 @@ export function CalendarView({
     closeEdit();
   }, [editingTaskId, onDeleteTask, closeEdit]);
 
+  // --- Drag a bar to move its dates (US-010) --------------------------------
+  // A press records a candidate drag; once travel passes MOVE_THRESHOLD it
+  // becomes a move (else it stays a click -> edit, US-009). The grabbed date is
+  // the reference point: the whole span shifts so it lands on the dropped date,
+  // preserving duration across week/month boundaries (lib/calendar/move.ts).
+  const barDragRef = useRef<BarDrag | null>(null);
+  // Set when a move commits so the trailing click doesn't also open the editor.
+  const justDraggedRef = useRef(false);
+  const [movingTaskId, setMovingTaskId] = useState<string | null>(null);
+  const [movePreview, setMovePreview] = useState<DateRange | null>(null);
+
+  const onBarPointerDown = useCallback(
+    (task: Task, week: CalendarWeek, e: React.PointerEvent) => {
+      if (e.button !== 0) return; // primary button only
+      justDraggedRef.current = false;
+      const weekEl = (e.currentTarget as HTMLElement).closest<HTMLElement>(".cal-week");
+      const grabDate = weekEl ? dateAtClientX(weekEl, week, e.clientX) : task.startDate;
+      barDragRef.current = {
+        taskId: task.id,
+        startDate: task.startDate,
+        endDate: task.endDate,
+        grabDate,
+        startX: e.clientX,
+        startY: e.clientY,
+        moved: false,
+        dropDate: null,
+      };
+    },
+    [],
+  );
+
+  // Window-level move/up so the drag continues even when the pointer leaves the
+  // bar (it almost always does). Refs are the source of truth here; state only
+  // drives the live preview render.
+  useEffect(() => {
+    function onMove(e: PointerEvent) {
+      const d = barDragRef.current;
+      if (!d) return;
+      if (!d.moved) {
+        if (
+          Math.abs(e.clientX - d.startX) < MOVE_THRESHOLD &&
+          Math.abs(e.clientY - d.startY) < MOVE_THRESHOLD
+        ) {
+          return;
+        }
+        d.moved = true;
+        setMovingTaskId(d.taskId);
+      }
+      const drop = dateUnderPoint(e.clientX, e.clientY);
+      if (!drop) return; // off the grid: keep the last preview
+      d.dropDate = drop;
+      setMovePreview(moveTaskByDrag(d.startDate, d.endDate, d.grabDate, drop));
+    }
+    function onUp() {
+      const d = barDragRef.current;
+      if (!d) return;
+      barDragRef.current = null;
+      if (!d.moved) return; // a plain click -> let onClick open the editor
+      justDraggedRef.current = true;
+      setMovingTaskId(null);
+      setMovePreview(null);
+      if (d.dropDate) {
+        const { start, end } = moveTaskByDrag(d.startDate, d.endDate, d.grabDate, d.dropDate);
+        if (start !== d.startDate || end !== d.endDate) {
+          void onMoveTask(d.taskId, start, end);
+        }
+      }
+    }
+    function onCancel() {
+      if (!barDragRef.current) return;
+      barDragRef.current = null;
+      setMovingTaskId(null);
+      setMovePreview(null);
+    }
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onCancel);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onCancel);
+    };
+  }, [onMoveTask]);
+
   // --- Markers: add / click-to-edit (US-017) --------------------------------
   // One popover handles both create (marker:null) and edit. Opening it clears any
   // pending task create/edit so the popovers stay mutually exclusive.
@@ -361,12 +488,14 @@ export function CalendarView({
     closeMarkerPopover();
   }, [markerPopover, onDeleteMarker, closeMarkerPopover]);
 
-  // The range to paint as highlighted: the live drag while dragging, otherwise
-  // the committed selection (so cells stay lit while the popover is open).
+  // The range to paint as highlighted: while moving a bar, the previewed drop
+  // range (US-010); while drag-selecting, the live range; otherwise the
+  // committed selection (so cells stay lit while the popover is open).
   const highlight = useMemo<DateRange | null>(() => {
+    if (movePreview) return movePreview;
     if (isDragging && dragAnchor && dragCurrent) return normalizeRange(dragAnchor, dragCurrent);
     return selection;
-  }, [isDragging, dragAnchor, dragCurrent, selection]);
+  }, [movePreview, isDragging, dragAnchor, dragCurrent, selection]);
 
   // --- Lane overflow expand/collapse (US-007) -------------------------------
   // Weeks (keyed by their Sunday date) whose extra lanes are expanded open.
@@ -445,7 +574,9 @@ export function CalendarView({
       </div>
 
       <div
-        className={`ed-calwrap${isDragging ? " is-selecting" : ""}`}
+        className={`ed-calwrap${isDragging ? " is-selecting" : ""}${
+          movingTaskId ? " is-moving" : ""
+        }`}
         ref={scrollRef}
         onScroll={onScroll}
       >
@@ -546,7 +677,7 @@ export function CalendarView({
                           aria-label={`${seg.task.title} — 편집`}
                           className={`cal-bar${
                             seg.task.id === highlightedTaskId ? " hl" : ""
-                          }`}
+                          }${seg.task.id === movingTaskId ? " dragging" : ""}`}
                           title={seg.task.title}
                           data-task-id={seg.task.id}
                           style={{
@@ -560,7 +691,16 @@ export function CalendarView({
                               seg.contL,
                             )}`,
                           }}
-                          onClick={(e) => openEdit(seg.task.id, e.clientX, e.clientY)}
+                          onPointerDown={(e) => onBarPointerDown(seg.task, week, e)}
+                          onClick={(e) => {
+                            // Swallow the click that trails a committed move so the
+                            // editor doesn't open after a drag (US-010 vs US-009).
+                            if (justDraggedRef.current) {
+                              justDraggedRef.current = false;
+                              return;
+                            }
+                            openEdit(seg.task.id, e.clientX, e.clientY);
+                          }}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();

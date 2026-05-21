@@ -439,7 +439,8 @@ body {
   overflow: hidden;
   border-radius: 2px;
   pointer-events: auto;
-  cursor: pointer;
+  cursor: grab; /* bars are clickable (edit) and draggable (move, US-010) */
+  user-select: none; /* don't select the label text while dragging */
   animation: barIn 140ms ease-out;
 }
 .cal-bar:hover {
@@ -451,6 +452,19 @@ body {
   outline: 2px solid var(--text);
   outline-offset: 1px;
   z-index: 2;
+}
+/* Source bar fades while it's being dragged; the highlighted day band previews
+   where it will land (US-010). */
+.cal-bar.dragging {
+  opacity: 0.45;
+  z-index: 3;
+}
+.ed-calwrap.is-moving,
+.ed-calwrap.is-moving .cal-bar {
+  cursor: grabbing;
+}
+.ed-calwrap.is-moving {
+  user-select: none;
 }
 .cal-bar-label {
   overflow: hidden;
