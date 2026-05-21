@@ -21,6 +21,8 @@ import type { Project, Task, TaskType } from "@/lib/types";
 
 interface TaskListPanelProps {
   tasks: Task[];
+  /** All projects, ordered — drives the project legend (US-011). */
+  projects: Project[];
   projectsById: Map<string, Project>;
   taskTypesById: Map<string, TaskType>;
   /** Highlight a task's bar in the calendar. */
@@ -31,16 +33,23 @@ interface TaskListPanelProps {
   onAdd: () => void;
   /** Open the marker form for a new marker (legend "＋ 마커"). */
   onAddMarker: () => void;
+  /** Open the project popover to create a new project (legend "＋ 프로젝트"). */
+  onAddProject: (x: number, y: number) => void;
+  /** Open the project popover to edit/delete a project (legend chip click). */
+  onEditProject: (project: Project, x: number, y: number) => void;
 }
 
 export function TaskListPanel({
   tasks,
+  projects,
   projectsById,
   taskTypesById,
   onSelectTask,
   selectedTaskId,
   onAdd,
   onAddMarker,
+  onAddProject,
+  onEditProject,
 }: TaskListPanelProps) {
   // Start-date ascending; ties broken by title for a stable order.
   const sorted = useMemo(
@@ -58,6 +67,36 @@ export function TaskListPanel({
       <div className="ed-list-head">
         할일 <span className="numbadge">{tasks.length}</span>
         <span className="ed-list-sort">날짜순</span>
+      </div>
+
+      {/* Project legend (US-011): identity-color swatch + name. Click a chip to
+          rename/recolor/delete; "＋ 프로젝트" creates one. Project identity
+          colors are allowed here (legend), unlike the monochrome grid chrome. */}
+      <div className="ed-proj">
+        <div className="ed-proj-head">
+          프로젝트
+          <button
+            type="button"
+            className="mk-add"
+            onClick={(e) => onAddProject(e.clientX, e.clientY)}
+          >
+            ＋ 프로젝트
+          </button>
+        </div>
+        <div className="ed-proj-list">
+          {projects.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              className="proj-chip"
+              onClick={(e) => onEditProject(p, e.clientX, e.clientY)}
+              aria-label={`${p.name} 프로젝트 관리`}
+            >
+              <span className="proj-sw" style={{ background: p.color }} aria-hidden />
+              {p.name}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Marker legend (US-017): monochrome chips, distinct from colored bars.

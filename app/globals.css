@@ -419,6 +419,41 @@ body {
 }
 
 /*
+ * Project color palette (US-011) — the 8 identity hues (PROJECT_COLORS). These
+ * swatches are the one place besides bars where project color appears; the
+ * selected hue gets a black ring (UI chrome stays monochrome). The "기본
+ * 프로젝트는 삭제할 수 없습니다" note replaces the delete control for the default.
+ */
+.pp-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.pp-sw {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  outline-offset: 2px;
+}
+.pp-sw:hover {
+  outline: 1.5px solid var(--text);
+}
+.pp-sw.on {
+  outline: 2px solid var(--text);
+}
+.pp-sw:focus-visible {
+  outline: 2px solid var(--text);
+}
+.pp-note {
+  font-size: 11px;
+  letter-spacing: -0.02em;
+  color: var(--muted);
+}
+
+/*
  * Task bars (US-005). Color (project identity) is the only color on the
  * monochrome grid. Positioned absolutely within a .cal-week (left/width/top set
  * inline from the week segment). No shadow (Swiss editorial). Clicking a bar
@@ -621,6 +656,60 @@ button.mk:focus-visible {
   background: var(--text);
   color: #fff;
   border-color: var(--text);
+}
+
+/*
+ * Project legend (US-011) in the right panel. Each chip = identity swatch +
+ * name; clicking opens the manage popover. "＋ 프로젝트" adds one. Swatches are
+ * project identity color (allowed in legends, color-system.md §2); the rest
+ * stays monochrome/hairline.
+ */
+.ed-proj {
+  padding: 12px 22px;
+  border-bottom: 1px solid var(--border);
+}
+.ed-proj-head {
+  display: flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.ed-proj-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.proj-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  background: none;
+  border: 1px solid var(--border-soft);
+  border-radius: 2px;
+  padding: 3px 9px;
+  cursor: pointer;
+}
+.proj-chip:hover {
+  border-color: var(--text);
+}
+.proj-chip:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 1px;
+}
+.proj-sw {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: none;
 }
 
 /*

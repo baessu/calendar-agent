@@ -193,8 +193,8 @@
         "Verify in browser: 색 변경이 막대 반영"
       ],
       "priority": 5,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "lib/project/manage.ts(신규) 순수 로직: defaultProjectId(min createdAt → id tiebreak; 스키마 플래그 없이 기존 데이터도 안전 — 시드 '기본'이 최초 생성)/isDefaultProject/unusedProjectColor(PROJECT_COLORS 중 미사용 첫 색조, 대소문자 무시, 전부 사용 시 첫 색 폴백 = AC2 추천값)/nextProjectOrder(max order+1). +10 단위 테스트. components/calendar/ProjectPopover.tsx(신규, 생성/편집/삭제 겸용, MarkerPopover 패턴): 이름 input(trim 빈값 차단 '이름을 입력하세요') + 8색 팔레트(PROJECT_COLORS 스와치, role=radiogroup, 선택=검은 링 .pp-sw.on) — 생성 시 unusedProjectColor 기본 선택, 편집 시 prefill. 삭제=2단계 인라인 확인: 소속 할일 있으면 '할일 N개 [함께 삭제][기본으로 이동][취소]'(AC4 두 모드), 없으면 '삭제할까요? [삭제][취소]'. 기본 프로젝트(isDefaultProject)는 삭제 숨김 + '기본 프로젝트는 삭제할 수 없습니다' 노트(AC5). ESC/✕/backdrop 닫힘, 뷰포트 클램프, cpIn. CalendarApp: projectPopover state{project|null,x,y} + taskCountByProject memo. handleSaveProject(편집=updateProject+map merge / 생성=createProject{visible:true,order:nextProjectOrder}+append), handleDeleteProject(mode: reassign=잔여 프로젝트의 defaultProjectId로 updateTask projectId 일괄→deleteProject→setTasks map / deleteTasks=deleteTask 일괄→deleteProject→setTasks filter + 삭제 task가 highlight면 해제). 막대 색은 projectsById 파생→projects state 갱신 시 barColors 렌더마다 재계산이라 이름/색 변경 즉시 반영(AC3, 캘린더 막대+패널 스와치). openProjectCreate/openProjectEdit/closeProjectPopover. ProjectPopover는 CalendarApp 레벨에서 TaskListPanel과 형제로 렌더(자체 cp-backdrop). TaskListPanel: projects props + .ed-proj 프로젝트 범례 섹션(헤더 '프로젝트'+＋프로젝트 버튼, proj-chip = 색 스와치+이름, 클릭→onEditProject at clientX/Y) — F탭 legend-F 위치. app/globals.css: .pp-palette/.pp-sw(.on 검은 링)/.pp-note + .ed-proj/.ed-proj-head/.ed-proj-list/.proj-chip/.proj-sw. 프로젝트 정체성 색은 범례·팔레트에 허용(color-system §2) — 그리드 크롬은 모노크롬 유지. 138 tests green(+10). typecheck ✓ / lint ✓(0) / dev GET / 200, SSR에 ed-proj/＋프로젝트 + cal-cell 217·data-today 1·ed-list 렌더, 서버 에러/경고 없음(프로젝트 칩은 클라 DB 로드 후, 팝오버는 인터랙션 후 마운트)."
     },
     {
       "id": "US-012",

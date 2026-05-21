@@ -12,8 +12,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createMarker,
+  createProject,
   createTask,
   deleteMarker,
+  deleteProject,
   deleteTask,
   getAllMarkers,
   getAllProjects,
@@ -21,13 +23,20 @@ import {
   getAllTasks,
   seedIfEmpty,
   updateMarker,
+  updateProject,
   updateTask,
   type MarkerChanges,
   type MarkerInput,
 } from "@/lib/db";
+import { defaultProjectId, nextProjectOrder } from "@/lib/project/manage";
 import type { DateString, Marker, Project, Task, TaskType } from "@/lib/types";
 import { CalendarView } from "./CalendarView";
 import type { EditTaskDraft } from "./EditPopover";
+import {
+  ProjectPopover,
+  type DeleteProjectMode,
+  type ProjectDraft,
+} from "./ProjectPopover";
 import { TaskListPanel } from "./TaskListPanel";
 
 /** A new task's fields; dates come from the calendar's committed selection. */
@@ -172,6 +181,98 @@ export function CalendarApp() {
   const [addNonce, setAddNonce] = useState(0);
   const handleAdd = useCallback(() => setAddNonce((n) => n + 1), []);
 
+  // --- Project management (US-011) ------------------------------------------
+  // One popover handles create (project:null) and edit/delete. Renaming or
+  // recoloring re-tones the bars at once (both views derive bar colors from
+  // project.color in this shared state).
+  const [projectPopover, setProjectPopover] = useState<{
+    project: Project | null;
+    x: number;
+    y: number;
+  } | null>(null);
+
+  // Per-project task counts, for the delete confirmation copy.
+  const taskCountByProject = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const t of tasks) m.set(t.projectId, (m.get(t.projectId) ?? 0) + 1);
+    return m;
+  }, [tasks]);
+
+  const openProjectCreate = useCallback(
+    (x: number, y: number) => setProjectPopover({ project: null, x, y }),
+    [],
+  );
+  const openProjectEdit = useCallback(
+    (project: Project, x: number, y: number) =>
+      setProjectPopover({ project, x, y }),
+    [],
+  );
+  const closeProjectPopover = useCallback(() => setProjectPopover(null), []);
+
+  const handleSaveProject = useCallback(
+    async (draft: ProjectDraft) => {
+      const editing = projectPopover?.project;
+      if (editing) {
+        await updateProject(editing.id, { name: draft.name, color: draft.color });
+        setProjects((prev) =>
+          prev.map((p) => (p.id === editing.id ? { ...p, ...draft } : p)),
+        );
+      } else {
+        const created = await createProject({
+          name: draft.name,
+          color: draft.color,
+          visible: true,
+          order: nextProjectOrder(projects),
+        });
+        setProjects((prev) => [...prev, created]);
+      }
+      setProjectPopover(null);
+    },
+    [projectPopover, projects],
+  );
+
+  // Delete a project (AC4/AC5). `reassign` moves its tasks to the default
+  // project; `deleteTasks` removes them too. Default project never reaches here
+  // (the popover hides delete for it).
+  const handleDeleteProject = useCallback(
+    async (mode: DeleteProjectMode) => {
+      const target = projectPopover?.project;
+      if (!target) return;
+      const affected = tasks.filter((t) => t.projectId === target.id);
+      // Reassignment target = the default among the remaining projects.
+      const dest =
+        mode === "reassign"
+          ? defaultProjectId(projects.filter((p) => p.id !== target.id))
+          : null;
+
+      if (dest) {
+        await Promise.all(
+          affected.map((t) => updateTask(t.id, { projectId: dest })),
+        );
+      } else {
+        await Promise.all(affected.map((t) => deleteTask(t.id)));
+      }
+      await deleteProject(target.id);
+
+      setTasks((prev) =>
+        dest
+          ? prev.map((t) =>
+              t.projectId === target.id
+                ? { ...t, projectId: dest, updatedAt: Date.now() }
+                : t,
+            )
+          : prev.filter((t) => t.projectId !== target.id),
+      );
+      setProjects((prev) => prev.filter((p) => p.id !== target.id));
+      if (!dest) {
+        const removed = new Set(affected.map((t) => t.id));
+        setHighlightedTaskId((cur) => (cur && removed.has(cur) ? null : cur));
+      }
+      setProjectPopover(null);
+    },
+    [projectPopover, tasks, projects],
+  );
+
   return (
     <>
       <CalendarView
@@ -195,13 +296,32 @@ export function CalendarApp() {
       />
       <TaskListPanel
         tasks={tasks}
+        projects={projects}
         projectsById={projectsById}
         taskTypesById={taskTypesById}
         onSelectTask={handleSelectTask}
         selectedTaskId={highlightedTaskId}
         onAdd={handleAdd}
         onAddMarker={handleAddMarker}
+        onAddProject={openProjectCreate}
+        onEditProject={openProjectEdit}
       />
+      {projectPopover && (
+        <ProjectPopover
+          project={projectPopover.project}
+          x={projectPopover.x}
+          y={projectPopover.y}
+          projects={projects}
+          taskCount={
+            projectPopover.project
+              ? taskCountByProject.get(projectPopover.project.id) ?? 0
+              : 0
+          }
+          onClose={closeProjectPopover}
+          onSave={handleSaveProject}
+          onDelete={projectPopover.project ? handleDeleteProject : undefined}
+        />
+      )}
     </>
   );
 }

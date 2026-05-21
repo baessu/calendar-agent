@@ -294,3 +294,32 @@
   - window pointermove/up 핸들러 내 setState는 effect 본문이 아니라 이벤트 콜백이라 set-state-in-effect 룰 미저촉(기존 셀 드래그 effect와 동일 패턴). onMoveTask가 유일한 effect dep.
   - US-016(가장자리 리사이즈)은 이 위에 얹음: 막대 좌/우 끝 ~6px 존에서 pointerdown이면 move 대신 resize 모드(시작일 또는 종료일만 변경, start<=end 클램프). dateUnderPoint 재사용 가능.
 ---
+
+## 2026-05-21T22:35:00 - US-011
+- 프로젝트 관리(생성/이름변경/색/삭제). 막대 색 즉시 반영, 삭제 시 소속 할일 처리(함께 삭제/기본 이동) 확인 단계, 기본 프로젝트 삭제 불가.
+- 순수 로직 분리: `lib/project/manage.ts`(신규)
+  - defaultProjectId(projects): 최초 생성(min createdAt, id tiebreak) 프로젝트 = 삭제 불가 + 고아 할일 이동 대상. 스키마 플래그 없이 기존 로컬 데이터도 안전(시드 '기본'이 항상 최초 생성).
+  - isDefaultProject(id,projects), unusedProjectColor(projects)=PROJECT_COLORS 중 미사용 첫 색조(대소문자 무시; 8색 전부 사용 시 첫 색 폴백 → AC2 추천값), nextProjectOrder(projects)=max(order)+1.
+  - +10 단위 테스트(default: 빈/최초생성/createdAt 동률 id tiebreak/isDefault, unused: 빈→첫색/사용색 스킵/대소문자/전부사용 폴백, nextOrder: 빈→0/max+1).
+- `components/calendar/ProjectPopover.tsx`(신규, 생성/편집/삭제 겸용 — MarkerPopover 패턴):
+  - 이름 input(autofocus+select, trim 빈값 차단 '이름을 입력하세요' 인라인) + 8색 팔레트(PROJECT_COLORS 스와치 버튼, role=radiogroup/radio+aria-checked, 선택=검은 링 .pp-sw.on). 생성 시 unusedProjectColor 기본 선택, 편집 시 name/color prefill.
+  - 삭제=2단계 인라인 확인(native confirm 미사용): 소속 할일>0이면 '할일 N개 [함께 삭제][기본으로 이동][취소]'(AC4 두 모드 = deleteTasks/reassign), 0이면 '삭제할까요? [삭제][취소]'. 기본 프로젝트(isDefaultProject)는 삭제 버튼 숨김 + '기본 프로젝트는 삭제할 수 없습니다' 노트(AC5).
+  - ESC/✕/투명 backdrop 닫힘, 뷰포트 클램프, cpIn. cp-* 스타일 재사용 + .pp-palette/.pp-sw/.pp-note 추가.
+- `components/calendar/CalendarApp.tsx`: projectPopover state{project|null,x,y} + taskCountByProject memo(삭제 확인 카피용). openProjectCreate/openProjectEdit/closeProjectPopover. handleSaveProject(편집=updateProject+setProjects map merge / 생성=createProject{name,color,visible:true,order:nextProjectOrder}+append). handleDeleteProject(mode): reassign=잔여 프로젝트의 defaultProjectId로 affected 할일 updateTask({projectId}) 일괄→deleteProject→setTasks map(updatedAt 갱신); deleteTasks=affected deleteTask 일괄→deleteProject→setTasks filter + 삭제 task가 현재 highlight면 해제. 둘 다 setProjects filter. ProjectPopover를 TaskListPanel과 형제로 CalendarApp 레벨 렌더(자체 cp-backdrop, z-50).
+- `components/calendar/TaskListPanel.tsx`: projects props + .ed-proj 프로젝트 범례 섹션(헤더 '프로젝트' + ＋프로젝트 버튼=onAddProject(clientX,Y), proj-chip = proj-sw 색 스와치 + 이름, 클릭→onEditProject(p, clientX,Y)). F탭 legend-F 위치(할일 헤더 아래, 마커 범례 위).
+- `app/globals.css`: .pp-palette(flex wrap)/.pp-sw(원형 22px, hover/.on/focus 검은 링)/.pp-note. .ed-proj/.ed-proj-head(uppercase 라벨)/.ed-proj-list/.proj-chip(하이라인, hover/focus 링)/.proj-sw(9px 원). 프로젝트 정체성 색은 범례·팔레트에 허용(color-system §2 "원색=정체성, 범례/탭/점에 그대로") — 그리드 크롬은 모노크롬 유지.
+- 파일: lib/project/{manage.ts,manage.test.ts}(신규), components/calendar/{ProjectPopover.tsx(신규),CalendarApp.tsx,TaskListPanel.tsx}, app/globals.css, scripts/ralph/{prd.json,progress.txt}
+- 품질: typecheck ✓ / lint ✓(0 errors/0 warnings) / test ✓(138 passed: 기존 128 + 신규 10 manage). dev GET / 200, SSR에 ed-proj/＋프로젝트 + cal-cell 217·data-today 1·ed-list 렌더, 서버 에러/경고 없음(프로젝트 칩은 클라 DB 로드 후, 팝오버는 인터랙션 후 마운트).
+- Needs human browser verification:
+  - ＋프로젝트 → 이름 입력 + 8색 팔레트에서 색 선택(미사용 색이 기본 추천으로 선택돼 있는지) 후 추가 시 범례에 새 칩이 뜨는지
+  - 기존 프로젝트 칩 클릭 → 이름/색 변경 저장 시 캘린더 막대 색(색조)과 패널 스와치가 즉시 바뀌는지(AC3/AC7 핵심)
+  - 프로젝트 삭제: 소속 할일 있을 때 '함께 삭제' vs '기본으로 이동' 선택이 각각 올바르게 동작(이동 시 막대가 기본 프로젝트 색으로, 삭제 시 막대·패널 항목 사라짐)하고 새로고침 후 유지되는지
+  - 기본(최초 생성) 프로젝트 편집 시 삭제 버튼 대신 '기본 프로젝트는 삭제할 수 없습니다' 노트가 보이는지
+- Learnings for future iterations:
+  - "기본 프로젝트"는 스키마 isDefault 플래그 대신 defaultProjectId(min createdAt→id) 파생으로 정의 → Dexie 버전 범프/마이그레이션 불필요하고 기존 로컬 데이터(플래그 없음)도 그대로 동작. 시드 '기본'이 항상 최초 생성이라 안정적. 사용자가 기본 프로젝트 이름을 바꿔도 여전히 기본(최초 생성=fallback).
+  - 막대/스와치 색 즉시 반영의 핵심: barColors(project.color, taskType)가 projectsById(=projects state 파생)에서 렌더마다 재계산 → updateProject 후 setProjects만 하면 캘린더 막대+패널 tp-dot+범례 proj-sw 모두 자동 동기화(US-009 편집 즉시 반영과 동일 패턴).
+  - 삭제 reassign 대상은 defaultProjectId(projects.filter(잔여)) — 삭제 대상이 비-기본이므로 잔여 중 기본 = 전체 기본과 동일. dest=null(잔여 없음=비도달)이면 deleteTasks로 폴백(안전).
+  - 프로젝트 색 스와치/팔레트는 색을 쓰지만 color-system §2가 "원색=프로젝트 정체성, 범례·탭·점에 그대로 사용" 허용 → "색은 막대에만"은 그리드/캘린더 크롬 한정. US-013(탭)·US-014(범례 토글)도 동일하게 정체성 색 스와치 사용 가능.
+  - US-014(보이기/숨기기 토글)는 이 .ed-proj 범례 행에 토글을 얹으면 됨(proj-chip에 visible 상태 + 클릭 분기 또는 별도 토글). US-013(상단 탭)은 .ed-proj와 별개로 .ed-bar 아래 .ptabs(F탭) 추가. 프로젝트 mutate 핸들러(handleSaveProject/handleDeleteProject)는 이미 CalendarApp 단일 진실원본이라 양쪽 뷰 자동 갱신.
+  - ProjectPopover는 CalendarView가 아닌 CalendarApp에서 렌더(프로젝트는 우측 패널에서 트리거, 캘린더 셀/막대와 무관). 팝오버 상호배타는 각자 cp-backdrop(z-50)로 보장 — 패널에서 여는 동안 캘린더 팝오버는 닫혀 있음.
+---
