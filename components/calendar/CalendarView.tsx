@@ -33,6 +33,7 @@ import {
 import { todayDateString } from "@/lib/calendar/dates";
 import { isWithinRange, normalizeRange, type DateRange } from "@/lib/calendar/selection";
 import { weekSegments } from "@/lib/calendar/segments";
+import { DEFAULT_MAX_LANES, layoutWeek } from "@/lib/calendar/layout";
 import { barColors } from "@/lib/color/compose";
 import {
   createTask,
@@ -51,8 +52,8 @@ const INITIAL_FWD = 3;
 const EXPAND_PX = 600;
 
 // Bar geometry within a week row (px). HEAD_H clears the day-number area; bars
-// stack downward in lanes. US-007 replaces the naive one-lane-per-segment
-// stacking with packed lanes + a "+N개" overflow summary.
+// stack downward in lanes (US-007: lanes are packed via interval scheduling and
+// rows beyond DEFAULT_MAX_LANES collapse into per-column "+N개" chips).
 const BAR_H = 20;
 const BAR_GAP = 3;
 const HEAD_H = 30;
@@ -266,6 +267,18 @@ export function CalendarView() {
     return selection;
   }, [isDragging, dragAnchor, dragCurrent, selection]);
 
+  // --- Lane overflow expand/collapse (US-007) -------------------------------
+  // Weeks (keyed by their Sunday date) whose extra lanes are expanded open.
+  const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(() => new Set());
+  const toggleWeek = useCallback((key: string) => {
+    setExpandedWeeks((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
   return (
     <div className="ed-main">
       <div className="ed-bar">
@@ -298,15 +311,29 @@ export function CalendarView() {
             </div>
             <div className="month-body">
               {g.weeks.map((week) => {
-                // Clip tasks to this week; one lane per segment for now (US-007
-                // packs lanes + adds overflow). Row grows to fit the lanes.
+                // Clip tasks to this week, then pack overlapping bars into lanes.
+                // Lanes beyond DEFAULT_MAX_LANES collapse into per-column "+N개"
+                // chips unless this week is expanded.
+                const weekKey = week[0].date;
                 const segs = weekSegments(week, tasks);
+                const layout = layoutWeek(segs, DEFAULT_MAX_LANES);
+                const expanded = expandedWeeks.has(weekKey);
+                const hasOverflow = layout.overflow.length > 0;
+                // Lanes drawn as bars, and the lane row the chips sit on.
+                const visibleLanes = expanded
+                  ? layout.laneCount
+                  : Math.min(layout.laneCount, DEFAULT_MAX_LANES);
+                const chipLane = expanded ? layout.laneCount : DEFAULT_MAX_LANES;
+                const rows = visibleLanes + (hasOverflow ? 1 : 0);
                 const weekMinH = Math.max(
                   ROW_MIN,
-                  HEAD_H + segs.length * (BAR_H + BAR_GAP) + 6,
+                  HEAD_H + rows * (BAR_H + BAR_GAP) + 6,
                 );
+                const visibleSegs = expanded
+                  ? layout.segments
+                  : layout.segments.filter((s) => s.lane < DEFAULT_MAX_LANES);
                 return (
-                  <div className="cal-week" key={week[0].date} style={{ minHeight: weekMinH }}>
+                  <div className="cal-week" key={weekKey} style={{ minHeight: weekMinH }}>
                     {week.map((dy) => {
                       const selected =
                         highlight != null &&
@@ -325,12 +352,12 @@ export function CalendarView() {
                         </div>
                       );
                     })}
-                    {segs.map((seg, lane) => {
+                    {visibleSegs.map((seg) => {
                       const project = projectsById.get(seg.task.projectId);
                       const taskType = taskTypesById.get(seg.task.taskTypeId);
                       const left = (seg.startCol / 7) * 100;
                       const width = ((seg.endCol - seg.startCol + 1) / 7) * 100;
-                      const top = HEAD_H + lane * (BAR_H + BAR_GAP);
+                      const top = HEAD_H + seg.lane * (BAR_H + BAR_GAP);
                       // Square the edge that continues into an adjacent week.
                       const r = (cont: boolean) => (cont ? "0" : "3px");
                       // Bar bg = project color toned by task type; text auto-contrast.
@@ -359,6 +386,35 @@ export function CalendarView() {
                         </div>
                       );
                     })}
+                    {/* Collapsed: per-column "+N개" chips for hidden lanes. */}
+                    {hasOverflow &&
+                      !expanded &&
+                      layout.overflow.map((chip) => (
+                        <button
+                          key={`more-${chip.col}`}
+                          type="button"
+                          className="cal-more"
+                          style={{
+                            left: `${(chip.col / 7) * 100}%`,
+                            top: HEAD_H + chipLane * (BAR_H + BAR_GAP),
+                          }}
+                          onClick={() => toggleWeek(weekKey)}
+                          title={`${chip.count}개 더 보기`}
+                        >
+                          +{chip.count}개
+                        </button>
+                      ))}
+                    {/* Expanded: collapse the extra lanes back. */}
+                    {hasOverflow && expanded && (
+                      <button
+                        type="button"
+                        className="cal-more cal-collapse"
+                        style={{ left: 0, top: HEAD_H + chipLane * (BAR_H + BAR_GAP) }}
+                        onClick={() => toggleWeek(weekKey)}
+                      >
+                        접기
+                      </button>
+                    )}
                   </div>
                 );
               })}

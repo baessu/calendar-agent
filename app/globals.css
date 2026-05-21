@@ -388,3 +388,32 @@ body {
     transform: translateY(0);
   }
 }
+
+/*
+ * Lane overflow chip (US-007). When a week row has more lanes than fit, the
+ * extra bars collapse into a per-column "+N개" chip; clicking it expands the row
+ * (a "접기" chip collapses it again). Monochrome/hairline — it summarizes data
+ * but is UI chrome, so it carries no color (color stays on the bars).
+ */
+.cal-more {
+  position: absolute;
+  margin-left: 2px;
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 6px;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+  animation: barIn 140ms ease-out;
+}
+.cal-more:hover {
+  background: var(--sel);
+}
