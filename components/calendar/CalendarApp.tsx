@@ -2,7 +2,7 @@
 
 /**
  * Top-level client shell that owns the data shared by the calendar and the
- * right "할일" panel (US-008).
+ * right "일정" panel (US-008).
  *
  * Centralizing projects / task types / tasks here keeps both views in sync: a
  * task created from a drag-selection appears in the panel immediately, and a
@@ -244,7 +244,7 @@ export function CalendarApp() {
     if (hlTimer.current) clearTimeout(hlTimer.current);
   }, []);
 
-  // --- Panel -> calendar "+ 할일 추가" --------------------------------------
+  // --- Panel -> calendar "+ 일정 추가" --------------------------------------
   // Bumping the nonce asks the calendar to open the create popover for today.
   const [addNonce, setAddNonce] = useState(0);
   const handleAdd = useCallback(() => setAddNonce((n) => n + 1), []);

@@ -668,7 +668,7 @@ body {
 }
 
 /*
- * Panel-highlight ring (US-008). Clicking a row in the right "할일" list scrolls
+ * Panel-highlight ring (US-008). Clicking a row in the right "일정" list scrolls
  * the bar into view and rings it. The ring is monochrome (UI chrome stays
  * black/white; only the bar fill carries color) and clears after a moment.
  */
@@ -847,13 +847,27 @@ button.mk:focus-visible {
   border-radius: 2px;
   padding: 3px 8px;
 }
-.proj-vis {
-  width: 13px;
-  height: 13px;
-  margin: 0;
-  accent-color: var(--text); /* monochrome check (mockup pattern) */
+/* Manage (edit/delete) affordance — appears on row hover/focus, monochrome. */
+.proj-edit {
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--muted);
+  background: none;
+  border: none;
+  padding: 0 1px;
+  margin-left: 1px;
   cursor: pointer;
   flex: none;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.proj-row:hover .proj-edit,
+.proj-edit:focus-visible {
+  opacity: 1;
+}
+.proj-edit:hover {
+  color: var(--text);
 }
 .proj-name {
   display: inline-flex;
@@ -877,8 +891,9 @@ button.mk:focus-visible {
   outline: 2px solid var(--text);
   outline-offset: 2px;
 }
-.proj-row.off .proj-name {
-  opacity: 0.4;
+/* Hidden/filtered-off projects & task types read as faded (no checkbox). */
+.proj-row.off {
+  opacity: 0.35;
 }
 
 /*
@@ -894,7 +909,7 @@ button.mk:focus-visible {
 }
 
 /*
- * Right "할일" panel (US-008) — mirrors the F-tab mockup's .ed-list. Hairline
+ * Right "일정" panel (US-008) — mirrors the F-tab mockup's .ed-list. Hairline
  * borders, monochrome chrome; the only color is the per-task data swatch.
  */
 .ed-list {
@@ -996,7 +1011,7 @@ button.mk:focus-visible {
   line-height: 1.6;
   color: var(--muted);
 }
-/* Footer "＋ 할일 추가" — opens the create popover for today. */
+/* Footer "＋ 일정 추가" — opens the create popover for today. */
 .ed-contact {
   margin-top: auto;
   padding: 16px 22px;

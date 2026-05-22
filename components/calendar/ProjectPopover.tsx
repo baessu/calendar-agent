@@ -185,7 +185,7 @@ export function ProjectPopover({
                 <span className="cp-confirm" role="alert">
                   {taskCount > 0 ? (
                     <>
-                      <span className="cp-confirm-q">할일 {taskCount}개</span>
+                      <span className="cp-confirm-q">일정 {taskCount}개</span>
                       <button
                         type="button"
                         className="cp-confirm-yes"

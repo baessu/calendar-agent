@@ -121,12 +121,12 @@ export function CreatePopover({
         className="create-pop"
         style={{ left: pos.left, top: pos.top }}
         role="dialog"
-        aria-label="새 할일"
+        aria-label="새 일정"
         // Keep clicks inside the card from reaching the backdrop.
         onPointerDown={(e) => e.stopPropagation()}
       >
         <div className="cp-head">
-          <span className="cp-title">새 할일</span>
+          <span className="cp-title">새 일정</span>
           <button type="button" className="cp-x" aria-label="닫기" onClick={onClose}>
             ✕
           </button>
@@ -145,8 +145,8 @@ export function CreatePopover({
             className="cp-input"
             type="text"
             value={title}
-            placeholder="할일 제목"
-            aria-label="할일 제목"
+            placeholder="일정 제목"
+            aria-label="일정 제목"
             aria-invalid={error?.field === "title" ? true : undefined}
             onChange={(e) => {
               setTitle(e.target.value);

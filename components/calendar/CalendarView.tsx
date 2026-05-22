@@ -61,7 +61,7 @@ const EXPAND_PX = 600;
 // rows beyond DEFAULT_MAX_LANES collapse into per-column "+N개" chips).
 const BAR_H = 22;
 const BAR_GAP = 5;
-const HEAD_H = 34;
+const HEAD_H = 36;
 const ROW_MIN = 116;
 
 // Pointer travel (px) past which a bar press becomes a move instead of a click
@@ -148,7 +148,7 @@ interface CalendarViewProps {
   highlightedTaskId: string | null;
   /** Bumps on each panel click so repeat clicks re-scroll. */
   highlightNonce: number;
-  /** Bumps when the panel's "＋ 할일 추가" asks to create for today. */
+  /** Bumps when the panel's "＋ 일정 추가" asks to create for today. */
   addNonce: number;
   /** Bumps when the panel's "＋ 마커 추가" asks to add a marker for today. */
   markerAddNonce: number;
@@ -629,7 +629,7 @@ export function CalendarView({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fire on click, not on every tasks change
   }, [highlightNonce]);
 
-  // --- Panel "＋ 할일 추가" -> open the popover for today --------------------
+  // --- Panel "＋ 일정 추가" -> open the popover for today --------------------
   // Deferred to the next frame so it runs after commit, not synchronously here.
   useEffect(() => {
     if (addNonce === 0) return; // skip the initial mount value

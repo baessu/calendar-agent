@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Right "할일" panel (US-008).
+ * Right "일정" panel (US-008).
  *
  * Lists every task in start-date ascending order. Each row shows the title, the
  * date range, and a swatch in the task's bar color (project hue + task-type
@@ -32,7 +32,7 @@ interface TaskListPanelProps {
   onSelectTask: (id: string) => void;
   /** The task currently highlighted (its row gets an active style). */
   selectedTaskId: string | null;
-  /** Open the creation popover for a new task (footer "＋ 할일 추가"). */
+  /** Open the creation popover for a new task (footer "＋ 일정 추가"). */
   onAdd: () => void;
   /** Open the marker form for a new marker (legend "＋ 마커"). */
   onAddMarker: () => void;
@@ -40,7 +40,7 @@ interface TaskListPanelProps {
   onAddProject: (x: number, y: number) => void;
   /** Open the project popover to edit/delete a project (legend chip click). */
   onEditProject: (project: Project, x: number, y: number) => void;
-  /** Toggle a project's visibility (legend checkbox) — US-014. */
+  /** Toggle a project's visibility (legend chip) — US-014. */
   onToggleProjectVisible: (id: string) => void;
   /** Open the task-type popover to create a new type (legend "＋ 종류"). */
   onAddTaskType: (x: number, y: number) => void;
@@ -48,7 +48,7 @@ interface TaskListPanelProps {
   onEditTaskType: (taskType: TaskType, x: number, y: number) => void;
   /** Task-type ids toggled off in the legend filter (US-015). */
   hiddenTaskTypeIds: Set<string>;
-  /** Toggle a task type's on/off filter (legend checkbox) — US-015. */
+  /** Toggle a task type's on/off filter (legend chip) — US-015. */
   onToggleTaskType: (id: string) => void;
 }
 
@@ -82,17 +82,18 @@ export function TaskListPanel({
   );
 
   return (
-    <aside className="ed-list" aria-label="할일 목록">
+    <aside className="ed-list" aria-label="일정 목록">
       <div className="ed-list-head">
-        할일 <span className="numbadge">{tasks.length}</span>
+        일정 <span className="numbadge">{tasks.length}</span>
         <span className="ed-list-sort">날짜순</span>
       </div>
 
-      {/* Project legend (US-011/US-014): visibility checkbox + identity-color
-          swatch + name. The checkbox shows/hides the project's bars in both
-          views (persisted); clicking the name opens the manage popover.
-          "＋ 프로젝트" creates one. Project identity colors are allowed here
-          (legend), unlike the monochrome grid chrome. */}
+      {/* Project legend (US-011/US-014): identity-color swatch + name chip.
+          Clicking the chip toggles the project's visibility (its bars show/hide
+          in both views, persisted); hidden chips render faded (.off, no
+          checkbox). A hover ⋯ opens the manage popover. "＋ 프로젝트" creates
+          one. Project identity colors are allowed here (legend), unlike the
+          monochrome grid chrome. */}
       <div className="ed-proj">
         <div className="ed-proj-head">
           프로젝트
@@ -107,32 +108,36 @@ export function TaskListPanel({
         <div className="ed-proj-list">
           {projects.map((p) => (
             <span key={p.id} className={`proj-row${p.visible ? "" : " off"}`}>
-              <input
-                type="checkbox"
-                className="proj-vis"
-                checked={p.visible}
-                onChange={() => onToggleProjectVisible(p.id)}
-                aria-label={`${p.name} 캘린더에 표시`}
-              />
               <button
                 type="button"
                 className="proj-name"
-                onClick={(e) => onEditProject(p, e.clientX, e.clientY)}
-                aria-label={`${p.name} 프로젝트 관리`}
+                onClick={() => onToggleProjectVisible(p.id)}
+                aria-pressed={p.visible}
+                aria-label={`${p.name} 표시/숨김`}
+                title={p.visible ? "클릭하여 숨기기" : "클릭하여 표시"}
               >
                 <span className="proj-sw" style={{ background: p.color }} aria-hidden />
                 {p.name}
+              </button>
+              <button
+                type="button"
+                className="proj-edit"
+                onClick={(e) => onEditProject(p, e.clientX, e.clientY)}
+                aria-label={`${p.name} 프로젝트 관리`}
+                title="관리"
+              >
+                ⋯
               </button>
             </span>
           ))}
         </div>
       </div>
 
-      {/* Task-type legend (US-012/US-015): on/off filter checkbox + tone swatch
-          (previewed on a reference hue) + name. The checkbox shows/hides that
-          type's bars in both views (ANDs with the project filter); clicking the
-          name opens the manage popover. "＋ 종류" creates one. Task types are
-          global (shared by all projects). */}
+      {/* Task-type legend (US-012/US-015): tone swatch (previewed on a reference
+          hue) + name chip. Clicking the chip toggles that type's on/off filter
+          (its bars show/hide in both views, ANDs with the project filter);
+          hidden chips render faded (.off, no checkbox). A hover ⋯ opens the
+          manage popover. "＋ 종류" creates one. Task types are global. */}
       <div className="ed-type">
         <div className="ed-proj-head">
           태스크 종류
@@ -149,18 +154,13 @@ export function TaskListPanel({
             const shown = !hiddenTaskTypeIds.has(tt.id);
             return (
               <span key={tt.id} className={`proj-row${shown ? "" : " off"}`}>
-                <input
-                  type="checkbox"
-                  className="proj-vis"
-                  checked={shown}
-                  onChange={() => onToggleTaskType(tt.id)}
-                  aria-label={`${tt.name} 캘린더에 표시`}
-                />
                 <button
                   type="button"
                   className="proj-name"
-                  onClick={(e) => onEditTaskType(tt, e.clientX, e.clientY)}
-                  aria-label={`${tt.name} 태스크 종류 관리`}
+                  onClick={() => onToggleTaskType(tt.id)}
+                  aria-pressed={shown}
+                  aria-label={`${tt.name} 표시/숨김`}
+                  title={shown ? "클릭하여 숨기기" : "클릭하여 표시"}
                 >
                   <span
                     className="proj-sw"
@@ -168,6 +168,15 @@ export function TaskListPanel({
                     aria-hidden
                   />
                   {tt.name}
+                </button>
+                <button
+                  type="button"
+                  className="proj-edit"
+                  onClick={(e) => onEditTaskType(tt, e.clientX, e.clientY)}
+                  aria-label={`${tt.name} 태스크 종류 관리`}
+                  title="관리"
+                >
+                  ⋯
                 </button>
               </span>
             );
@@ -186,7 +195,7 @@ export function TaskListPanel({
       </div>
 
       {sorted.length === 0 ? (
-        <p className="tp-empty">일칸을 드래그해 첫 할일을 추가하세요.</p>
+        <p className="tp-empty">일칸을 드래그해 첫 일정을 추가하세요.</p>
       ) : (
         <ul className="tp-list">
           {sorted.map((task) => {
@@ -224,7 +233,7 @@ export function TaskListPanel({
       )}
 
       <button type="button" className="ed-contact" onClick={onAdd}>
-        ↳ ＋ 할일 추가
+        ↳ ＋ 일정 추가
       </button>
     </aside>
   );

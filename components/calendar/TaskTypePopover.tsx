@@ -196,7 +196,7 @@ export function TaskTypePopover({
 
           {showRecommendNote && (
             <p className="pp-note" role="note">
-              권장 단계는 3~4개예요. 더 추가하면 톤 구분이 어려워질 수 있어요.
+              권장 단계는 8개예요. 더 추가하면 톤 구분이 어려워질 수 있어요.
             </p>
           )}
 
@@ -207,7 +207,7 @@ export function TaskTypePopover({
                   {taskCount > 0 ? (
                     <>
                       <span className="cp-confirm-q">
-                        할일 {taskCount}개 기본 종류로 이동
+                        일정 {taskCount}개 기본 종류로 이동
                       </span>
                       <button
                         type="button"

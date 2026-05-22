@@ -4,7 +4,7 @@ import { DbInit } from "@/components/db-init";
 
 export const metadata: Metadata = {
   title: "캘린더",
-  description: "드래그로 기간 할일을 등록하는 먼슬리 캘린더",
+  description: "드래그로 기간 일정을 등록하는 먼슬리 캘린더",
 };
 
 export default function RootLayout({

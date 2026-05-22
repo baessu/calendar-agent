@@ -126,12 +126,12 @@ export function EditPopover({
         className="create-pop"
         style={{ left: pos.left, top: pos.top }}
         role="dialog"
-        aria-label="할일 편집"
+        aria-label="일정 편집"
         // Keep clicks inside the card from reaching the backdrop.
         onPointerDown={(e) => e.stopPropagation()}
       >
         <div className="cp-head">
-          <span className="cp-title">할일 편집</span>
+          <span className="cp-title">일정 편집</span>
           <button type="button" className="cp-x" aria-label="닫기" onClick={onClose}>
             ✕
           </button>
@@ -150,8 +150,8 @@ export function EditPopover({
             className="cp-input"
             type="text"
             value={title}
-            placeholder="할일 제목"
-            aria-label="할일 제목"
+            placeholder="일정 제목"
+            aria-label="일정 제목"
             aria-invalid={error ? true : undefined}
             onChange={(e) => {
               setTitle(e.target.value);
