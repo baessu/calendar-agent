@@ -36,6 +36,7 @@ import {
   filterTasksByTaskTypes,
   filterTasksByVisibleProjects,
 } from "@/lib/calendar/view";
+import { DEFAULT_PROJECT_COLOR } from "@/lib/color/tokens";
 import { defaultProjectId, nextProjectOrder } from "@/lib/project/manage";
 import {
   defaultTaskTypeId,
@@ -527,6 +528,10 @@ export function CalendarApp() {
           x={taskTypePopover.x}
           y={taskTypePopover.y}
           taskTypes={taskTypes}
+          previewColor={
+            (selectedProjectId && projectsById.get(selectedProjectId)?.color) ||
+            DEFAULT_PROJECT_COLOR
+          }
           taskCount={
             taskTypePopover.taskType
               ? taskCountByTaskType.get(taskTypePopover.taskType.id) ?? 0

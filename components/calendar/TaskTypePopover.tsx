@@ -19,7 +19,6 @@
  */
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { applyTone } from "@/lib/color/compose";
-import { DEFAULT_PROJECT_COLOR } from "@/lib/color/tokens";
 import {
   TONE_STEPS,
   type ToneStep,
@@ -44,6 +43,8 @@ interface TaskTypePopoverProps {
   y: number;
   /** All task types, for the recommended tone + default-type check + count. */
   taskTypes: TaskType[];
+  /** Preview tone steps on this color = the active project's color (전체 뷰면 기본). */
+  previewColor: string;
   /** Number of tasks using the type being edited (delete copy). */
   taskCount: number;
   onClose: () => void;
@@ -54,14 +55,12 @@ interface TaskTypePopoverProps {
 
 const MARGIN = 12;
 
-/** Reference hue for previewing tone steps (블루); tones are global, not per-hue. */
-const PREVIEW_HUE = DEFAULT_PROJECT_COLOR;
-
 export function TaskTypePopover({
   taskType,
   x,
   y,
   taskTypes,
+  previewColor,
   taskCount,
   onClose,
   onSave,
@@ -87,6 +86,14 @@ export function TaskTypePopover({
   // Creating one more than the recommended count makes tones hard to tell apart.
   const showRecommendNote =
     !taskType && exceedsRecommendedTaskTypes(taskTypes.length);
+
+  // Tones already taken by OTHER task types — shown but not selectable so each
+  // type keeps a distinct tone. The editing type's own tone stays allowed.
+  const usedTones = new Set(
+    taskTypes
+      .filter((tt) => tt.id !== taskType?.id)
+      .map((tt) => `${tt.mode}:${tt.k}`),
+  );
 
   // Clamp the card inside the viewport once its real size is known.
   useLayoutEffect(() => {
@@ -166,24 +173,32 @@ export function TaskTypePopover({
           />
           {error && <p className="cp-err">{error}</p>}
 
-          {/* Tone step picker: the 8 confirmed ladder steps previewed on a
-              reference hue (진함 → 연함). The chosen step is ringed. */}
+          {/* Tone step picker: the 8 ladder steps previewed on the active
+              project's color (진함 → 연함). Selected = ringed; tones already used
+              by other types are dimmed and disabled. */}
           <div className="cp-field">
             <span className="cp-label">톤</span>
             <div className="pp-palette" role="radiogroup" aria-label="톤 단계">
               {TONE_STEPS.map((s, i) => {
                 const selected = s.mode === tone.mode && s.k === tone.k;
+                const used = !selected && usedTones.has(`${s.mode}:${s.k}`);
                 return (
                   <button
                     key={`${s.mode}-${s.k}`}
                     type="button"
                     role="radio"
                     aria-checked={selected}
-                    aria-label={`톤 ${i + 1}`}
-                    title={`톤 ${i + 1}${i === 0 ? " (가장 진함)" : i === TONE_STEPS.length - 1 ? " (가장 연함)" : ""}`}
-                    className={`tt-sw${selected ? " on" : ""}`}
-                    style={{ background: applyTone(PREVIEW_HUE, s) }}
-                    onClick={() => setTone(s)}
+                    aria-label={`톤 ${i + 1}${used ? " (이미 사용 중)" : ""}`}
+                    aria-disabled={used}
+                    disabled={used}
+                    title={
+                      used
+                        ? "이미 사용 중인 톤"
+                        : `톤 ${i + 1}${i === 0 ? " (가장 진함)" : i === TONE_STEPS.length - 1 ? " (가장 연함)" : ""}`
+                    }
+                    className={`tt-sw${selected ? " on" : ""}${used ? " used" : ""}`}
+                    style={{ background: applyTone(previewColor, s) }}
+                    onClick={() => !used && setTone(s)}
                   />
                 );
               })}

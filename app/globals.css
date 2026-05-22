@@ -514,6 +514,14 @@ body {
 .tt-sw:focus-visible {
   outline: 2px solid var(--text);
 }
+/* Tone already used by another task type: shown but dimmed + not selectable. */
+.tt-sw.used {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.tt-sw.used:hover {
+  outline: none;
+}
 .tt-ends {
   display: flex;
   justify-content: space-between;
