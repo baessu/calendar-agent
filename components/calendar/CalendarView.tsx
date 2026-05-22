@@ -59,10 +59,10 @@ const EXPAND_PX = 600;
 // Bar geometry within a week row (px). HEAD_H clears the day-number area; bars
 // stack downward in lanes (US-007: lanes are packed via interval scheduling and
 // rows beyond DEFAULT_MAX_LANES collapse into per-column "+N개" chips).
-const BAR_H = 20;
-const BAR_GAP = 3;
-const HEAD_H = 30;
-const ROW_MIN = 88;
+const BAR_H = 22;
+const BAR_GAP = 5;
+const HEAD_H = 34;
+const ROW_MIN = 116;
 
 // Pointer travel (px) past which a bar press becomes a move instead of a click
 // (US-010): below it the press opens the edit popover, at/above it the bar moves.
