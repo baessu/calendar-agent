@@ -36,17 +36,22 @@ export const TONE_LADDER: ReadonlyArray<{ mode: ToneMode; k: number }> = [
   { mode: "tint", k: 0.82 },
 ];
 
-/** Seeded default task types (4) mapped onto ladder steps, 마감 → 리서치. */
+/**
+ * Seeded default task types (4), displayed/ordered 리서치 → 회의 → 작업 → 마감
+ * (lightest → darkest). `order` drives both the legend order and the default
+ * (undeletable, reassignment-target) type = smallest order = 리서치.
+ * Tone (mode/k) maps onto ladder steps; only the order differs.
+ */
 export const TASK_TYPE_TONES: ReadonlyArray<{
   name: string;
   mode: ToneMode;
   k: number;
   order: number;
 }> = [
-  { name: "마감", mode: "dark", k: 0.5, order: 0 }, // ladder[0]
-  { name: "작업", mode: "tint", k: 0.32, order: 1 }, // ladder[3]
-  { name: "회의", mode: "tint", k: 0.56, order: 2 }, // ladder[5]
-  { name: "리서치", mode: "tint", k: 0.82, order: 3 }, // ladder[7]
+  { name: "리서치", mode: "tint", k: 0.82, order: 0 }, // ladder[7]
+  { name: "회의", mode: "tint", k: 0.56, order: 1 }, // ladder[5]
+  { name: "작업", mode: "tint", k: 0.32, order: 2 }, // ladder[3]
+  { name: "마감", mode: "dark", k: 0.5, order: 3 }, // ladder[0]
 ];
 
 /** Color used for the seeded default ("기본") project — 블루. */

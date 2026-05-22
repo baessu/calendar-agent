@@ -101,12 +101,13 @@ export const TONE_LADDER = [
   { mode: "tint", k: 0.68 }, { mode: "tint", k: 0.82 },
 ] as const;
 
-// 기본 시드 4개 (사다리 L0/L3/L5/L7에 매핑)
+// 기본 시드 4개 — 표시 순서 리서치→회의→작업→마감(연함→진함).
+// order 최소(=리서치)가 기본(삭제 불가) 종류.
 export const TASK_TYPE_TONES = [
-  { name: "마감",   mode: "dark", k: 0.50, order: 0 },
-  { name: "작업",   mode: "tint", k: 0.32, order: 1 },
-  { name: "회의",   mode: "tint", k: 0.56, order: 2 },
-  { name: "리서치", mode: "tint", k: 0.82, order: 3 },
+  { name: "리서치", mode: "tint", k: 0.82, order: 0 }, // ladder L7
+  { name: "회의",   mode: "tint", k: 0.56, order: 1 }, // ladder L5
+  { name: "작업",   mode: "tint", k: 0.32, order: 2 }, // ladder L3
+  { name: "마감",   mode: "dark", k: 0.50, order: 3 }, // ladder L0
 ] as const;
 ```
 

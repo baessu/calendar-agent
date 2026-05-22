@@ -4,18 +4,18 @@ import { PROJECT_COLORS, TASK_TYPE_TONES } from "./tokens";
 
 /**
  * The 4 seeded task-type tones over the 8 project colors (docs/design/color-system.md).
- * Columns: 마감(dark0.50) / 작업(tint0.32) / 회의(tint0.56) / 리서치(tint0.82).
- * Parenthesized text colors: 마감 = white, others = black.
+ * Columns match TASK_TYPE_TONES order: 리서치(tint0.82) / 회의(tint0.56) / 작업(tint0.32) / 마감(dark0.50).
+ * Text colors: 마감 = white, others = black.
  */
 const MATRIX: Record<string, [string, string, string, string]> = {
-  레드: ["#5D191F", "#CF737B", "#E0A4AA", "#F2DADC"],
-  오렌지: ["#5D3919", "#CF9E73", "#E0C1A4", "#F2E5DA"],
-  앰버: ["#5D4F19", "#CFBD73", "#E0D4A4", "#F2EEDA"],
-  그린: ["#195D35", "#73CF9A", "#A4E0BD", "#DAF2E4"],
-  틸: ["#195B5D", "#73CDCF", "#A4DEE0", "#DAF2F2"],
-  블루: ["#193B5D", "#73A1CF", "#A4C2E0", "#DAE6F2"],
-  인디고: ["#2D195D", "#8F73CF", "#B6A4E0", "#E1DAF2"],
-  퍼플: ["#5D194F", "#CF73BD", "#E0A4D4", "#F2DAEE"],
+  레드: ["#F2DADC", "#E0A4AA", "#CF737B", "#5D191F"],
+  오렌지: ["#F2E5DA", "#E0C1A4", "#CF9E73", "#5D3919"],
+  앰버: ["#F2EEDA", "#E0D4A4", "#CFBD73", "#5D4F19"],
+  그린: ["#DAF2E4", "#A4E0BD", "#73CF9A", "#195D35"],
+  틸: ["#DAF2F2", "#A4DEE0", "#73CDCF", "#195B5D"],
+  블루: ["#DAE6F2", "#A4C2E0", "#73A1CF", "#193B5D"],
+  인디고: ["#E1DAF2", "#B6A4E0", "#8F73CF", "#2D195D"],
+  퍼플: ["#F2DAEE", "#E0A4D4", "#CF73BD", "#5D194F"],
 };
 
 describe("hex round-trip", () => {
@@ -55,8 +55,9 @@ describe("applyTone — formula edges", () => {
 
 describe("barText — auto contrast (white for 마감, black for lighter tones)", () => {
   for (const { name } of PROJECT_COLORS) {
-    const [magam, jakeop, hoeui, research] = MATRIX[name];
-    it(`${name}: 마감 → white, 작업/회의/리서치 → near-black`, () => {
+    // MATRIX columns: 리서치 / 회의 / 작업 / 마감.
+    const [research, hoeui, jakeop, magam] = MATRIX[name];
+    it(`${name}: 마감 → white, 리서치/회의/작업 → near-black`, () => {
       expect(barText(magam)).toBe("#FFFFFF");
       expect(barText(jakeop)).toBe("#1A1A1A");
       expect(barText(hoeui)).toBe("#1A1A1A");
@@ -93,7 +94,7 @@ describe("distinguishability (AC 3 & 4)", () => {
   });
 
   it("different projects, same task type differ by hue", () => {
-    const tone = TASK_TYPE_TONES[1]; // 작업
+    const tone = TASK_TYPE_TONES[1]; // 회의
     const colors = PROJECT_COLORS.map((p) => applyTone(p.color, tone));
     expect(new Set(colors).size).toBe(PROJECT_COLORS.length);
   });

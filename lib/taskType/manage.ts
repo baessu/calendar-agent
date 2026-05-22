@@ -28,7 +28,7 @@ export const TONE_STEPS: ToneStep[] = TONE_LADDER.map((t) => ({
 /**
  * The protected "default" task type: it cannot be deleted, and tasks of a
  * deleted type are reassigned to it. Defined as the smallest `order` (the
- * seeded "마감" = order 0), with createdAt then id as stable tiebreaks. Order
+ * seeded "리서치" = order 0), with createdAt then id as stable tiebreaks. Order
  * (not createdAt) is primary because the 4 seeded types share one createdAt.
  * Returns null only when there are no task types.
  */
