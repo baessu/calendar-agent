@@ -144,4 +144,10 @@ describe("seedIfEmpty", () => {
     expect(await getAllProjects()).toHaveLength(1);
     expect(await getAllTaskTypes()).toHaveLength(TASK_TYPE_TONES.length);
   });
+
+  it("does not duplicate on concurrent calls (StrictMode double-invoke)", async () => {
+    await Promise.all([seedIfEmpty(), seedIfEmpty()]);
+    expect(await getAllProjects()).toHaveLength(1);
+    expect(await getAllTaskTypes()).toHaveLength(TASK_TYPE_TONES.length);
+  });
 });

@@ -10,18 +10,18 @@ import { newId, now } from "./util";
  * First-run seeding: one default project ("기본") + the 4 global task types
  * (마감/작업/회의/리서치) from docs/design/color-system.md.
  *
- * Idempotent — does nothing if either table already has rows, so it is safe
- * to call on every client mount.
+ * Idempotent and race-safe. The empty-check runs INSIDE the rw transaction so
+ * concurrent calls (React StrictMode double-invoking the effect in dev, or a
+ * second tab) serialize on the tables — the first seeds, the rest no-op.
  */
 export async function seedIfEmpty(): Promise<void> {
-  const [projectCount, taskTypeCount] = await Promise.all([
-    db.projects.count(),
-    db.taskTypes.count(),
-  ]);
-  if (projectCount > 0 || taskTypeCount > 0) return;
-
   const ts = now();
   await db.transaction("rw", db.projects, db.taskTypes, async () => {
+    const [projectCount, taskTypeCount] = await Promise.all([
+      db.projects.count(),
+      db.taskTypes.count(),
+    ]);
+    if (projectCount > 0 || taskTypeCount > 0) return; // already seeded
     await db.projects.add({
       id: newId(),
       name: DEFAULT_PROJECT_NAME,
