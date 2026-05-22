@@ -33,3 +33,20 @@ export function filterTasksByVisibleProjects(
   if (hidden.size === 0) return tasks;
   return tasks.filter((t) => !hidden.has(t.projectId));
 }
+
+/**
+ * Task-type filter for the task-type legend on/off toggles (US-015).
+ *
+ * Drops tasks whose task type is toggled off (its id is in `hiddenTaskTypeIds`),
+ * removing that type's bars from both the calendar and the side panel. Unlike
+ * project visibility this is an ephemeral view filter (not persisted). Order is
+ * preserved; with nothing hidden the input is returned unchanged (memo-friendly).
+ * Composes (AND) with `filterTasksByProject` and `filterTasksByVisibleProjects`.
+ */
+export function filterTasksByTaskTypes(
+  tasks: Task[],
+  hiddenTaskTypeIds: Set<string>,
+): Task[] {
+  if (hiddenTaskTypeIds.size === 0) return tasks;
+  return tasks.filter((t) => !hiddenTaskTypeIds.has(t.taskTypeId));
+}

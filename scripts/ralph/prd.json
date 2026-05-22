@@ -257,8 +257,8 @@
         "Verify in browser: 종류 필터 즉시 반영"
       ],
       "priority": 7,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "lib/calendar/view.ts filterTasksByTaskTypes(tasks, hiddenTaskTypeIds:Set): hidden 집합의 taskTypeId task 제거(미존재 id는 무영향), 숨김 없으면 입력 그대로 반환(메모 친화). filterTasksByProject·filterTasksByVisibleProjects와 순수 AND 합성(순서 보존). +8 단위 테스트(전체표시=동일참조/단일·다중 숨김/전부 숨김/순서보존/미존재 id 무영향/빈입력 + 프로젝트필터 AND 조합=AC2). CalendarApp: hiddenTaskTypeIds state(Set, ephemeral 뷰상태 — US-014 프로젝트 visible과 달리 비영속, AC에 영속 요구 없음) + handleToggleTaskType(immutable Set add/delete). visibleTasks memo를 filterTasksByTaskTypes(filterTasksByProject(filterTasksByVisibleProjects(...))) 3중 AND으로 확장(deps에 hiddenTaskTypeIds 추가) → 캘린더 막대+패널 목록+numbadge 동시 필터. handleDeleteTaskType에서 삭제된 type id를 hidden set에서 정리(잔여물 방지). TaskListPanel에 hiddenTaskTypeIds/onToggleTaskType props 전달. TaskListPanel: 태스크종류 범례를 proj-chip 버튼 → proj-row(US-014 프로젝트 행과 동형)로 재구성 — on/off 체크박스(.proj-vis, checked=표시, aria-label '{이름} 캘린더에 표시') + 이름 버튼(.proj-name, 클릭→onEditTaskType 편집 유지, 안에 .proj-sw 톤 스와치=applyTone(블루 PREVIEW_HUE,tt)). 숨김(.off) 시 이름/스와치 dim(체크박스 또렷). 프로젝트 필터(US-013 탭/US-014 토글)와 AND(AC2): CalendarApp 합성. globals.css: .ed-type 주석을 proj-row 재사용으로 갱신(.proj-chip 규칙은 이제 미사용 — dead, 제거는 범위 밖). 173 tests green(+8). typecheck ✓ / lint ✓(0) / dev GET / 200, SSR에 ed-type/태스크 종류 + cal-cell 217 렌더(종류 행은 클라 DB 로드 후 마운트), 서버 에러/경고 없음."
     },
     {
       "id": "US-016",

@@ -33,6 +33,7 @@ import {
 } from "@/lib/db";
 import {
   filterTasksByProject,
+  filterTasksByTaskTypes,
   filterTasksByVisibleProjects,
 } from "@/lib/calendar/view";
 import { defaultProjectId, nextProjectOrder } from "@/lib/project/manage";
@@ -113,15 +114,34 @@ export function CalendarApp() {
     (id: string | null) => setSelectedProjectId(id),
     [],
   );
+  // --- Task-type filter: legend on/off toggles (US-015) ---------------------
+  // Ephemeral view state (not persisted) holding the task-type ids toggled off.
+  // Empty = every type shown. ANDs with the project filters below.
+  const [hiddenTaskTypeIds, setHiddenTaskTypeIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const handleToggleTaskType = useCallback((id: string) => {
+    setHiddenTaskTypeIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
   // Visible set feeding both views: drop tasks of projects toggled off (US-014),
-  // then narrow to the active tab (US-013). Both filters preserve order.
+  // narrow to the active tab (US-013), then drop task types toggled off (US-015).
+  // All three filters preserve order and compose as an AND.
   const visibleTasks = useMemo(
     () =>
-      filterTasksByProject(
-        filterTasksByVisibleProjects(tasks, projects),
-        selectedProjectId,
+      filterTasksByTaskTypes(
+        filterTasksByProject(
+          filterTasksByVisibleProjects(tasks, projects),
+          selectedProjectId,
+        ),
+        hiddenTaskTypeIds,
       ),
-    [tasks, projects, selectedProjectId],
+    [tasks, projects, selectedProjectId, hiddenTaskTypeIds],
   );
 
   // Toggle a project's visibility (US-014). Persisted to IndexedDB so the state
@@ -400,6 +420,13 @@ export function CalendarApp() {
       ),
     );
     setTaskTypes((prev) => prev.filter((tt) => tt.id !== target.id));
+    // Drop any lingering filter entry for the removed type (US-015).
+    setHiddenTaskTypeIds((prev) => {
+      if (!prev.has(target.id)) return prev;
+      const next = new Set(prev);
+      next.delete(target.id);
+      return next;
+    });
     setTaskTypePopover(null);
   }, [taskTypePopover, tasks, taskTypes]);
 
@@ -441,6 +468,8 @@ export function CalendarApp() {
         onToggleProjectVisible={handleToggleProjectVisible}
         onAddTaskType={openTaskTypeCreate}
         onEditTaskType={openTaskTypeEdit}
+        hiddenTaskTypeIds={hiddenTaskTypeIds}
+        onToggleTaskType={handleToggleTaskType}
       />
       {projectPopover && (
         <ProjectPopover

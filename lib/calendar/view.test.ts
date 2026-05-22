@@ -1,13 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { filterTasksByProject, filterTasksByVisibleProjects } from "./view";
+import {
+  filterTasksByProject,
+  filterTasksByTaskTypes,
+  filterTasksByVisibleProjects,
+} from "./view";
 import type { Project, Task } from "@/lib/types";
 
 /** Build a Task with just the fields the view filter cares about. */
-function task(id: string, projectId: string): Task {
+function task(id: string, projectId: string, taskTypeId = "t"): Task {
   return {
     id,
     projectId,
-    taskTypeId: "t",
+    taskTypeId,
     title: id,
     startDate: "2026-05-21",
     endDate: "2026-05-21",
@@ -103,5 +107,57 @@ describe("filterTasksByVisibleProjects (US-014 visibility toggle)", () => {
 
   it("empty task list yields an empty list", () => {
     expect(filterTasksByVisibleProjects([], [project("A", false)])).toEqual([]);
+  });
+});
+
+describe("filterTasksByTaskTypes (US-015 task-type filter)", () => {
+  const a = task("a", "P", "deadline");
+  const b = task("b", "P", "work");
+  const c = task("c", "P", "meeting");
+  const d = task("d", "P", "deadline");
+  const tasks = [a, b, c, d];
+
+  it("returns the input unchanged when nothing is hidden", () => {
+    expect(filterTasksByTaskTypes(tasks, new Set())).toBe(tasks);
+  });
+
+  it("drops tasks whose task type is toggled off", () => {
+    expect(filterTasksByTaskTypes(tasks, new Set(["work"]))).toEqual([a, c, d]);
+  });
+
+  it("drops every matching type (multiple hidden)", () => {
+    expect(filterTasksByTaskTypes(tasks, new Set(["deadline", "meeting"]))).toEqual([
+      b,
+    ]);
+  });
+
+  it("hiding every type yields an empty list", () => {
+    expect(
+      filterTasksByTaskTypes(tasks, new Set(["deadline", "work", "meeting"])),
+    ).toEqual([]);
+  });
+
+  it("preserves original order within the visible set", () => {
+    expect(
+      filterTasksByTaskTypes(tasks, new Set(["meeting"])).map((t) => t.id),
+    ).toEqual(["a", "b", "d"]);
+  });
+
+  it("an unknown hidden id removes nothing", () => {
+    expect(filterTasksByTaskTypes(tasks, new Set(["missing"]))).toEqual(tasks);
+  });
+
+  it("empty task list yields an empty list", () => {
+    expect(filterTasksByTaskTypes([], new Set(["work"]))).toEqual([]);
+  });
+
+  it("composes (AND) with the project filter", () => {
+    // Two projects, mixed types; keep project A AND hide the 'work' type.
+    const a1 = task("a1", "A", "work");
+    const a2 = task("a2", "A", "deadline");
+    const b1 = task("b1", "B", "deadline");
+    const all = [a1, a2, b1];
+    const byProject = filterTasksByProject(all, "A"); // -> [a1, a2]
+    expect(filterTasksByTaskTypes(byProject, new Set(["work"]))).toEqual([a2]);
   });
 });

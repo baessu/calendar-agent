@@ -46,6 +46,10 @@ interface TaskListPanelProps {
   onAddTaskType: (x: number, y: number) => void;
   /** Open the task-type popover to edit/delete a type (legend chip click). */
   onEditTaskType: (taskType: TaskType, x: number, y: number) => void;
+  /** Task-type ids toggled off in the legend filter (US-015). */
+  hiddenTaskTypeIds: Set<string>;
+  /** Toggle a task type's on/off filter (legend checkbox) — US-015. */
+  onToggleTaskType: (id: string) => void;
 }
 
 export function TaskListPanel({
@@ -63,6 +67,8 @@ export function TaskListPanel({
   onToggleProjectVisible,
   onAddTaskType,
   onEditTaskType,
+  hiddenTaskTypeIds,
+  onToggleTaskType,
 }: TaskListPanelProps) {
   // Start-date ascending; ties broken by title for a stable order.
   const sorted = useMemo(
@@ -122,9 +128,11 @@ export function TaskListPanel({
         </div>
       </div>
 
-      {/* Task-type legend (US-012): tone swatch (previewed on a reference hue)
-          + name. Click a chip to rename/retone/delete; "＋ 종류" creates one.
-          Task types are global (shared by all projects). */}
+      {/* Task-type legend (US-012/US-015): on/off filter checkbox + tone swatch
+          (previewed on a reference hue) + name. The checkbox shows/hides that
+          type's bars in both views (ANDs with the project filter); clicking the
+          name opens the manage popover. "＋ 종류" creates one. Task types are
+          global (shared by all projects). */}
       <div className="ed-type">
         <div className="ed-proj-head">
           태스크 종류
@@ -137,22 +145,33 @@ export function TaskListPanel({
           </button>
         </div>
         <div className="ed-proj-list">
-          {taskTypes.map((tt) => (
-            <button
-              key={tt.id}
-              type="button"
-              className="proj-chip"
-              onClick={(e) => onEditTaskType(tt, e.clientX, e.clientY)}
-              aria-label={`${tt.name} 태스크 종류 관리`}
-            >
-              <span
-                className="proj-sw"
-                style={{ background: applyTone(DEFAULT_PROJECT_COLOR, tt) }}
-                aria-hidden
-              />
-              {tt.name}
-            </button>
-          ))}
+          {taskTypes.map((tt) => {
+            const shown = !hiddenTaskTypeIds.has(tt.id);
+            return (
+              <span key={tt.id} className={`proj-row${shown ? "" : " off"}`}>
+                <input
+                  type="checkbox"
+                  className="proj-vis"
+                  checked={shown}
+                  onChange={() => onToggleTaskType(tt.id)}
+                  aria-label={`${tt.name} 캘린더에 표시`}
+                />
+                <button
+                  type="button"
+                  className="proj-name"
+                  onClick={(e) => onEditTaskType(tt, e.clientX, e.clientY)}
+                  aria-label={`${tt.name} 태스크 종류 관리`}
+                >
+                  <span
+                    className="proj-sw"
+                    style={{ background: applyTone(DEFAULT_PROJECT_COLOR, tt) }}
+                    aria-hidden
+                  />
+                  {tt.name}
+                </button>
+              </span>
+            );
+          })}
         </div>
       </div>
 

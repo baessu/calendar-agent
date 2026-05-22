@@ -831,10 +831,11 @@ button.mk:focus-visible {
 }
 
 /*
- * Task-type legend (US-012) in the right panel — mirrors the project legend.
- * Each chip = tone swatch (previewed on a reference hue) + name; clicking opens
- * the manage popover. "＋ 종류" adds one. Reuses .ed-proj-head/.ed-proj-list/
- * .proj-chip/.proj-sw for layout.
+ * Task-type legend (US-012/US-015) in the right panel — mirrors the project
+ * legend rows. Each row = on/off filter checkbox + tone swatch (previewed on a
+ * reference hue) + name; the checkbox shows/hides that type's bars, the name
+ * opens the manage popover. "＋ 종류" adds one. Reuses .ed-proj-head/
+ * .ed-proj-list/.proj-row/.proj-vis/.proj-name/.proj-sw for layout.
  */
 .ed-type {
   padding: 12px 22px;
