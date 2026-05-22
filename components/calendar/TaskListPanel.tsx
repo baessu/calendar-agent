@@ -13,7 +13,7 @@
  * the same shared task state as the calendar, so it updates the instant a task
  * is added. Monochrome chrome; the only color is the per-task data swatch.
  */
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { parseDate } from "@/lib/calendar/dates";
 import { formatRangeLabel } from "@/lib/calendar/selection";
 import { applyTone, barColors } from "@/lib/color/compose";
@@ -40,6 +40,26 @@ function EditIcon() {
   );
 }
 
+/** Disclosure chevron — points right when closed, down when open. */
+function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      width="10"
+      height="10"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform 0.12s" }}
+    >
+      <path d="M9 6l6 6-6 6" />
+    </svg>
+  );
+}
+
 interface TaskListPanelProps {
   tasks: Task[];
   /** All projects, ordered — drives the project legend (US-011). */
@@ -50,6 +70,8 @@ interface TaskListPanelProps {
   taskTypesById: Map<string, TaskType>;
   /** Active project tab (null = 전체/통합); sets the category swatch hue. */
   selectedProjectId: string | null;
+  /** Task-type ids used by the active project (null = 전체 view → show all). */
+  projectTaskTypeIds: Set<string> | null;
   /** Highlight a task's bar in the calendar. */
   onSelectTask: (id: string) => void;
   /** The task currently highlighted (its row gets an active style). */
@@ -81,6 +103,7 @@ export function TaskListPanel({
   projectsById,
   taskTypesById,
   selectedProjectId,
+  projectTaskTypeIds,
   onSelectTask,
   selectedTaskId,
   onAdd,
@@ -111,6 +134,24 @@ export function TaskListPanel({
     (selectedProjectId && projectsById.get(selectedProjectId)?.color) ||
     DEFAULT_PROJECT_COLOR;
 
+  // Q2: the legend cluster is a collapsible "필터·범례" so the 일정 목록 stays
+  // the panel's main content (progressive disclosure). Collapsed by default.
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Q1-B: an individual project view narrows the type legend to that project's
+  // used types; 전체 view (or a project with no tasks yet) shows all.
+  const shownTaskTypes = useMemo(
+    () =>
+      projectTaskTypeIds && projectTaskTypeIds.size > 0
+        ? taskTypes.filter((tt) => projectTaskTypeIds.has(tt.id))
+        : taskTypes,
+    [taskTypes, projectTaskTypeIds],
+  );
+
+  // Flag active filters on the collapsed bar so hidden state stays visible (P9).
+  const hasActiveFilter =
+    projects.some((p) => !p.visible) || hiddenTaskTypeIds.size > 0;
+
   return (
     <aside className="ed-list" aria-label="일정 목록">
       <div className="ed-list-head">
@@ -118,12 +159,25 @@ export function TaskListPanel({
         <span className="ed-list-sort">날짜순</span>
       </div>
 
-      {/* Project legend (US-011/US-014): identity-color swatch + name chip.
-          Clicking the chip toggles the project's visibility (its bars show/hide
-          in both views, persisted); hidden chips render faded (.off, no
-          checkbox). A hover pencil icon opens the manage popover. "＋ 프로젝트" creates
-          one. Project identity colors are allowed here (legend), unlike the
-          monochrome grid chrome. */}
+      {/* Q2: collapsible 필터·범례 — keeps the 일정 목록 the panel's main content
+          (progressive disclosure); collapsed by default. */}
+      <div className="ed-filters">
+        <button
+          type="button"
+          className="ed-filters-toggle"
+          onClick={() => setShowFilters((v) => !v)}
+          aria-expanded={showFilters}
+        >
+          <ChevronIcon open={showFilters} />
+          필터 · 범례
+          {hasActiveFilter && (
+            <span className="ed-filters-dot" title="필터 적용 중" aria-hidden />
+          )}
+        </button>
+        {showFilters && (
+          <div className="ed-filters-body">
+      {/* Project legend (US-011/US-014): swatch + name chip. Clicking toggles
+          visibility (faded when hidden, no checkbox); pencil manages. */}
       <div className="ed-proj">
         <div className="ed-proj-head">
           프로젝트
@@ -180,7 +234,7 @@ export function TaskListPanel({
           </button>
         </div>
         <div className="ed-proj-list">
-          {taskTypes.map((tt) => {
+          {shownTaskTypes.map((tt) => {
             const shown = !hiddenTaskTypeIds.has(tt.id);
             return (
               <span key={tt.id} className={`proj-row${shown ? "" : " off"}`}>
@@ -222,6 +276,9 @@ export function TaskListPanel({
         <button type="button" className="mk-add" onClick={onAddMarker}>
           ＋ 마커
         </button>
+      </div>
+          </div>
+        )}
       </div>
 
       {sorted.length === 0 ? (

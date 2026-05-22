@@ -785,6 +785,42 @@ button.mk:focus-visible {
  * project identity color (allowed in legends, color-system.md §2); the rest
  * stays monochrome/hairline.
  */
+/* Q2: collapsible 필터·범례 wrapper — keeps the 일정 목록 the panel's main content. */
+.ed-filters {
+  border-bottom: 1px solid var(--border);
+}
+.ed-filters-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 11px 22px;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  cursor: pointer;
+}
+.ed-filters-toggle:hover {
+  color: var(--text);
+}
+/* Small dot flagging that some project/type is filtered off (state visibility). */
+.ed-filters-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--text);
+  margin-left: 2px;
+}
+/* The inner legend blocks already carry their own borders; drop the last one. */
+.ed-filters-body > :last-child {
+  border-bottom: none;
+}
+
 .ed-proj {
   padding: 12px 22px;
   border-bottom: 1px solid var(--border);
@@ -846,25 +882,32 @@ button.mk:focus-visible {
   border: 1px solid var(--border-soft);
   border-radius: 2px;
   padding: 3px 8px;
+  transition: background 0.12s;
 }
-/* Manage (edit) affordance — pencil icon, appears on row hover/focus, monochrome. */
+/* Q3: hovering a chip signals it's an interactive toggle. */
+.proj-row:hover {
+  background: var(--hover);
+}
+/* Manage (edit) affordance — pencil icon. Q3: always faintly visible so it's
+   discoverable, darkening on row hover / focus. */
 .proj-edit {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--muted);
+  color: var(--faint);
   background: none;
   border: none;
   padding: 0 1px;
   margin-left: 1px;
   cursor: pointer;
   flex: none;
-  opacity: 0;
-  transition: opacity 0.12s;
+  opacity: 0.55;
+  transition: opacity 0.12s, color 0.12s;
 }
 .proj-row:hover .proj-edit,
 .proj-edit:focus-visible {
   opacity: 1;
+  color: var(--muted);
 }
 .proj-edit:hover {
   color: var(--text);

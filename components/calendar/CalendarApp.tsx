@@ -144,6 +144,18 @@ export function CalendarApp() {
     [tasks, projects, selectedProjectId, hiddenTaskTypeIds],
   );
 
+  // Q1-B: in an individual project view, the task-type legend narrows to the
+  // types that project actually uses — computed from ALL tasks (not the filtered
+  // set) so a filtered-off type can still be toggled back on. null = 전체 view.
+  const projectTaskTypeIds = useMemo(() => {
+    if (!selectedProjectId) return null;
+    const ids = new Set<string>();
+    for (const t of tasks) {
+      if (t.projectId === selectedProjectId) ids.add(t.taskTypeId);
+    }
+    return ids;
+  }, [tasks, selectedProjectId]);
+
   // Toggle a project's visibility (US-014). Persisted to IndexedDB so the state
   // survives a refresh; the shared `projects` state re-derives `visibleTasks`,
   // hiding/showing its bars in the calendar and panel at once.
@@ -460,6 +472,7 @@ export function CalendarApp() {
         projectsById={projectsById}
         taskTypesById={taskTypesById}
         selectedProjectId={selectedProjectId}
+        projectTaskTypeIds={projectTaskTypeIds}
         onSelectTask={handleSelectTask}
         selectedTaskId={highlightedTaskId}
         onAdd={handleAdd}
