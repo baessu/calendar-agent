@@ -20,6 +20,26 @@ import { applyTone, barColors } from "@/lib/color/compose";
 import { DEFAULT_PROJECT_COLOR } from "@/lib/color/tokens";
 import type { Project, Task, TaskType } from "@/lib/types";
 
+/** Pencil icon for the manage (edit) affordance on legend chips. */
+function EditIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z" />
+    </svg>
+  );
+}
+
 interface TaskListPanelProps {
   tasks: Task[];
   /** All projects, ordered — drives the project legend (US-011). */
@@ -28,6 +48,8 @@ interface TaskListPanelProps {
   taskTypes: TaskType[];
   projectsById: Map<string, Project>;
   taskTypesById: Map<string, TaskType>;
+  /** Active project tab (null = 전체/통합); sets the category swatch hue. */
+  selectedProjectId: string | null;
   /** Highlight a task's bar in the calendar. */
   onSelectTask: (id: string) => void;
   /** The task currently highlighted (its row gets an active style). */
@@ -58,6 +80,7 @@ export function TaskListPanel({
   taskTypes,
   projectsById,
   taskTypesById,
+  selectedProjectId,
   onSelectTask,
   selectedTaskId,
   onAdd,
@@ -81,6 +104,13 @@ export function TaskListPanel({
     [tasks],
   );
 
+  // Category (task-type) swatches preview their tone on the active project's
+  // color; 전체(통합) view falls back to the default reference. So recoloring a
+  // project also recolors its category swatches.
+  const refColor =
+    (selectedProjectId && projectsById.get(selectedProjectId)?.color) ||
+    DEFAULT_PROJECT_COLOR;
+
   return (
     <aside className="ed-list" aria-label="일정 목록">
       <div className="ed-list-head">
@@ -91,7 +121,7 @@ export function TaskListPanel({
       {/* Project legend (US-011/US-014): identity-color swatch + name chip.
           Clicking the chip toggles the project's visibility (its bars show/hide
           in both views, persisted); hidden chips render faded (.off, no
-          checkbox). A hover ⋯ opens the manage popover. "＋ 프로젝트" creates
+          checkbox). A hover pencil icon opens the manage popover. "＋ 프로젝트" creates
           one. Project identity colors are allowed here (legend), unlike the
           monochrome grid chrome. */}
       <div className="ed-proj">
@@ -126,7 +156,7 @@ export function TaskListPanel({
                 aria-label={`${p.name} 프로젝트 관리`}
                 title="관리"
               >
-                ⋯
+                <EditIcon />
               </button>
             </span>
           ))}
@@ -136,7 +166,7 @@ export function TaskListPanel({
       {/* Task-type legend (US-012/US-015): tone swatch (previewed on a reference
           hue) + name chip. Clicking the chip toggles that type's on/off filter
           (its bars show/hide in both views, ANDs with the project filter);
-          hidden chips render faded (.off, no checkbox). A hover ⋯ opens the
+          hidden chips render faded (.off, no checkbox). A hover pencil icon opens the
           manage popover. "＋ 종류" creates one. Task types are global. */}
       <div className="ed-type">
         <div className="ed-proj-head">
@@ -164,7 +194,7 @@ export function TaskListPanel({
                 >
                   <span
                     className="proj-sw"
-                    style={{ background: applyTone(DEFAULT_PROJECT_COLOR, tt) }}
+                    style={{ background: applyTone(refColor, tt) }}
                     aria-hidden
                   />
                   {tt.name}
@@ -176,7 +206,7 @@ export function TaskListPanel({
                   aria-label={`${tt.name} 태스크 종류 관리`}
                   title="관리"
                 >
-                  ⋯
+                  <EditIcon />
                 </button>
               </span>
             );

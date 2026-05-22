@@ -459,6 +459,7 @@ export function CalendarApp() {
         taskTypes={taskTypes}
         projectsById={projectsById}
         taskTypesById={taskTypesById}
+        selectedProjectId={selectedProjectId}
         onSelectTask={handleSelectTask}
         selectedTaskId={highlightedTaskId}
         onAdd={handleAdd}

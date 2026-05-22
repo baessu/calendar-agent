@@ -847,11 +847,11 @@ button.mk:focus-visible {
   border-radius: 2px;
   padding: 3px 8px;
 }
-/* Manage (edit/delete) affordance — appears on row hover/focus, monochrome. */
+/* Manage (edit) affordance — pencil icon, appears on row hover/focus, monochrome. */
 .proj-edit {
-  font-family: inherit;
-  font-size: 13px;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: var(--muted);
   background: none;
   border: none;
