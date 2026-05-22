@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { TASK_TYPE_TONES } from "@/lib/color/tokens";
+import { TONE_LADDER } from "@/lib/color/tokens";
 import type { TaskType } from "@/lib/types";
 import {
   RECOMMENDED_TASK_TYPE_MAX,
@@ -25,9 +25,10 @@ function taskType(p: Partial<TaskType> & { id: string }): TaskType {
 }
 
 describe("TONE_STEPS", () => {
-  it("mirrors the 4 confirmed tone steps (mode + k)", () => {
+  it("mirrors the 8-step tone ladder (mode + k)", () => {
+    expect(TONE_STEPS).toHaveLength(8);
     expect(TONE_STEPS).toEqual(
-      TASK_TYPE_TONES.map((t) => ({ mode: t.mode, k: t.k })),
+      TONE_LADDER.map((t) => ({ mode: t.mode, k: t.k })),
     );
   });
 });
@@ -82,7 +83,7 @@ describe("exceedsRecommendedTaskTypes", () => {
 
   it("is true once the count reaches the recommended max (next would exceed)", () => {
     expect(exceedsRecommendedTaskTypes(RECOMMENDED_TASK_TYPE_MAX)).toBe(true);
-    expect(exceedsRecommendedTaskTypes(5)).toBe(true);
+    expect(exceedsRecommendedTaskTypes(9)).toBe(true);
   });
 
   it("honors a custom max", () => {
@@ -93,8 +94,8 @@ describe("exceedsRecommendedTaskTypes", () => {
 
 describe("toneStepIndex", () => {
   it("finds the matching confirmed step", () => {
-    expect(toneStepIndex("dark", 0.4)).toBe(0);
-    expect(toneStepIndex("tint", 0.8)).toBe(3);
+    expect(toneStepIndex("dark", 0.5)).toBe(0);
+    expect(toneStepIndex("tint", 0.82)).toBe(7);
   });
 
   it("returns -1 for a value outside the ladder", () => {

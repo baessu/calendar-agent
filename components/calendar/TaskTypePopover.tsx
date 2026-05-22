@@ -6,9 +6,9 @@
  * Opened from the right panel's task-type legend. Task types are global (shared
  * by all projects) and carry a tone step (mode + k) applied over a project color
  * to shade its bars. Create mode (taskType=null) recommends the first unused tone
- * step; edit mode prefills name + tone. The tone picker offers only the 4
- * confirmed steps (color-system.md §3) previewed on a reference hue — we never
- * invent tones.
+ * step; edit mode prefills name + tone. The tone picker offers only the 8
+ * confirmed ladder steps (color-system.md §3) previewed on a reference hue — we
+ * never invent tones.
  *
  * Renaming or retoning a type re-shades its bars immediately (the calendar and
  * panel re-derive bar colors from the task type). Deleting takes a two-step inline
@@ -166,8 +166,8 @@ export function TaskTypePopover({
           />
           {error && <p className="cp-err">{error}</p>}
 
-          {/* Tone step picker: the 4 confirmed steps previewed on a reference
-              hue (진함 → 연함). The chosen step is ringed. */}
+          {/* Tone step picker: the 8 confirmed ladder steps previewed on a
+              reference hue (진함 → 연함). The chosen step is ringed. */}
           <div className="cp-field">
             <span className="cp-label">톤</span>
             <div className="pp-palette" role="radiogroup" aria-label="톤 단계">

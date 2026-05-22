@@ -7,11 +7,11 @@
  * retone/delete flows. Tone values come from docs/design/color-system.md via
  * TASK_TYPE_TONES (never invented here).
  */
-import { TASK_TYPE_TONES } from "@/lib/color/tokens";
+import { TONE_LADDER } from "@/lib/color/tokens";
 import type { TaskType, ToneMode } from "@/lib/types";
 
 /** Recommended number of tone steps before tones get hard to tell apart (§7). */
-export const RECOMMENDED_TASK_TYPE_MAX = 4;
+export const RECOMMENDED_TASK_TYPE_MAX = 8;
 
 /** A selectable tone step (mode + strength) from the confirmed ladder. */
 export interface ToneStep {
@@ -19,8 +19,8 @@ export interface ToneStep {
   k: number;
 }
 
-/** The 4 confirmed tone steps, darkest → lightest (color-system.md §3). */
-export const TONE_STEPS: ToneStep[] = TASK_TYPE_TONES.map((t) => ({
+/** The 8 confirmed tone steps, darkest → lightest (color-system.md §3). */
+export const TONE_STEPS: ToneStep[] = TONE_LADDER.map((t) => ({
   mode: t.mode,
   k: t.k,
 }));

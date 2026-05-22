@@ -3,19 +3,19 @@ import { applyTone, barColors, barText, hexToRgb, rgbToHex } from "./compose";
 import { PROJECT_COLORS, TASK_TYPE_TONES } from "./tokens";
 
 /**
- * The confirmed 8-hue × 4-tone matrix from docs/design/color-system.md §4.
- * Columns: 마감(dark0.40) / 작업(tint0.32) / 회의(tint0.56) / 리서치(tint0.80).
+ * The 4 seeded task-type tones over the 8 project colors (docs/design/color-system.md).
+ * Columns: 마감(dark0.50) / 작업(tint0.32) / 회의(tint0.56) / 리서치(tint0.82).
  * Parenthesized text colors: 마감 = white, others = black.
  */
 const MATRIX: Record<string, [string, string, string, string]> = {
-  레드: ["#6F1D25", "#CF737B", "#E0A4AA", "#F1D6D8"],
-  오렌지: ["#6F441D", "#CF9E73", "#E0C1A4", "#F1E3D6"],
-  앰버: ["#6F5F1D", "#CFBD73", "#E0D4A4", "#F1ECD6"],
-  그린: ["#1D6F40", "#73CF9A", "#A4E0BD", "#D6F1E1"],
-  틸: ["#1D6D6F", "#73CDCF", "#A4DEE0", "#D6F0F1"],
-  블루: ["#1D466F", "#73A1CF", "#A4C2E0", "#D6E3F1"],
-  인디고: ["#361D6F", "#8F73CF", "#B6A4E0", "#DED6F1"],
-  퍼플: ["#6F1D5F", "#CF73BD", "#E0A4D4", "#F1D6EC"],
+  레드: ["#5D191F", "#CF737B", "#E0A4AA", "#F2DADC"],
+  오렌지: ["#5D3919", "#CF9E73", "#E0C1A4", "#F2E5DA"],
+  앰버: ["#5D4F19", "#CFBD73", "#E0D4A4", "#F2EEDA"],
+  그린: ["#195D35", "#73CF9A", "#A4E0BD", "#DAF2E4"],
+  틸: ["#195B5D", "#73CDCF", "#A4DEE0", "#DAF2F2"],
+  블루: ["#193B5D", "#73A1CF", "#A4C2E0", "#DAE6F2"],
+  인디고: ["#2D195D", "#8F73CF", "#B6A4E0", "#E1DAF2"],
+  퍼플: ["#5D194F", "#CF73BD", "#E0A4D4", "#F2DAEE"],
 };
 
 describe("hex round-trip", () => {
