@@ -38,6 +38,7 @@ import {
 import { todayDateString } from "@/lib/calendar/dates";
 import { isWithinRange, normalizeRange, type DateRange } from "@/lib/calendar/selection";
 import { moveTaskByDrag } from "@/lib/calendar/move";
+import { resizeRange, type ResizeEdge } from "@/lib/calendar/resize";
 import { weekSegments } from "@/lib/calendar/segments";
 import { DEFAULT_MAX_LANES, layoutWeek } from "@/lib/calendar/layout";
 import { groupMarkersByDate } from "@/lib/calendar/markers";
@@ -104,6 +105,17 @@ interface BarDrag {
   moved: boolean;
   /** Latest date under the pointer while moving. */
   dropDate: DateString | null;
+}
+
+/** In-flight bar edge-resize state (mutable; read by the window handlers). */
+interface BarResize {
+  taskId: string;
+  /** Which edge is dragging: "start" (left) or "end" (right). */
+  edge: ResizeEdge;
+  startDate: DateString;
+  endDate: DateString;
+  /** Latest date under the pointer while resizing. */
+  overDate: DateString | null;
 }
 
 interface CalendarViewProps {
@@ -443,6 +455,77 @@ export function CalendarView({
     };
   }, [onMoveTask]);
 
+  // --- Drag a bar edge to resize its span (US-016) --------------------------
+  // The left/right resize handles sit on the bar's start/end edges (only on the
+  // segment that owns that edge, i.e. not a week continuation). Pressing a handle
+  // begins a resize immediately (it's a dedicated affordance, so no move/click
+  // threshold) and stops propagation so the move/select drag never starts. The
+  // dragged edge follows the date under the pointer, clamped so start <= end
+  // (lib/calendar/resize.ts). Releasing persists via onMoveTask (it just writes
+  // the new start/end dates — same as a move).
+  const barResizeRef = useRef<BarResize | null>(null);
+  const [resizingTaskId, setResizingTaskId] = useState<string | null>(null);
+  const [resizePreview, setResizePreview] = useState<DateRange | null>(null);
+
+  const onResizeHandlePointerDown = useCallback(
+    (task: Task, edge: ResizeEdge, e: React.PointerEvent) => {
+      if (e.button !== 0) return; // primary button only
+      e.stopPropagation(); // don't start a bar move or a cell selection
+      e.preventDefault();
+      justDraggedRef.current = false;
+      barResizeRef.current = {
+        taskId: task.id,
+        edge,
+        startDate: task.startDate,
+        endDate: task.endDate,
+        overDate: null,
+      };
+      setResizingTaskId(task.id);
+      setResizePreview({ start: task.startDate, end: task.endDate });
+    },
+    [],
+  );
+
+  useEffect(() => {
+    function onMove(e: PointerEvent) {
+      const r = barResizeRef.current;
+      if (!r) return;
+      const over = dateUnderPoint(e.clientX, e.clientY);
+      if (!over) return; // off the grid: keep the last preview
+      r.overDate = over;
+      setResizePreview(resizeRange(r.startDate, r.endDate, r.edge, over));
+    }
+    function onUp() {
+      const r = barResizeRef.current;
+      if (!r) return;
+      barResizeRef.current = null;
+      // Swallow the trailing click so the editor doesn't open after a resize.
+      justDraggedRef.current = true;
+      setResizingTaskId(null);
+      setResizePreview(null);
+      if (r.overDate) {
+        const { start, end } = resizeRange(r.startDate, r.endDate, r.edge, r.overDate);
+        if (start !== r.startDate || end !== r.endDate) {
+          void onMoveTask(r.taskId, start, end);
+        }
+      }
+    }
+    function onCancel() {
+      if (!barResizeRef.current) return;
+      barResizeRef.current = null;
+      setResizingTaskId(null);
+      setResizePreview(null);
+    }
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onCancel);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onCancel);
+    };
+  }, [onMoveTask]);
+
   // --- Markers: add / click-to-edit (US-017) --------------------------------
   // One popover handles both create (marker:null) and edit. Opening it clears any
   // pending task create/edit so the popovers stay mutually exclusive.
@@ -494,14 +577,16 @@ export function CalendarView({
     closeMarkerPopover();
   }, [markerPopover, onDeleteMarker, closeMarkerPopover]);
 
-  // The range to paint as highlighted: while moving a bar, the previewed drop
-  // range (US-010); while drag-selecting, the live range; otherwise the
-  // committed selection (so cells stay lit while the popover is open).
+  // The range to paint as highlighted: while resizing an edge, the previewed
+  // span (US-016); while moving a bar, the previewed drop range (US-010); while
+  // drag-selecting, the live range; otherwise the committed selection (so cells
+  // stay lit while the popover is open).
   const highlight = useMemo<DateRange | null>(() => {
+    if (resizePreview) return resizePreview;
     if (movePreview) return movePreview;
     if (isDragging && dragAnchor && dragCurrent) return normalizeRange(dragAnchor, dragCurrent);
     return selection;
-  }, [movePreview, isDragging, dragAnchor, dragCurrent, selection]);
+  }, [resizePreview, movePreview, isDragging, dragAnchor, dragCurrent, selection]);
 
   // --- Lane overflow expand/collapse (US-007) -------------------------------
   // Weeks (keyed by their Sunday date) whose extra lanes are expanded open.
@@ -611,7 +696,7 @@ export function CalendarView({
       <div
         className={`ed-calwrap${isDragging ? " is-selecting" : ""}${
           movingTaskId ? " is-moving" : ""
-        }`}
+        }${resizingTaskId ? " is-resizing" : ""}`}
         ref={scrollRef}
         onScroll={onScroll}
       >
@@ -712,7 +797,9 @@ export function CalendarView({
                           aria-label={`${seg.task.title} — 편집`}
                           className={`cal-bar${
                             seg.task.id === highlightedTaskId ? " hl" : ""
-                          }${seg.task.id === movingTaskId ? " dragging" : ""}`}
+                          }${seg.task.id === movingTaskId ? " dragging" : ""}${
+                            seg.task.id === resizingTaskId ? " resizing" : ""
+                          }`}
                           title={seg.task.title}
                           data-task-id={seg.task.id}
                           style={{
@@ -745,6 +832,32 @@ export function CalendarView({
                           }}
                         >
                           <span className="cal-bar-label">{seg.task.title}</span>
+                          {/* Edge resize handles (US-016). Only on the segment
+                              that owns the edge (not a week continuation), so a
+                              split bar gets one start handle and one end handle.
+                              stopPropagation in the handler keeps the move/select
+                              drag from starting; this onClick swallows the click
+                              so a handle tap doesn't open the editor. */}
+                          {!seg.contL && (
+                            <span
+                              className="cal-bar-resize l"
+                              aria-hidden
+                              onPointerDown={(e) =>
+                                onResizeHandlePointerDown(seg.task, "start", e)
+                              }
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          )}
+                          {!seg.contR && (
+                            <span
+                              className="cal-bar-resize r"
+                              aria-hidden
+                              onPointerDown={(e) =>
+                                onResizeHandlePointerDown(seg.task, "end", e)
+                              }
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          )}
                         </div>
                       );
                     })}

@@ -571,10 +571,61 @@ body {
 .ed-calwrap.is-moving {
   user-select: none;
 }
+/* Source bar dims slightly while resizing; the day band previews the new span. */
+.cal-bar.resizing {
+  opacity: 0.55;
+  z-index: 3;
+}
+.ed-calwrap.is-resizing,
+.ed-calwrap.is-resizing .cal-bar,
+.ed-calwrap.is-resizing .cal-cell {
+  cursor: ew-resize;
+}
+.ed-calwrap.is-resizing {
+  user-select: none;
+}
 .cal-bar-label {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+/*
+ * Bar edge-resize handles (US-016). Thin hit zones on the start/end edges; the
+ * grip line uses currentColor (the bar's auto-contrast text), so it reads on any
+ * bar fill while keeping UI chrome monochrome. Shown only on hover/focus of the
+ * bar (subtle affordance per the micro-interaction rule).
+ */
+.cal-bar-resize {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 7px;
+  cursor: ew-resize;
+  z-index: 1;
+}
+.cal-bar-resize.l {
+  left: 0;
+}
+.cal-bar-resize.r {
+  right: 0;
+}
+.cal-bar:hover .cal-bar-resize::after,
+.cal-bar:focus-visible .cal-bar-resize::after,
+.cal-bar.resizing .cal-bar-resize::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  background: currentColor;
+  opacity: 0.55;
+  border-radius: 1px;
+}
+.cal-bar-resize.l::after {
+  left: 2px;
+}
+.cal-bar-resize.r::after {
+  right: 2px;
 }
 @keyframes barIn {
   from {

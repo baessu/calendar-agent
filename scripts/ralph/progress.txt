@@ -420,3 +420,33 @@
   - Set state는 토글마다 새 Set으로 교체(불변) → memo deps가 참조 변화를 감지. 같은 Set을 mutate하면 리렌더 안 됨(주의).
   - proj-row 마크업이 이제 프로젝트(US-014)·태스크종류(US-015) 둘 다 공유 → .proj-row/.proj-vis/.proj-name/.proj-sw/.proj-row.off 변경 시 양쪽 범례 동시 영향. proj-chip은 완전 dead.
 ---
+
+## 2026-05-22T10:55:00 - US-016
+- (선택) 막대 가장자리 드래그로 기간 조절. 좌측 핸들=시작일, 우측 핸들=종료일. 마지막 미완 스토리 → 전부 passes:true.
+- 순수 로직 분리: `lib/calendar/resize.ts`
+  - resizeRange(start, end, edge, date): edge='start'면 새 시작=min(date,end)(종료 못 넘게 클램프), edge='end'면 새 종료=max(date,start)(시작 못 넘게 클램프) → start<=end 항상 보장(AC2, 최소 하루짜리). 비교는 parseDate(UTC-noon)이라 tz drift 없음·주/월/년 경계 무관(move.ts와 동일 산술 기반). 엣지가 현재 날짜에 떨어지면 동치 범위 반환(호출부가 write 스킵).
+  - ResizeEdge='start'|'end' 타입 export.
+- `components/calendar/CalendarView.tsx`:
+  - 막대 양끝에 `.cal-bar-resize` 핸들 span(좌 l=start / 우 r=end). seg.contL/contR로 그 엣지를 '소유'한 세그먼트에만 렌더 — 주 분할 막대는 시작 세그먼트에 좌핸들, 종료 세그먼트에 우핸들 하나씩(중간 주는 핸들 없음).
+  - onResizeHandlePointerDown(task, edge, e): e.stopPropagation()(이동 US-010/셀선택 US-004 비시작) + e.preventDefault() + 즉시 리사이즈 시작(전용 affordance라 move의 4px 임계 불필요). barResizeRef{taskId,edge,start,end,overDate} 세팅 + resizingTaskId/resizePreview state. 핸들 onClick=stopPropagation으로 핸들 탭이 편집 팝오버 안 엶.
+  - window pointermove: dateUnderPoint(elementsFromPoint로 막대 뚫고 [data-date] 셀 — move와 동일 유틸 재사용) → resizeRange 미리보기. pointerup: overDate로 최종 resizeRange, start/end가 바뀌었으면 onMoveTask로 영속 + justDraggedRef=true(트레일링 클릭 흡수). pointercancel: 리셋.
+  - highlight memo에 resizePreview를 최우선으로 추가(.sel 밴드로 새 기간 라이브 미리보기). resize/move/select는 상호배타라 우선순위만 명확히.
+  - ed-calwrap에 is-resizing 클래스(ew-resize 커서), 막대에 resizing 클래스(opacity .55).
+  - **onMoveTask 재사용**: 리사이즈 커밋은 startDate/endDate만 쓰므로 US-010의 onMoveTask(handleMoveTask=updateTask{start,end}+setTasks merge)와 동일 연산. 별도 핸들러/프로프 추가 없이 재사용 → DB 영속(새로고침 유지)·캘린더 막대+패널 즉시 반영(AC3).
+- `app/globals.css`: .cal-bar-resize(7px 엣지 히트존, z-index 1로 라벨 위) + ::after 그립선(currentColor=막대 auto-contrast 텍스트색이라 어떤 막대색 위에서도 가시, UI 크롬은 모노크롬 유지). hover/focus-visible/resizing 시에만 그립 노출(subtle affordance). .cal-bar.resizing(opacity .55), .ed-calwrap.is-resizing(ew-resize 커서 + user-select none).
+- 파일: lib/calendar/{resize.ts,resize.test.ts}(신규), components/calendar/CalendarView.tsx, app/globals.css, scripts/ralph/{prd.json,progress.txt}
+- 품질: typecheck ✓ / lint ✓(0) / test ✓(188 passed: 기존 173 + 신규 15 resize). dev GET / 200, SSR 217셀·data-today 1·month-name 8·ed-list 렌더, 서버 에러/경고 없음(막대·핸들은 클라 DB 로드 후 마운트).
+- Needs human browser verification:
+  - 막대 위에 마우스를 올리면 양끝에 그립선이 보이고, 끝을 잡아 드래그하면 좌=시작일/우=종료일이 따라 움직이는지
+  - 드래그 중 .sel 밴드로 새 기간이 미리보기되고, 놓으면 막대가 그 기간으로 즉시 갱신 + 패널 목록/카운트 동기화되는지
+  - 시작 핸들을 종료일 너머로(또는 종료 핸들을 시작일 앞으로) 끌어도 하루짜리로 클램프되고 막대가 뒤집히지 않는지(AC2)
+  - 핸들을 짧게 탭(이동/리사이즈 없이)했을 때 편집 팝오버가 안 열리는지(핸들≠편집)
+  - 새로고침 후 리사이즈 결과가 유지되는지(Dexie 영속)
+  - 주 경계를 넘는 막대의 시작/종료 세그먼트에만 핸들이 뜨고(중간 주엔 없음) 정확히 재배치되는지
+- Learnings for future iterations:
+  - resize와 move(US-010)는 둘 다 window pointermove/up 핸들러를 갖지만 각자 barResizeRef/barDragRef로 게이트 → 동시 활성 불가, 서로 early-return으로 무간섭. 핸들 pointerdown의 stopPropagation이 막대 onBarPointerDown(move 후보)를 막아 move가 시작 안 됨 = 깔끔한 분리.
+  - 막대 dates만 쓰는 mutation(이동·리사이즈)은 onMoveTask 하나로 충분 — 의미는 달라도 연산이 같으면 핸들러 재사용이 DRY. (만약 향후 리사이즈에 다른 검증/사이드이펙트가 필요하면 그때 분리.)
+  - 리사이즈 핸들 그립선은 currentColor(=barText, US-006 auto-contrast)라 색 규칙(색은 막대에만) 위반 없이 어떤 막대색에서도 보임. 별도 흑/백 하드코딩 불필요.
+  - seg.contL/contR(US-005 weekSegments의 주-연속 플래그)이 핸들 배치의 핵심 — 분할 막대에서 엣지 소유 세그먼트 판별에 그대로 활용. 새 엣지 affordance도 이 플래그를 기준으로.
+  - **전 스토리(US-001~017) passes:true.** 무한 스크롤 캘린더 + 드래그 생성/이동/리사이즈 + 레인 패킹 + 프로젝트/종류 관리 + 뷰 필터 + 마커까지 v1 기능 완결. 미해결 open question(가상화 시점, 영문 Plain woff2 호스팅, 완료 체크)은 v1 비범위.
+---

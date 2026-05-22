@@ -272,8 +272,8 @@
         "Verify in browser: 리사이즈 동작"
       ],
       "priority": 7,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "lib/calendar/resize.ts(신규) 순수 로직: resizeRange(start,end,edge,date) — edge='start'면 새 시작을 min(date,end)로 클램프, 'end'면 새 종료를 max(date,start)로 클램프 → start<=end 항상 보장(AC2, 최소 하루). parseDate(UTC-noon) 비교라 tz drift 없음·주/월/년 경계 무관. +15 단위 테스트(start/end 각 6: 확장/축소/넘침클램프/온더엣지/no-op/단일일 + 경계 3: 월·년). UI: CalendarView 막대 양끝에 .cal-bar-resize 핸들(좌=start, 우=end) — seg.contL/contR 기준으로 그 엣지를 '소유'한 세그먼트에만 렌더(주 분할 막대는 한쪽씩). 핸들 onPointerDown=stopPropagation+preventDefault로 이동(US-010)/셀선택(US-004) 비시작 + 즉시 리사이즈 시작(전용 affordance라 4px 임계 불필요), onClick stopPropagation으로 핸들 탭이 편집 안 엶. barResizeRef(taskId/edge/start/end/overDate) + resizingTaskId/resizePreview state. window pointermove(dateUnderPoint=elementsFromPoint로 막대 뚫고 [data-date] 셀 → resizeRange 미리보기)/pointerup(변경됐으면 onMoveTask로 영속 — 날짜만 쓰므로 이동과 동일 핸들러 재사용, justDragged=true로 트레일링 클릭 흡수)/pointercancel 리셋. highlight memo에 resizePreview 최우선 추가(.sel 밴드로 새 기간 미리보기). onMoveTask=handleMoveTask(updateTask{startDate,endDate}+setTasks merge) → DB 영속·새로고침 유지·캘린더 막대+패널 즉시 반영(AC3). globals.css: .cal-bar-resize(7px 엣지 히트존, hover/focus/resizing 시 currentColor 그립선=막대 텍스트색이라 모든 막대색 위 가시·UI 크롬 모노크롬 유지)/.cal-bar.resizing(opacity .55)/.ed-calwrap.is-resizing(ew-resize 커서). 188 tests green(+15). typecheck ✓ / lint ✓(0) / dev GET / 200, SSR 217셀·data-today 1·month-name 8·ed-list 렌더, 서버 에러/경고 없음(막대·핸들은 클라 DB 로드 후 마운트)."
     },
     {
       "id": "US-017",
