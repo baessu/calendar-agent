@@ -152,6 +152,8 @@ interface CalendarViewProps {
   addNonce: number;
   /** Bumps when the panel's "＋ 마커 추가" asks to add a marker for today. */
   markerAddNonce: number;
+  /** Print the given inclusive month range (인쇄 기능). */
+  onPrint: (from: YearMonth, to: YearMonth) => void;
 }
 
 export function CalendarView({
@@ -174,6 +176,7 @@ export function CalendarView({
   highlightNonce,
   addNonce,
   markerAddNonce,
+  onPrint,
 }: CalendarViewProps) {
   const today = useMemo(() => todayDateString(), []);
   const todayYM = useMemo(() => ymFromDate(today), [today]);
@@ -181,6 +184,30 @@ export function CalendarView({
   const [from, setFrom] = useState<YearMonth>(() => addMonths(todayYM, -INITIAL_BACK));
   const [to, setTo] = useState<YearMonth>(() => addMonths(todayYM, INITIAL_FWD));
   const [title, setTitle] = useState<YearMonth>(todayYM);
+
+  // 인쇄(Print): scope popover. Defaults to the current title month; the user
+  // can widen it to a month range (each month prints on its own page).
+  const [printOpen, setPrintOpen] = useState(false);
+  const [printFrom, setPrintFrom] = useState("");
+  const [printTo, setPrintTo] = useState("");
+  const ymToInput = (ym: YearMonth) => `${ym.year}-${String(ym.month).padStart(2, "0")}`;
+  const openPrint = () => {
+    const v = ymToInput(title);
+    setPrintFrom(v);
+    setPrintTo(v);
+    setPrintOpen(true);
+  };
+  const confirmPrint = () => {
+    const parse = (s: string): YearMonth => {
+      const [y, m] = s.split("-").map(Number);
+      return { year: y, month: m };
+    };
+    let a = parse(printFrom);
+    let b = parse(printTo);
+    if (a.year * 12 + a.month > b.year * 12 + b.month) [a, b] = [b, a];
+    setPrintOpen(false);
+    onPrint(a, b);
+  };
 
   const groups = useMemo(
     () => groupWeeksByMonth(buildWeeksRange(from, to, today)),
@@ -662,6 +689,9 @@ export function CalendarView({
         <button type="button" className="ed-today" onClick={() => centerToday("smooth")}>
           오늘
         </button>
+        <button type="button" className="ed-today ed-print" onClick={openPrint}>
+          인쇄
+        </button>
       </div>
 
       {/* Project tabs (US-013): 전체(통합) + each project, underline-active. The
@@ -935,6 +965,62 @@ export function CalendarView({
           onSave={handleMarkerSave}
           onDelete={markerPopover.marker ? handleMarkerDelete : undefined}
         />
+      )}
+
+      {/* 인쇄 범위 팝오버: 시작/종료 달(기본=현재 달). 확인 시 onPrint → 인쇄. */}
+      {printOpen && (
+        <div className="cp-backdrop" onPointerDown={() => setPrintOpen(false)}>
+          <div
+            className="create-pop print-pop"
+            role="dialog"
+            aria-label="캘린더 인쇄"
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <div className="cp-head">
+              <span className="cp-title">캘린더 인쇄</span>
+              <button
+                type="button"
+                className="cp-x"
+                aria-label="닫기"
+                onClick={() => setPrintOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+            <form
+              className="cp-form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                confirmPrint();
+              }}
+            >
+              <div className="cp-row">
+                <label className="cp-field">
+                  <span className="cp-label">시작 달</span>
+                  <input
+                    type="month"
+                    className="cp-input"
+                    value={printFrom}
+                    onChange={(e) => setPrintFrom(e.target.value)}
+                  />
+                </label>
+                <label className="cp-field">
+                  <span className="cp-label">종료 달</span>
+                  <input
+                    type="month"
+                    className="cp-input"
+                    value={printTo}
+                    onChange={(e) => setPrintTo(e.target.value)}
+                  />
+                </label>
+              </div>
+              <p className="pp-hint">선택한 달을 가로(A4) 한 장씩 인쇄해요.</p>
+              <button type="submit" className="cp-save">
+                인쇄
+              </button>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

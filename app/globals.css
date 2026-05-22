@@ -1072,3 +1072,62 @@ button.mk:focus-visible {
 .ed-contact:hover {
   color: var(--muted);
 }
+
+/* ── 인쇄 (Print) ──────────────────────────────────────────────────
+ * The print render (<PrintCalendar>) is hidden on screen and shown only under
+ * @media print, where the app chrome is dropped and each month gets its own
+ * A4-landscape page. Bar/marker colors are forced on (browsers drop bg by
+ * default). The scope popover (.print-pop) is centered. */
+.print-cal {
+  display: none;
+}
+.print-pop {
+  left: 50%;
+  top: 18%;
+  transform: translateX(-50%);
+}
+.pp-hint {
+  font-size: 11px;
+  color: var(--muted);
+  margin: 2px 0 6px;
+}
+
+@media print {
+  .app-shell {
+    display: block;
+    height: auto;
+    overflow: visible;
+  }
+  .ed-main,
+  .ed-list,
+  .cp-backdrop {
+    display: none !important;
+  }
+  .print-cal {
+    display: block;
+  }
+  /* Retain task-bar / marker colors on paper. */
+  .print-cal,
+  .print-cal * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  /* One month per page; keep week rows whole. */
+  .print-cal .print-month {
+    break-after: page;
+  }
+  .print-cal .print-month:last-child {
+    break-after: auto;
+  }
+  .print-cal .cal-week {
+    break-inside: avoid;
+  }
+  /* Headers are static on paper (not sticky). */
+  .print-cal .month-head {
+    position: static;
+  }
+  @page {
+    size: A4 landscape;
+    margin: 12mm;
+  }
+}

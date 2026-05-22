@@ -42,7 +42,9 @@ import {
   nextTaskTypeOrder,
 } from "@/lib/taskType/manage";
 import type { DateString, Marker, Project, Task, TaskType } from "@/lib/types";
+import type { YearMonth } from "@/lib/calendar/infinite";
 import { CalendarView } from "./CalendarView";
+import { PrintCalendar } from "./PrintCalendar";
 import type { EditTaskDraft } from "./EditPopover";
 import {
   ProjectPopover,
@@ -155,6 +157,23 @@ export function CalendarApp() {
     }
     return ids;
   }, [tasks, selectedProjectId]);
+
+  // 인쇄(Print): the chosen month range. <PrintCalendar> renders it (print-only),
+  // then the effect fires window.print() once it's committed, clearing afterprint.
+  const [printRange, setPrintRange] = useState<{ from: YearMonth; to: YearMonth } | null>(null);
+  const handlePrint = useCallback((from: YearMonth, to: YearMonth) => {
+    setPrintRange({ from, to });
+  }, []);
+  useEffect(() => {
+    if (!printRange) return;
+    const id = requestAnimationFrame(() => window.print());
+    const done = () => setPrintRange(null);
+    window.addEventListener("afterprint", done);
+    return () => {
+      cancelAnimationFrame(id);
+      window.removeEventListener("afterprint", done);
+    };
+  }, [printRange]);
 
   // Toggle a project's visibility (US-014). Persisted to IndexedDB so the state
   // survives a refresh; the shared `projects` state re-derives `visibleTasks`,
@@ -464,6 +483,7 @@ export function CalendarApp() {
         highlightNonce={highlightNonce}
         addNonce={addNonce}
         markerAddNonce={markerAddNonce}
+        onPrint={handlePrint}
       />
       <TaskListPanel
         tasks={visibleTasks}
@@ -515,6 +535,19 @@ export function CalendarApp() {
           onClose={closeTaskTypePopover}
           onSave={handleSaveTaskType}
           onDelete={taskTypePopover.taskType ? handleDeleteTaskType : undefined}
+        />
+      )}
+
+      {/* Print-only render of the chosen month range (인쇄). Same filtered data
+          as the live view (WYSIWYG); shown only under @media print. */}
+      {printRange && (
+        <PrintCalendar
+          from={printRange.from}
+          to={printRange.to}
+          tasks={visibleTasks}
+          markers={markers}
+          projectsById={projectsById}
+          taskTypesById={taskTypesById}
         />
       )}
     </>
