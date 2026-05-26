@@ -91,6 +91,24 @@ describe("task CRUD", () => {
     expect(await getTask(task.id)).toBeUndefined();
   });
 
+  it("persists an optional note and lets it be edited or cleared (US-019)", async () => {
+    const task = await createTask({
+      projectId: "p1",
+      taskTypeId: "t1",
+      title: "리서치",
+      startDate: "2026-05-21",
+      endDate: "2026-05-22",
+      note: "참고 링크 정리",
+    });
+    expect((await getTask(task.id))?.note).toBe("참고 링크 정리");
+
+    await updateTask(task.id, { note: "초안까지 작성" });
+    expect((await getTask(task.id))?.note).toBe("초안까지 작성");
+
+    await updateTask(task.id, { note: "" });
+    expect((await getTask(task.id))?.note).toBe("");
+  });
+
   it("orders by startDate and filters by project", async () => {
     await createTask({ projectId: "p1", taskTypeId: "t1", title: "B", startDate: "2026-05-10", endDate: "2026-05-11" });
     await createTask({ projectId: "p2", taskTypeId: "t1", title: "A", startDate: "2026-05-01", endDate: "2026-05-02" });

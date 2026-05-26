@@ -42,6 +42,7 @@ import { resizeRange, type ResizeEdge } from "@/lib/calendar/resize";
 import { weekSegments } from "@/lib/calendar/segments";
 import { DEFAULT_MAX_LANES, layoutWeek } from "@/lib/calendar/layout";
 import { groupMarkersByDate } from "@/lib/calendar/markers";
+import { hasNote } from "@/lib/calendar/notes";
 import { barColors } from "@/lib/color/compose";
 import type { MarkerChanges, MarkerInput } from "@/lib/db";
 import type { DateString, Marker, Project, Task, TaskType } from "@/lib/types";
@@ -924,12 +925,13 @@ export function CalendarView({
                         project && taskType
                           ? barColors(project.color, taskType)
                           : { background: "var(--text)", text: "#FFFFFF" as const };
+                      const noted = hasNote(seg.task);
                       return (
                         <div
                           key={seg.task.id}
                           role="button"
                           tabIndex={0}
-                          aria-label={`${seg.task.title} — 편집`}
+                          aria-label={`${seg.task.title} — 편집${noted ? " (메모 있음)" : ""}`}
                           className={`cal-bar${
                             seg.task.id === highlightedTaskId ? " hl" : ""
                           }${seg.task.id === movingTaskId ? " dragging" : ""}${
@@ -966,6 +968,12 @@ export function CalendarView({
                             }
                           }}
                         >
+                          {/* Note indicator (US-019): a small dot in the bar's
+                              text color, shown on the leading segment so a
+                              multi-week bar flags its note just once. */}
+                          {noted && !seg.contL && (
+                            <span className="cal-bar-note" aria-hidden />
+                          )}
                           <span className="cal-bar-label">{seg.task.title}</span>
                           {/* Edge resize handles (US-016). Only on the segment
                               that owns the edge (not a week continuation), so a

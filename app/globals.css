@@ -390,6 +390,27 @@ body {
 .cp-date:focus {
   border-color: var(--text);
 }
+/* Note textarea (US-019): hairline, monochrome, resizes vertically only. */
+.cp-note {
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.5;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  padding: 6px 7px;
+  outline: none;
+  resize: vertical;
+  min-height: 52px;
+}
+.cp-note::placeholder {
+  color: var(--faint);
+}
+.cp-note:focus {
+  border-color: var(--text);
+}
 .cp-save {
   margin-top: 2px;
   font-family: inherit;
@@ -609,6 +630,17 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* Note indicator (US-019): a small dot in the bar's auto-contrast text color so
+   it reads on any bar fill while keeping UI chrome monochrome. */
+.cal-bar-note {
+  flex: none;
+  width: 4px;
+  height: 4px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.85;
 }
 /*
  * Bar edge-resize handles (US-016). Thin hit zones on the start/end edges; the
@@ -1067,6 +1099,13 @@ button.mk:focus-visible {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
+/* Note indicator (US-019): monochrome glyph at the row's trailing edge. */
+.tp-note {
+  flex: none;
+  align-self: center;
+  display: inline-flex;
+  color: var(--muted);
+}
 /* Empty state: nudge the drag-to-create flow (PRD §8). */
 .tp-empty {
   padding: 22px;
@@ -1112,6 +1151,40 @@ button.mk:focus-visible {
   color: var(--muted);
   margin: 2px 0 6px;
 }
+/* Notes appendix (US-019): note text of every printed, noted task. Monochrome
+   chrome; hairline separators. Lives inside .print-cal (hidden on screen). */
+.print-notes-head {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  margin: 0 0 10px;
+}
+.print-notes-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.print-note {
+  padding: 8px 0;
+  border-top: 1px solid var(--border-soft);
+  break-inside: avoid;
+}
+.print-note-meta {
+  display: block;
+  font-size: 11px;
+  letter-spacing: -0.02em;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.print-note-body {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  line-height: 1.5;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  white-space: pre-wrap;
+}
 
 @media print {
   .app-shell {
@@ -1152,6 +1225,10 @@ button.mk:focus-visible {
   .print-cal .cal-bar {
     animation: none !important;
     opacity: 1 !important;
+  }
+  /* Notes appendix starts on its own page after the last month. */
+  .print-cal .print-notes {
+    break-before: page;
   }
   @page {
     size: A4 landscape;

@@ -31,6 +31,8 @@ export interface EditTaskDraft {
   taskTypeId: string;
   startDate: DateString;
   endDate: DateString;
+  /** Free-text note, trimmed; "" clears it (US-019). */
+  note: string;
 }
 
 interface EditPopoverProps {
@@ -67,6 +69,7 @@ export function EditPopover({
   const [taskTypeId, setTaskTypeId] = useState(task.taskTypeId);
   const [startDate, setStartDate] = useState<DateString>(task.startDate);
   const [endDate, setEndDate] = useState<DateString>(task.endDate);
+  const [note, setNote] = useState(task.note ?? "");
   const [error, setError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
@@ -116,7 +119,14 @@ export function EditPopover({
     if (!canSave || !projectId || !taskTypeId || !startDate || !endDate) return;
     // Normalize so a start-after-end edit is auto-corrected (like reverse drag).
     const { start, end } = normalizeRange(startDate, endDate);
-    onSave({ title: trimmed, projectId, taskTypeId, startDate: start, endDate: end });
+    onSave({
+      title: trimmed,
+      projectId,
+      taskTypeId,
+      startDate: start,
+      endDate: end,
+      note: note.trim(),
+    });
   }
 
   return (
@@ -213,6 +223,18 @@ export function EditPopover({
               </select>
             </label>
           </div>
+
+          <label className="cp-field">
+            <span className="cp-label">노트</span>
+            <textarea
+              className="cp-note"
+              value={note}
+              placeholder="메모를 입력하세요 (선택)"
+              aria-label="노트"
+              rows={3}
+              onChange={(e) => setNote(e.target.value)}
+            />
+          </label>
 
           <div className="cp-foot">
             {confirmingDelete ? (

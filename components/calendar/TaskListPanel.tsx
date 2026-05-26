@@ -15,6 +15,7 @@
  */
 import { useMemo, useState } from "react";
 import { parseDate } from "@/lib/calendar/dates";
+import { hasNote } from "@/lib/calendar/notes";
 import { formatRangeLabel } from "@/lib/calendar/selection";
 import { applyTone, barColors } from "@/lib/color/compose";
 import { DEFAULT_PROJECT_COLOR } from "@/lib/color/tokens";
@@ -36,6 +37,27 @@ function EditIcon() {
     >
       <path d="M12 20h9" />
       <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z" />
+    </svg>
+  );
+}
+
+/** Note glyph (lines of text) marking a task that carries a note (US-019). */
+function NoteIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M4 7h16" />
+      <path d="M4 12h16" />
+      <path d="M4 17h10" />
     </svg>
   );
 }
@@ -312,6 +334,12 @@ export function TaskListPanel({
                     <span className="tp-title">{task.title}</span>
                     <span className="tp-meta">{meta}</span>
                   </span>
+                  {/* Note indicator (US-019): monochrome glyph when noted. */}
+                  {hasNote(task) && (
+                    <span className="tp-note" title="메모 있음" aria-label="메모 있음">
+                      <NoteIcon />
+                    </span>
+                  )}
                 </button>
               </li>
             );

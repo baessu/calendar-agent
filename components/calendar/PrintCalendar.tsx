@@ -23,6 +23,8 @@ import {
 import { weekSegments } from "@/lib/calendar/segments";
 import { layoutWeek } from "@/lib/calendar/layout";
 import { groupMarkersByDate } from "@/lib/calendar/markers";
+import { hasNote, tasksWithNotesInRange } from "@/lib/calendar/notes";
+import { formatRangeLabel } from "@/lib/calendar/selection";
 import { barColors } from "@/lib/color/compose";
 import type { Marker, Project, Task, TaskType } from "@/lib/types";
 
@@ -53,6 +55,16 @@ export function PrintCalendar({
 }: PrintCalendarProps) {
   const groups = groupWeeksByMonth(buildWeeksRange(from, to));
   const markersByDate = groupMarkersByDate(markers);
+
+  // The printed date span (first day shown .. last day shown), used to gather
+  // the notes that belong in the appendix (US-019 AC4: notes in the snapshot).
+  const firstWeek = groups[0]?.weeks[0];
+  const lastGroupWeeks = groups[groups.length - 1]?.weeks;
+  const lastWeek = lastGroupWeeks?.[lastGroupWeeks.length - 1];
+  const notedTasks =
+    firstWeek && lastWeek
+      ? tasksWithNotesInRange(tasks, firstWeek[0].date, lastWeek[6].date)
+      : [];
 
   return (
     <div className="print-cal" aria-hidden>
@@ -131,6 +143,9 @@ export function PrintCalendar({
                           )} ${r(seg.contL)}`,
                         }}
                       >
+                        {hasNote(seg.task) && !seg.contL && (
+                          <span className="cal-bar-note" aria-hidden />
+                        )}
                         <span className="cal-bar-label">{seg.task.title}</span>
                       </div>
                     );
@@ -141,6 +156,24 @@ export function PrintCalendar({
           </div>
         </section>
       ))}
+
+      {/* Notes appendix (US-019 AC4): the note text of every shown, noted task,
+          on its own page so the snapshot carries the note content, not just a dot. */}
+      {notedTasks.length > 0 && (
+        <section className="print-notes">
+          <h2 className="print-notes-head">메모</h2>
+          <ul className="print-notes-list">
+            {notedTasks.map((t) => (
+              <li key={t.id} className="print-note">
+                <span className="print-note-meta">
+                  {formatRangeLabel(t.startDate, t.endDate)} · {t.title}
+                </span>
+                <span className="print-note-body">{t.note}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

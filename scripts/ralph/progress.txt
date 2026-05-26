@@ -480,3 +480,26 @@
   - defaultProjectId는 createdAt→id 기반이라 order 변경과 무관 → 재정렬해도 기본 프로젝트(삭제 불가/고아 이동 대상) 불변. 안전.
   - 여러 window pointer 리스너(셀 선택/막대 이동/막대 리사이즈/탭 재정렬)가 공존하지만 각자 ref(draggingRef/barDragRef/barResizeRef/tabDragRef)로 게이트 → 서로 early-return, 무간섭. 탭 pointerdown은 .ptabs 영역이라 셀/막대와 물리적으로도 분리.
 ---
+
+## 2026-05-26T18:20:00 - US-019
+- 일정별 노트: Task.note 스키마 + 편집 팝오버 textarea + 막대/리스트 인디케이터 + 인쇄 부록 + 영속.
+- 스키마(AC1): lib/types.ts Task에 note?:string 추가. lib/db/index.ts Dexie .version(2) 추가 — note는 비인덱스 속성이라 stores 정의 불변(비인덱스 prop은 Dexie가 자동 저장, 기존 행은 note===undefined로 읽힘 → 업그레이드 함수/마이그레이션 불필요). version(2) 명시 자체가 AC1 '버전업' 충족.
+- 순수 로직 분리: lib/calendar/notes.ts — hasNote(task): note가 trim 후 비어있지 않으면 true(공백/탭/개행 전용은 노트 없음). tasksWithNotesInRange(tasks,start,end): 노트 있고 [start,end]에 겹치는(parseDate UTC-noon, endDate>=start && startDate<=end, 양끝 포함) task → startDate 오름차순·title 정렬(인쇄 메모 부록용). +9 단위 테스트(hasNote 3: 없음/공백/유효 + range 6: 노트없음 제외/범위밖 제외/시작·종료 경계 겹침/정렬/동률 title). crud.test +1(note 생성→수정→'' 비우기 영속 = AC5 경로).
+- 편집 폼(AC2): EditPopover note state(task.note ?? '') + 프로젝트/종류 행 아래 노트 textarea(.cp-note, rows3, placeholder '메모를 입력하세요 (선택)', 세로 리사이즈만). 저장 시 EditTaskDraft에 note: note.trim() 추가. CalendarApp.handleUpdateTask는 이미 updateTask(id, changes)+setTasks {...t,...changes} merge라 EditTaskDraft 타입 확장만으로 note가 Dexie 영속+양 뷰 즉시 반영(핸들러 코드 변경 0). 생성 팝오버엔 미추가(AC2가 '편집 팝오버' 명시 — 생성 후 편집에서 노트, 스코프 최소화).
+- 인디케이터(AC3): CalendarView 막대 — hasNote && !seg.contL일 때 .cal-bar-note 점(4px, currentColor=막대 텍스트색이라 모든 막대 fill 위 가시·UI 크롬 모노크롬 유지). 멀티주 분할 막대는 선두 세그먼트(!contL)에만 = 일정당 1회. 막대 aria-label에 '(메모 있음)' 부가. TaskListPanel 행 trailing에 .tp-note(NoteIcon=텍스트 라인 3줄 SVG, 모노크롬 var(--muted), title/aria-label '메모 있음') — tp-body 뒤 flex child라 ellipsis에 안 잘림.
+- 인쇄·스냅샷(AC4): PrintCalendar 막대에 동일 .cal-bar-note 점 렌더 + groups에서 인쇄 범위(첫 주 첫날~마지막 주 마지막날) 산출해 tasksWithNotesInRange로 .print-notes 메모 부록 렌더(별도 페이지 break-before:page, 항목='M/D ~ M/D · 제목' 메타 + note 본문 white-space:pre-wrap) → 인쇄물이 점만이 아니라 노트 내용까지 포함. 공유 스냅샷(US-023/024)은 v2 phase4 deferred(외부 백엔드) — 발행 시 같은 직렬화 재사용 예정.
+- 파일: lib/types.ts, lib/db/index.ts, lib/calendar/{notes.ts(신규),notes.test.ts(신규)}, lib/db/crud.test.ts, components/calendar/{EditPopover.tsx,CalendarView.tsx,TaskListPanel.tsx,PrintCalendar.tsx}, app/globals.css, scripts/ralph/{prd.json,progress.txt}
+- 품질: typecheck ✓ / lint ✓(0) / test ✓(207 passed: 기존 197 + notes 9 + crud 1). dev GET / 200, SSR 217셀·data-today 1·ed-list 렌더, 서버 에러/경고 없음(막대·점·팝오버·인쇄 부록은 클라 DB 로드 후 마운트라 SSR HTML엔 없음 = 정상).
+- Needs human browser verification:
+  - 막대 클릭→편집 팝오버에서 노트 입력·저장 후 막대 왼쪽에 작은 점, 우측 목록 행 끝에 노트 아이콘이 뜨는지
+  - 노트를 지우고(빈 칸) 저장하면 점/아이콘이 사라지는지(공백 전용=노트 없음)
+  - 새로고침 후 노트가 유지되는지(Dexie v2 영속)
+  - 인쇄(인쇄 버튼→범위 확인) 시 막대 점 + 마지막 페이지 '메모' 부록에 노트 내용이 줄바꿈 보존되어 나오는지
+  - 멀티주 막대는 첫 주 세그먼트에만 점이 1개 뜨는지(중복 없음)
+- Learnings for future iterations:
+  - 비인덱스 필드 추가는 Dexie 스키마(stores) 변경 불필요 — note 같은 옵셔널 prop은 version bump 없이도 저장되지만, 의도/문서화를 위해 version(2)를 동일 stores로 명시(무해, upgrade 콜백 없음). 인덱스가 바뀔 때만 실제 버전업+upgrade 필요.
+  - EditTaskDraft에 필드 추가 시 handleUpdateTask는 무변경(spread merge + updateTask가 TaskChanges=Partial로 받음) → 새 편집 가능 필드는 EditPopover state + draft + 타입만 확장하면 끝. 같은 패턴으로 향후 task 속성 추가 용이.
+  - 막대 위 데이터성 인디케이터는 currentColor(barText 자동대비색)로 그리면 색 규칙(색은 막대에만) 위반 없이 모든 막대색에서 가시. 점/그립선(US-016 리사이즈) 동일 기법.
+  - 인쇄 '포함'은 점(시각 플래그)만으론 내용 누락 → 부록(별도 페이지) 패턴으로 텍스트 본문까지. tasksWithNotesInRange가 인쇄 범위 겹침 필터 담당(전체 visibleTasks 중 그 달들에 걸친 노트만). 공유 스냅샷도 동일 함수 재사용 가능.
+  - 멀티주 막대 중복 방지=!seg.contL(선두 세그먼트=막대 시작이 이 주에 있음) 게이트. 마커/막대 등 '일정당 1회' 표시에 재사용 가능한 관용구.
+---

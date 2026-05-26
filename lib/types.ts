@@ -47,6 +47,8 @@ export interface Task {
   title: string;
   startDate: DateString;
   endDate: DateString;
+  /** Optional free-text note (US-019). Absent/empty = no note. */
+  note?: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

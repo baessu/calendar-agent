@@ -25,6 +25,15 @@ export class CalendarDB extends Dexie {
       tasks: "id, projectId, taskTypeId, startDate, endDate",
       markers: "id, date, kind, projectId",
     });
+    // v2 (US-019): Task gains an optional `note`. It is not indexed, so the
+    // store schema is unchanged — Dexie stores non-indexed props automatically
+    // and existing rows simply read `note === undefined` (no migration needed).
+    this.version(2).stores({
+      projects: "id, order, visible",
+      taskTypes: "id, order",
+      tasks: "id, projectId, taskTypeId, startDate, endDate",
+      markers: "id, date, kind, projectId",
+    });
   }
 }
 

@@ -323,8 +323,8 @@
         "Verify in browser: 노트 추가/표시"
       ],
       "priority": 8,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "lib/types.ts Task에 note?:string 추가. lib/db/index.ts Dexie v2 — note는 비인덱스 속성이라 stores 스키마 불변(비인덱스 prop은 자동 저장, 기존 행은 note===undefined로 읽힘 → 마이그레이션 불필요). version(2) 명시는 AC1 '버전업' 충족. 순수 로직 lib/calendar/notes.ts: hasNote(task)=trim 후 비어있지 않으면 true(공백전용=노트없음)/tasksWithNotesInRange(tasks,start,end)=노트有 & [start,end] 겹침(parseDate UTC-noon, 양끝 포함) 필터 → start 오름차순·title 정렬(인쇄 메모 부록용). +9 단위 테스트(hasNote 3 + range 6: 노트없음/범위밖/양끝 겹침/정렬/동률 title). crud.test +1(note 생성·수정·'' 비우기 영속). EditPopover: note state(task.note??''), 프로젝트/종류 행 아래 노트 textarea(.cp-note 하이라인, rows3, placeholder '메모를 입력하세요 (선택)'), 저장 시 EditTaskDraft.note=note.trim() 추가 → CalendarApp.handleUpdateTask가 updateTask(changes)로 Dexie 영속+setTasks merge(코드 변경 없이 note 흐름 자동, EditTaskDraft 타입만 확장). 인디케이터(AC3): CalendarView 막대에 hasNote && !seg.contL일 때 .cal-bar-note 점(currentColor=막대 텍스트색이라 모든 막대색 위 가시, 멀티주 막대는 선두 세그먼트에만=1회), 막대 aria-label에 '(메모 있음)' 부가. TaskListPanel 행 끝에 .tp-note NoteIcon(텍스트 라인 3줄 SVG, 모노크롬 var(--muted), title/aria '메모 있음'). 인쇄(AC4): PrintCalendar 막대에 동일 .cal-bar-note 점 + groups에서 인쇄 범위(첫날~마지막날) 산출해 tasksWithNotesInRange로 .print-notes 부록(별도 페이지 break-before:page, 'M/D~M/D · 제목' + note 본문 white-space:pre-wrap) 렌더 → 인쇄물에 점뿐 아니라 노트 내용 포함. 공유 스냅샷(US-023/024)은 v2 phase4 deferred — 발행 시 동일 직렬화 재사용 예정. globals.css: .cp-note/.cal-bar-note(4px 점)/.tp-note/.print-notes-* + @media print .print-notes break-before:page. 막대 점은 데이터 색(막대 텍스트색)이라 색 규칙 위반 아님; 패널/인쇄 부록 크롬은 모노크롬 유지. 207 tests green(+10). typecheck ✓ / lint ✓(0) / dev GET / 200, SSR 217셀·data-today 1·ed-list, 서버 에러/경고 없음(막대·점·팝오버·인쇄는 클라 DB 로드 후 마운트)."
     },
     {
       "id": "US-020",
