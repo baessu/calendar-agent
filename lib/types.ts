@@ -62,7 +62,7 @@ export interface Marker {
   kind: MarkerKind;
   label: string;
   date: DateString;
-  /** Optional owning project. */
-  projectId?: string;
+  /** Owning project (US-021); markers are scoped per project, like tasks. */
+  projectId: string;
   createdAt: Timestamp;
 }

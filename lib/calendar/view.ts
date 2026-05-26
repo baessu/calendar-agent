@@ -1,4 +1,4 @@
-import type { Project, Task } from "@/lib/types";
+import type { Marker, Project, Task } from "@/lib/types";
 
 /**
  * View filter for the top project tabs (US-013).
@@ -49,4 +49,37 @@ export function filterTasksByTaskTypes(
 ): Task[] {
   if (hiddenTaskTypeIds.size === 0) return tasks;
   return tasks.filter((t) => !hiddenTaskTypeIds.has(t.taskTypeId));
+}
+
+/**
+ * View filter for markers, mirroring `filterTasksByProject` (US-021).
+ *
+ * Markers are now scoped per project, so the top project tabs filter them the
+ * same way as task bars: `null` is the merged "전체" view (every project's
+ * markers, returned unchanged) and any other value keeps only that project's
+ * markers. Order is preserved.
+ */
+export function filterMarkersByProject(
+  markers: Marker[],
+  selectedProjectId: string | null,
+): Marker[] {
+  if (selectedProjectId === null) return markers;
+  return markers.filter((m) => m.projectId === selectedProjectId);
+}
+
+/**
+ * Visibility filter for markers, mirroring `filterTasksByVisibleProjects`
+ * (US-021). Drops markers whose owning project is toggled off so the project's
+ * markers disappear from the calendar alongside its bars. A marker whose project
+ * is absent from `projects` is kept (defensive). Order is preserved; with nothing
+ * hidden the input is returned unchanged. Composes (AND) with
+ * `filterMarkersByProject`.
+ */
+export function filterMarkersByVisibleProjects(
+  markers: Marker[],
+  projects: Project[],
+): Marker[] {
+  const hidden = new Set(projects.filter((p) => !p.visible).map((p) => p.id));
+  if (hidden.size === 0) return markers;
+  return markers.filter((m) => !hidden.has(m.projectId));
 }

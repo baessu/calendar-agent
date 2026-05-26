@@ -530,3 +530,31 @@
   - 프로젝트 삭제 reassign 시 일정이 dest 프로젝트로 가면 taskTypeId도 dest 종류로 재매핑 필수(이름 매칭→기본 폴백). 안 하면 막대가 삭제된 종류 id를 가리켜 색이 깨짐. matchTaskTypeAcrossProjects 재사용.
   - US-021(마커 프로젝트별)은 같은 패턴: Marker.projectId 필수화 + v3→v4 마이그레이션(기존 마커→기본 프로젝트) + 뷰/토글 필터 합성. 마커는 종류 복제 없이 projectId만 채우면 됨(더 단순). scope.ts의 plan 패턴 참고.
 ---
+
+## 2026-05-26T18:45:00 - US-021
+- 데드라인·이벤트(마커) 프로젝트별 전환. 전역 마커 폐지 → 마커도 태스크처럼 프로젝트 소속. US-020(종류 per-project)과 동일 패턴, 단 마커는 복제 불필요(projectId만 채움)이라 더 단순.
+- 스키마(AC1): lib/types.ts Marker.projectId 옵셔널(`projectId?`)→필수(`projectId: string`). markers stores는 이미 projectId 인덱스 보유(US-002부터)라 인덱스 변경 없음.
+- 순수 로직:
+  - lib/calendar/view.ts filterMarkersByProject(markers, selectedProjectId)/filterMarkersByVisibleProjects(markers, projects) — filterTasksByProject/filterTasksByVisibleProjects를 그대로 미러(merged=null 입력 동일참조, 개별=projectId 일치, 가시성=visible===false 프로젝트 마커 제거·미존재 프로젝트 방어적 보존, 순서 보존, 숨김 없으면 동일참조=메모친화). 태스크종류 필터는 마커에 미적용(마커는 종류 없음).
+  - lib/calendar/markers.ts planMarkerScopeMigration(markers, defaultProjectId): projectId 미설정(undefined/'') 마커만 {id, projectId:default} relink plan 반환, 이미 소속된 마커 불변. param 타입을 {id;projectId?}로 느슨히(마이그레이션 시점 구 데이터는 projectId undefined). scope.ts plan 패턴이되 id 주입/복제 없이 단순.
+- Dexie v4(AC4, lib/db/index.ts): stores 동일(markers projectId 인덱스 기존), .upgrade(tx) — projects/markers 읽어 defaultProjectId(lib/project/manage.ts, 최초 생성 프로젝트)로 planMarkerScopeMigration→markerTable.update 일괄. projects 0이면 skip. 신규 DB는 v4 직행(upgrade 미실행)→새 마커는 popover에서 projectId 보유. import: planMarkerScopeMigration(@/lib/calendar/markers), defaultProjectId(@/lib/project/manage) — 둘 다 db 미import이라 순환 안전.
+- MarkerPopover(AC2): projects+defaultProjectId props 추가. projectId state(편집=marker.projectId / 생성=defaultProjectId??''). MarkerDraft에 projectId. 날짜+프로젝트 select를 .cp-row로 묶음(CreatePopover 패턴). 통합 뷰(defaultProjectId null & 생성)면 '프로젝트 선택' placeholder option(disabled)→AC2 강제 선택; 개별 뷰면 현재 프로젝트 기본. error를 {field:'label'|'project',msg}로 확장(필드별 aria-invalid/메시지 위치). save(): 라벨 trim 검증 후 !projectId면 '프로젝트를 선택하세요' 인라인 에러. onSave에 projectId 포함.
+- CalendarView: MarkerPopover 렌더에 projects={projects}/defaultProjectId={selectedProjectId} 전달(둘 다 기존 props). handleMarkerSave는 무변경(draft에 projectId 포함→onCreateMarker(MarkerInput 필수)/onUpdateMarker 통과).
+- CalendarApp(AC3): visibleMarkers=filterMarkersByProject(filterMarkersByVisibleProjects(markers, projects), selectedProjectId) memo(deps markers/projects/selectedProjectId) — 가시성 필터 후 탭 필터, 둘 다 순서 보존 AND. CalendarView markers={markers}→{visibleMarkers}, PrintCalendar도 동일 교체 → 뷰 전환·프로젝트 토글에 마커 칩 동기 표시/숨김. handleCreateMarker 주석 갱신(projectId는 popover draft에서). MarkerInput=Omit<Marker,'id'|'createdAt'>이라 projectId 자동 필수화.
+- 파일: lib/types.ts, lib/calendar/{view.ts,view.test.ts,markers.ts,markers.test.ts}, lib/db/{index.ts,crud.test.ts}, components/calendar/{MarkerPopover.tsx,CalendarView.tsx,CalendarApp.tsx}, scripts/ralph/{prd.json,progress.txt}
+- 품질: typecheck ✓ / lint ✓(0) / test ✓(229 passed: 기존 216 + view 9 + markers 4; crud 마커 생성에 projectId 추가). dev GET / 200, SSR 217셀·data-today 1·ptabs·ed-list, 서버 에러/경고 없음(마커 칩·팝오버·범례는 클라 DB 로드 후 마운트, 범례는 '필터·범례' 접힘이 기본이라 SSR엔 미노출 = 정상).
+- Needs human browser verification:
+  - 개별 프로젝트 뷰에서 그 프로젝트 마커만 보이고, 다른 프로젝트로 전환하면 마커 집합이 바뀌는지(AC3 뷰 필터)
+  - 프로젝트 토글 off 시 그 프로젝트의 마커가 막대와 함께 캘린더에서 사라지는지(AC3 토글)
+  - 통합(전체) 뷰에서 ＋마커 추가 시 팝오버에 '프로젝트 선택' placeholder가 뜨고 미선택 저장이 '프로젝트를 선택하세요'로 차단되는지(AC2)
+  - 개별 뷰에서 ＋마커 추가 시 현재 프로젝트가 기본 선택되는지(AC2)
+  - 기존 마커(v3 이하, projectId 없던) 사용자가 새 코드 로드 시 마커가 기본 프로젝트로 귀속되고 사라지지 않는지(AC4 마이그레이션) — 헤드리스 불가, 실 브라우저+기존 IndexedDB 필요
+  - 마커 편집 시 프로젝트 select에 기존 소속이 prefill되고 변경 저장이 반영되는지
+- Learnings for future iterations:
+  - 마커 per-project는 종류(US-020)보다 단순: 데이터가 점-날짜라 복제가 필요 없고 projectId만 채우면 끝. plan 함수도 relink 한 종류만(removeIds/clone 없음). filter는 task 필터를 1:1 미러 — 같은 시그니처/메모 규약 유지로 CalendarApp 합성이 일관.
+  - 마커 필터는 프로젝트 축(탭+가시성)만 — 마커엔 taskType이 없으니 filterTasksByTaskTypes에 대응하는 마커 함수는 불필요. visibleMarkers는 2중 AND(가시성→탭), visibleTasks는 3중(가시성→탭→종류).
+  - 옵셔널→필수 필드 승격 시 마이그레이션 plan param은 `projectId?`로 느슨히 받아야 함(구 데이터는 런타임에 undefined). Marker 타입은 필수지만 upgrade가 읽는 구 행은 실제로 미설정이라, plan이 `!m.projectId`로 빈/undefined 모두 처리.
+  - MarkerPopover의 error를 {field,msg}로 확장(CreatePopover와 동형) — 라벨/프로젝트 두 검증 메시지를 각 입력 아래에 배치 + 필드별 aria-invalid. 단일 string error는 다중 필드엔 부적합.
+  - 패널 범례(프로젝트/종류/마커)는 이제 '필터·범례' 접이식(progressive disclosure, 기본 접힘)이라 SSR HTML엔 미노출 — 마커 범례 시각 검증은 패널 펼친 뒤 확인. US-017 당시 SSR 노출과 달라진 점(후속 UI 리팩터 P9/Q2).
+  - **남은 스토리: US-022(히트맵, priority 10)만 passes:false. US-023~025(공유/Blob 백엔드)는 v2 phase4 deferred(passes:true 표기, Ralph 비대상).**
+---

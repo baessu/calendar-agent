@@ -1072,6 +1072,8 @@ export function CalendarView({
         <MarkerPopover
           marker={markerPopover.marker}
           defaultDate={markerPopover.date}
+          projects={projects}
+          defaultProjectId={selectedProjectId}
           x={markerPopover.x}
           y={markerPopover.y}
           onClose={closeMarkerPopover}

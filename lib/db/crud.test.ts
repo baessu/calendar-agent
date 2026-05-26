@@ -151,11 +151,11 @@ describe("task CRUD", () => {
 
 describe("marker CRUD", () => {
   it("creates event/deadline markers, updates, lists by date, and deletes", async () => {
-    const deadline = await createMarker({ kind: "deadline", label: "발표", date: "2026-05-30" });
-    const event = await createMarker({ kind: "event", label: "워크숍", date: "2026-05-15", projectId: "p1" });
+    const deadline = await createMarker({ kind: "deadline", label: "발표", date: "2026-05-30", projectId: "p1" });
+    const event = await createMarker({ kind: "event", label: "워크숍", date: "2026-05-15", projectId: "p2" });
 
-    expect(await getMarker(deadline.id)).toMatchObject({ kind: "deadline", label: "발표" });
-    expect(event.projectId).toBe("p1");
+    expect(await getMarker(deadline.id)).toMatchObject({ kind: "deadline", label: "발표", projectId: "p1" });
+    expect(event.projectId).toBe("p2");
 
     await updateMarker(deadline.id, { label: "최종 발표" });
     expect(await getMarker(deadline.id)).toMatchObject({ label: "최종 발표" });

@@ -358,8 +358,8 @@
         "Verify in browser: 마커가 프로젝트별로 필터됨"
       ],
       "priority": 9,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "lib/types.ts Marker.projectId 옵셔널→필수(전역 마커 폐지, 태스크처럼 프로젝트 소속). 순수 로직: lib/calendar/view.ts에 filterMarkersByProject(markers,selectedProjectId)/filterMarkersByVisibleProjects(markers,projects) 추가 — filterTasksBy* 미러(merged=null 동일참조, 개별=projectId 일치 필터, 가시성=visible===false 프로젝트 마커 제거·미존재 프로젝트 방어적 보존, 순서 보존, 메모친화). lib/calendar/markers.ts planMarkerScopeMigration(markers,defaultProjectId): projectId 미설정 마커만 기본 프로젝트로 재연결 plan(이미 소속된 마커 불변) — scope.ts plan 패턴 따름, id 주입 없이 단순(복제 불필요, projectId만 채움). Dexie v4(lib/db/index.ts): markers projectId 인덱스 이미 존재→stores 불변, .upgrade(tx)에서 projects/markers 읽어 defaultProjectId(manage.ts)로 planMarkerScopeMigration→markerTable.update 일괄(projects 0이면 skip). 신규 DB는 v4 직행(upgrade 미실행)→새 마커는 projectId 보유. MarkerPopover: projects+defaultProjectId props 추가, projectId state(편집=marker.projectId / 생성=defaultProjectId??'')·MarkerDraft.projectId 추가, 날짜+프로젝트 select를 cp-row로(통합 뷰 null=빈 '프로젝트 선택' placeholder disabled→AC2 강제 선택, 개별 뷰=현재 프로젝트 기본). error를 {field:'label'|'project',msg}로 확장(필드별 aria-invalid/메시지). save() 라벨 후 projectId 미선택이면 '프로젝트를 선택하세요'. CalendarView: MarkerPopover에 projects/selectedProjectId 전달. CalendarApp: visibleMarkers=filterMarkersByProject(filterMarkersByVisibleProjects(markers,projects),selectedProjectId) memo(태스크종류 필터 없음 — 마커는 종류 무관) → CalendarView+PrintCalendar에 markers={visibleMarkers}로 교체(AC3 뷰·토글 동기화). handleCreateMarker projectId는 draft에서(MarkerInput 필수). 테스트: view.test +9(filterMarkersByProject 5: merged 동일참조/개별/순서/미존재/빈, filterMarkersByVisibleProjects 4: 전체visible 동일참조/숨김/미존재 보존/프로젝트필터 AND=AC3), markers.test +4(planMarkerScopeMigration: 빈/미설정 3건 default/일부만/전부 보유 no-op), crud.test 마커 생성에 projectId 추가. 229 tests green(+13). typecheck ✓ / lint ✓(0) / dev GET / 200, SSR 217셀·data-today 1·ptabs·ed-list, 서버 에러/경고 없음(마커 칩·팝오버·범례는 클라 DB 로드 후 마운트, 범례는 '필터·범례' 접힘 기본). v3→v4 실데이터 마이그레이션은 브라우저에서만 실행(pure plan은 테스트됨)."
     },
     {
       "id": "US-022",

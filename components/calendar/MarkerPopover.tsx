@@ -19,13 +19,14 @@ import {
   useRef,
   useState,
 } from "react";
-import type { DateString, Marker, MarkerKind } from "@/lib/types";
+import type { DateString, Marker, MarkerKind, Project } from "@/lib/types";
 
 /** The marker fields handed back to the parent (already label-trimmed). */
 export interface MarkerDraft {
   kind: MarkerKind;
   label: string;
   date: DateString;
+  projectId: string;
 }
 
 interface MarkerPopoverProps {
@@ -33,6 +34,10 @@ interface MarkerPopoverProps {
   marker?: Marker | null;
   /** Date the create form starts on (ignored when editing). */
   defaultDate: DateString;
+  /** Projects to choose from (US-021); markers are scoped per project. */
+  projects: Project[];
+  /** Project pre-selected on create (the current view's project; null = 전체). */
+  defaultProjectId: string | null;
   /** Click viewport coordinates used to anchor the card. */
   x: number;
   y: number;
@@ -47,6 +52,8 @@ const MARGIN = 12;
 export function MarkerPopover({
   marker,
   defaultDate,
+  projects,
+  defaultProjectId,
   x,
   y,
   onClose,
@@ -61,7 +68,15 @@ export function MarkerPopover({
   const [kind, setKind] = useState<MarkerKind>(marker?.kind ?? "deadline");
   const [label, setLabel] = useState(marker?.label ?? "");
   const [date, setDate] = useState<DateString>(marker?.date ?? defaultDate);
-  const [error, setError] = useState<string | null>(null);
+  // In the merged "전체" view (no defaultProjectId) the project is left unchosen
+  // so the user must pick one (US-021 AC2); an individual view preselects it.
+  const [projectId, setProjectId] = useState(
+    marker?.projectId ?? defaultProjectId ?? "",
+  );
+  const [error, setError] = useState<{
+    field: "label" | "project";
+    msg: string;
+  } | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   // Clamp the card inside the viewport once its real size is known.
@@ -92,12 +107,16 @@ export function MarkerPopover({
   function save() {
     const trimmed = label.trim();
     if (!trimmed) {
-      setError("라벨을 입력하세요");
+      setError({ field: "label", msg: "라벨을 입력하세요" });
       inputRef.current?.focus();
       return;
     }
     if (!date) return;
-    onSave({ kind, label: trimmed, date });
+    if (!projectId) {
+      setError({ field: "project", msg: "프로젝트를 선택하세요" });
+      return;
+    }
+    onSave({ kind, label: trimmed, date, projectId });
   }
 
   return (
@@ -154,24 +173,51 @@ export function MarkerPopover({
             value={label}
             placeholder="마커 라벨"
             aria-label="마커 라벨"
-            aria-invalid={error ? true : undefined}
+            aria-invalid={error?.field === "label" ? true : undefined}
             onChange={(e) => {
               setLabel(e.target.value);
-              if (error) setError(null);
+              if (error?.field === "label") setError(null);
             }}
           />
-          {error && <p className="cp-err">{error}</p>}
+          {error?.field === "label" && <p className="cp-err">{error.msg}</p>}
 
-          <label className="cp-field">
-            <span className="cp-label">날짜</span>
-            <input
-              className="cp-date"
-              type="date"
-              value={date}
-              aria-label="날짜"
-              onChange={(e) => setDate(e.target.value)}
-            />
-          </label>
+          <div className="cp-row">
+            <label className="cp-field">
+              <span className="cp-label">날짜</span>
+              <input
+                className="cp-date"
+                type="date"
+                value={date}
+                aria-label="날짜"
+                onChange={(e) => setDate(e.target.value)}
+              />
+            </label>
+            <label className="cp-field">
+              <span className="cp-label">프로젝트</span>
+              <select
+                className="cp-select"
+                value={projectId}
+                aria-invalid={error?.field === "project" ? true : undefined}
+                onChange={(e) => {
+                  setProjectId(e.target.value);
+                  if (error?.field === "project") setError(null);
+                }}
+              >
+                {/* Merged view: an empty placeholder forces a deliberate pick. */}
+                {!defaultProjectId && !marker && (
+                  <option value="" disabled>
+                    프로젝트 선택
+                  </option>
+                )}
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          {error?.field === "project" && <p className="cp-err">{error.msg}</p>}
 
           <div className="cp-foot">
             {editing && onDelete ? (

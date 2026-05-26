@@ -1,6 +1,8 @@
 import Dexie, { type Table } from "dexie";
 import type { Project, TaskType, Task, Marker } from "@/lib/types";
 import { planTaskTypeScopeMigration } from "@/lib/taskType/scope";
+import { planMarkerScopeMigration } from "@/lib/calendar/markers";
+import { defaultProjectId } from "@/lib/project/manage";
 import { newId } from "./util";
 
 /**
@@ -71,6 +73,30 @@ export class CalendarDB extends Dexie {
           ),
         );
         await types.bulkDelete(plan.removeTaskTypeIds);
+      });
+    // v4 (US-021): markers become per-project. The `projectId` index already
+    // exists, so the store schema is unchanged; the upgrade assigns the default
+    // project to any marker still missing one (existing data preserved). A fresh
+    // DB opens straight at v4 with no upgrade — new markers carry a projectId.
+    this.version(4)
+      .stores({
+        projects: "id, order, visible",
+        taskTypes: "id, projectId, order",
+        tasks: "id, projectId, taskTypeId, startDate, endDate",
+        markers: "id, date, kind, projectId",
+      })
+      .upgrade(async (tx) => {
+        const [projects, markers] = await Promise.all([
+          tx.table("projects").toArray() as Promise<Project[]>,
+          tx.table("markers").toArray() as Promise<Marker[]>,
+        ]);
+        const fallback = defaultProjectId(projects);
+        if (!fallback) return; // no projects — nothing to assign to
+        const relinks = planMarkerScopeMigration(markers, fallback);
+        const markerTable = tx.table("markers");
+        await Promise.all(
+          relinks.map((r) => markerTable.update(r.id, { projectId: r.projectId })),
+        );
       });
   }
 }

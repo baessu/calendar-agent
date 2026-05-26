@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  filterMarkersByProject,
+  filterMarkersByVisibleProjects,
   filterTasksByProject,
   filterTasksByTaskTypes,
   filterTasksByVisibleProjects,
 } from "./view";
-import type { Project, Task } from "@/lib/types";
+import type { Marker, MarkerKind, Project, Task } from "@/lib/types";
 
 /** Build a Task with just the fields the view filter cares about. */
 function task(id: string, projectId: string, taskTypeId = "t"): Task {
@@ -30,6 +32,11 @@ function project(id: string, visible: boolean): Project {
     order: 0,
     createdAt: 0,
   };
+}
+
+/** Build a Marker with just the fields the view filter cares about. */
+function marker(id: string, projectId: string, kind: MarkerKind = "event"): Marker {
+  return { id, kind, label: id, date: "2026-05-21", projectId, createdAt: 0 };
 }
 
 describe("filterTasksByProject (US-013 view switch)", () => {
@@ -159,5 +166,66 @@ describe("filterTasksByTaskTypes (US-015 task-type filter)", () => {
     const all = [a1, a2, b1];
     const byProject = filterTasksByProject(all, "A"); // -> [a1, a2]
     expect(filterTasksByTaskTypes(byProject, new Set(["work"]))).toEqual([a2]);
+  });
+});
+
+describe("filterMarkersByProject (US-021 markers per project)", () => {
+  const a1 = marker("a1", "A");
+  const a2 = marker("a2", "A");
+  const b1 = marker("b1", "B");
+  const markers = [a1, b1, a2];
+
+  it("merged view (null) returns every marker unchanged", () => {
+    expect(filterMarkersByProject(markers, null)).toBe(markers);
+  });
+
+  it("individual view keeps only the selected project's markers", () => {
+    expect(filterMarkersByProject(markers, "A")).toEqual([a1, a2]);
+    expect(filterMarkersByProject(markers, "B")).toEqual([b1]);
+  });
+
+  it("preserves original order within the filtered set", () => {
+    expect(filterMarkersByProject(markers, "A").map((m) => m.id)).toEqual([
+      "a1",
+      "a2",
+    ]);
+  });
+
+  it("unknown project id yields an empty list", () => {
+    expect(filterMarkersByProject(markers, "missing")).toEqual([]);
+  });
+
+  it("empty input yields an empty list for any project", () => {
+    expect(filterMarkersByProject([], "A")).toEqual([]);
+  });
+});
+
+describe("filterMarkersByVisibleProjects (US-021 visibility toggle)", () => {
+  const a1 = marker("a1", "A");
+  const b1 = marker("b1", "B");
+  const c1 = marker("c1", "C");
+  const markers = [a1, b1, c1];
+
+  it("returns the input unchanged when every project is visible", () => {
+    const projects = [project("A", true), project("B", true), project("C", true)];
+    expect(filterMarkersByVisibleProjects(markers, projects)).toBe(markers);
+  });
+
+  it("drops markers whose project is toggled off", () => {
+    const projects = [project("A", false), project("B", true), project("C", true)];
+    expect(filterMarkersByVisibleProjects(markers, projects)).toEqual([b1, c1]);
+  });
+
+  it("keeps a marker whose project is missing from the list (defensive)", () => {
+    const projects = [project("A", false)];
+    // b1/c1 have no matching project entry, so they are not in the hidden set.
+    expect(filterMarkersByVisibleProjects(markers, projects)).toEqual([b1, c1]);
+  });
+
+  it("composes (AND) with the project filter", () => {
+    // Hide project B, then narrow to project A.
+    const projects = [project("A", true), project("B", false), project("C", true)];
+    const visible = filterMarkersByVisibleProjects(markers, projects); // -> [a1, c1]
+    expect(filterMarkersByProject(visible, "A")).toEqual([a1]);
   });
 });

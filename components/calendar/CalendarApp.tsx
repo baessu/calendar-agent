@@ -34,6 +34,8 @@ import {
   type MarkerInput,
 } from "@/lib/db";
 import {
+  filterMarkersByProject,
+  filterMarkersByVisibleProjects,
   filterTasksByProject,
   filterTasksByTaskTypes,
   filterTasksByVisibleProjects,
@@ -157,6 +159,19 @@ export function CalendarApp() {
     [tasks, projects, selectedProjectId, hiddenTaskTypeIds],
   );
 
+  // Visible markers (US-021): markers are scoped per project, so they follow the
+  // same view + visibility filters as task bars — narrow to the active tab and
+  // drop markers of projects toggled off. (No task-type filter; markers have no
+  // task type.) Order preserved; both filters AND together.
+  const visibleMarkers = useMemo(
+    () =>
+      filterMarkersByProject(
+        filterMarkersByVisibleProjects(markers, projects),
+        selectedProjectId,
+      ),
+    [markers, projects, selectedProjectId],
+  );
+
   // US-020: task types are per-project. In an individual project view the
   // task-type legend/management shows that project's own types; 전체(통합) view
   // has no single project, so the panel shows a prompt (null = 전체).
@@ -237,7 +252,8 @@ export function CalendarApp() {
 
   // --- Markers (US-017) -----------------------------------------------------
   // Point-date marks (event / hard deadline). Persist + mirror to shared state
-  // so the calendar chips update at once. projectId is left unset (v1).
+  // so the calendar chips update at once. projectId comes from the popover —
+  // markers are scoped per project (US-021).
   const handleCreateMarker = useCallback(async (input: MarkerInput) => {
     const m = await createMarker(input);
     setMarkers((prev) => [...prev, m]);
@@ -538,7 +554,7 @@ export function CalendarApp() {
         projects={projects}
         taskTypes={taskTypes}
         tasks={visibleTasks}
-        markers={markers}
+        markers={visibleMarkers}
         projectsById={projectsById}
         taskTypesById={taskTypesById}
         selectedProjectId={selectedProjectId}
@@ -622,7 +638,7 @@ export function CalendarApp() {
           from={printRange.from}
           to={printRange.to}
           tasks={visibleTasks}
-          markers={markers}
+          markers={visibleMarkers}
           projectsById={projectsById}
           taskTypesById={taskTypesById}
         />
