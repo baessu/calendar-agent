@@ -78,6 +78,19 @@ export function EditPopover({
     [projects.length, taskTypes.length],
   );
 
+  // US-020: task types are per-project, so the 종류 options follow the selected
+  // project. Changing the project re-points the type to that project's first.
+  const projectTaskTypes = useMemo(
+    () => taskTypes.filter((t) => t.projectId === projectId),
+    [taskTypes, projectId],
+  );
+
+  function selectProject(pid: string) {
+    setProjectId(pid);
+    // The old type belongs to the old project, so re-point to the new one's first.
+    setTaskTypeId(taskTypes.find((t) => t.projectId === pid)?.id ?? "");
+  }
+
   // Live range label tracks the (possibly reverse) date inputs.
   const rangeLabel = useMemo(() => {
     const { start, end } = normalizeRange(startDate, endDate);
@@ -199,7 +212,7 @@ export function EditPopover({
               <select
                 className="cp-select"
                 value={projectId}
-                onChange={(e) => setProjectId(e.target.value)}
+                onChange={(e) => selectProject(e.target.value)}
               >
                 {projects.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -215,7 +228,7 @@ export function EditPopover({
                 value={taskTypeId}
                 onChange={(e) => setTaskTypeId(e.target.value)}
               >
-                {taskTypes.map((t) => (
+                {projectTaskTypes.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.name}
                   </option>

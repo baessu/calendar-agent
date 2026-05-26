@@ -1003,6 +1003,14 @@ button.mk:focus-visible {
   padding: 12px 22px;
   border-bottom: 1px solid var(--border);
 }
+/* 전체(통합) view has no single project, so task types can't be managed there
+   (US-020) — a muted prompt replaces the per-project chips. */
+.ed-type-hint {
+  margin: 6px 0 2px;
+  font-size: 11px;
+  letter-spacing: -0.02em;
+  color: var(--muted);
+}
 
 /*
  * Right "일정" panel (US-008) — mirrors the F-tab mockup's .ed-list. Hairline

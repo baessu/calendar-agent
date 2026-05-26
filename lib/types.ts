@@ -28,9 +28,12 @@ export interface Project {
   createdAt: Timestamp;
 }
 
-/** A globally shared task type — defines the tone applied over a project color. */
+/** A per-project task type (US-020) — defines the tone applied over the
+ *  project's color. Each type belongs to exactly one project. */
 export interface TaskType {
   id: string;
+  /** Owning project (US-020); task types are scoped per project, not global. */
+  projectId: string;
   name: string;
   mode: ToneMode;
   /** Tone strength 0..1 (dark = darken, tint = mix toward white). */

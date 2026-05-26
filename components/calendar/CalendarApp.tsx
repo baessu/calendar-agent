@@ -19,11 +19,13 @@ import {
   deleteProject,
   deleteTask,
   deleteTaskType,
+  deleteTaskTypesByProject,
   getAllMarkers,
   getAllProjects,
   getAllTaskTypes,
   getAllTasks,
   seedIfEmpty,
+  seedTaskTypesForProject,
   updateMarker,
   updateProject,
   updateTask,
@@ -46,6 +48,10 @@ import {
   defaultTaskTypeId,
   nextTaskTypeOrder,
 } from "@/lib/taskType/manage";
+import {
+  matchTaskTypeAcrossProjects,
+  taskTypesForProject,
+} from "@/lib/taskType/scope";
 import type { DateString, Marker, Project, Task, TaskType } from "@/lib/types";
 import type { YearMonth } from "@/lib/calendar/infinite";
 import { CalendarView } from "./CalendarView";
@@ -151,17 +157,16 @@ export function CalendarApp() {
     [tasks, projects, selectedProjectId, hiddenTaskTypeIds],
   );
 
-  // Q1-B: in an individual project view, the task-type legend narrows to the
-  // types that project actually uses — computed from ALL tasks (not the filtered
-  // set) so a filtered-off type can still be toggled back on. null = 전체 view.
-  const projectTaskTypeIds = useMemo(() => {
-    if (!selectedProjectId) return null;
-    const ids = new Set<string>();
-    for (const t of tasks) {
-      if (t.projectId === selectedProjectId) ids.add(t.taskTypeId);
-    }
-    return ids;
-  }, [tasks, selectedProjectId]);
+  // US-020: task types are per-project. In an individual project view the
+  // task-type legend/management shows that project's own types; 전체(통합) view
+  // has no single project, so the panel shows a prompt (null = 전체).
+  const projectTaskTypes = useMemo(
+    () =>
+      selectedProjectId
+        ? taskTypesForProject(taskTypes, selectedProjectId)
+        : null,
+    [taskTypes, selectedProjectId],
+  );
 
   // 인쇄(Print): the chosen month range. <PrintCalendar> renders it (print-only),
   // then the effect fires window.print() once it's committed, clearing afterprint.
@@ -328,7 +333,10 @@ export function CalendarApp() {
           visible: true,
           order: nextProjectOrder(projects),
         });
+        // US-020 AC2: a new project starts with its own default 4 task types.
+        const seededTypes = await seedTaskTypesForProject(created.id);
         setProjects((prev) => [...prev, created]);
+        setTaskTypes((prev) => [...prev, ...seededTypes]);
       }
       setProjectPopover(null);
     },
@@ -368,24 +376,47 @@ export function CalendarApp() {
           ? defaultProjectId(projects.filter((p) => p.id !== target.id))
           : null;
 
+      // US-020: task types are per-project, so a reassigned task must also point
+      // at the destination project's matching type (by name, else its default).
+      const typeRemap = new Map<string, string>();
       if (dest) {
+        for (const t of affected) {
+          typeRemap.set(
+            t.id,
+            matchTaskTypeAcrossProjects(t.taskTypeId, taskTypes, dest) ??
+              t.taskTypeId,
+          );
+        }
         await Promise.all(
-          affected.map((t) => updateTask(t.id, { projectId: dest })),
+          affected.map((t) =>
+            updateTask(t.id, {
+              projectId: dest,
+              taskTypeId: typeRemap.get(t.id)!,
+            }),
+          ),
         );
       } else {
         await Promise.all(affected.map((t) => deleteTask(t.id)));
       }
+      // The deleted project's own task types go with it (US-020).
+      await deleteTaskTypesByProject(target.id);
       await deleteProject(target.id);
 
       setTasks((prev) =>
         dest
           ? prev.map((t) =>
               t.projectId === target.id
-                ? { ...t, projectId: dest, updatedAt: Date.now() }
+                ? {
+                    ...t,
+                    projectId: dest,
+                    taskTypeId: typeRemap.get(t.id) ?? t.taskTypeId,
+                    updatedAt: Date.now(),
+                  }
                 : t,
             )
           : prev.filter((t) => t.projectId !== target.id),
       );
+      setTaskTypes((prev) => prev.filter((tt) => tt.projectId !== target.id));
       setProjects((prev) => prev.filter((p) => p.id !== target.id));
       // If the deleted project was the active tab, fall back to 전체 (US-013).
       setSelectedProjectId((cur) => (cur === target.id ? null : cur));
@@ -395,15 +426,17 @@ export function CalendarApp() {
       }
       setProjectPopover(null);
     },
-    [projectPopover, tasks, projects],
+    [projectPopover, tasks, projects, taskTypes],
   );
 
-  // --- Task-type management (US-012) ----------------------------------------
+  // --- Task-type management (US-012, scoped per project in US-020) -----------
   // One popover handles create (taskType:null) and edit/delete. Task types are
-  // global; renaming or retoning re-shades every bar of that type at once (both
-  // views derive bar colors from the task type in this shared state).
+  // per-project (US-020); renaming or retoning re-shades every bar of that type
+  // at once. `projectId` is the owning project: create uses the active tab's
+  // project; edit uses the type's own project.
   const [taskTypePopover, setTaskTypePopover] = useState<{
     taskType: TaskType | null;
+    projectId: string;
     x: number;
     y: number;
   } | null>(null);
@@ -415,20 +448,27 @@ export function CalendarApp() {
     return m;
   }, [tasks]);
 
+  // Create types for the active tab's project; 전체(통합) view has no project,
+  // so creation is disabled there (the legend shows a prompt instead).
   const openTaskTypeCreate = useCallback(
-    (x: number, y: number) => setTaskTypePopover({ taskType: null, x, y }),
-    [],
+    (x: number, y: number) => {
+      if (!selectedProjectId) return;
+      setTaskTypePopover({ taskType: null, projectId: selectedProjectId, x, y });
+    },
+    [selectedProjectId],
   );
   const openTaskTypeEdit = useCallback(
     (taskType: TaskType, x: number, y: number) =>
-      setTaskTypePopover({ taskType, x, y }),
+      setTaskTypePopover({ taskType, projectId: taskType.projectId, x, y }),
     [],
   );
   const closeTaskTypePopover = useCallback(() => setTaskTypePopover(null), []);
 
   const handleSaveTaskType = useCallback(
     async (draft: TaskTypeDraft) => {
-      const editing = taskTypePopover?.taskType;
+      const pop = taskTypePopover;
+      if (!pop) return;
+      const editing = pop.taskType;
       if (editing) {
         await updateTaskType(editing.id, {
           name: draft.name,
@@ -440,10 +480,13 @@ export function CalendarApp() {
         );
       } else {
         const created = await createTaskType({
+          projectId: pop.projectId,
           name: draft.name,
           mode: draft.mode,
           k: draft.k,
-          order: nextTaskTypeOrder(taskTypes),
+          order: nextTaskTypeOrder(
+            taskTypes.filter((tt) => tt.projectId === pop.projectId),
+          ),
         });
         setTaskTypes((prev) => [...prev, created]);
       }
@@ -452,14 +495,18 @@ export function CalendarApp() {
     [taskTypePopover, taskTypes],
   );
 
-  // Delete a task type (AC4/AC5): its tasks move to the default type (the
-  // remaining type with the smallest order). The default type never reaches
-  // here — the popover hides delete for it.
+  // Delete a task type (AC4/AC5): its tasks move to its project's default type
+  // (the remaining same-project type with the smallest order). The default type
+  // never reaches here — the popover hides delete for it (per project, US-020).
   const handleDeleteTaskType = useCallback(async () => {
     const target = taskTypePopover?.taskType;
     if (!target) return;
-    const dest = defaultTaskTypeId(taskTypes.filter((tt) => tt.id !== target.id));
-    if (!dest) return; // never delete the last task type
+    const dest = defaultTaskTypeId(
+      taskTypes.filter(
+        (tt) => tt.projectId === target.projectId && tt.id !== target.id,
+      ),
+    );
+    if (!dest) return; // never delete the project's last task type
     const affected = tasks.filter((t) => t.taskTypeId === target.id);
 
     await Promise.all(
@@ -513,11 +560,10 @@ export function CalendarApp() {
       <TaskListPanel
         tasks={visibleTasks}
         projects={projects}
-        taskTypes={taskTypes}
         projectsById={projectsById}
         taskTypesById={taskTypesById}
         selectedProjectId={selectedProjectId}
-        projectTaskTypeIds={projectTaskTypeIds}
+        projectTaskTypes={projectTaskTypes}
         onSelectTask={handleSelectTask}
         selectedTaskId={highlightedTaskId}
         onAdd={handleAdd}
@@ -551,9 +597,11 @@ export function CalendarApp() {
           taskType={taskTypePopover.taskType}
           x={taskTypePopover.x}
           y={taskTypePopover.y}
-          taskTypes={taskTypes}
+          taskTypes={taskTypes.filter(
+            (tt) => tt.projectId === taskTypePopover.projectId,
+          )}
           previewColor={
-            (selectedProjectId && projectsById.get(selectedProjectId)?.color) ||
+            projectsById.get(taskTypePopover.projectId)?.color ||
             DEFAULT_PROJECT_COLOR
           }
           taskCount={

@@ -1,5 +1,7 @@
 import Dexie, { type Table } from "dexie";
 import type { Project, TaskType, Task, Marker } from "@/lib/types";
+import { planTaskTypeScopeMigration } from "@/lib/taskType/scope";
+import { newId } from "./util";
 
 /**
  * Local IndexedDB store (Dexie).
@@ -34,6 +36,42 @@ export class CalendarDB extends Dexie {
       tasks: "id, projectId, taskTypeId, startDate, endDate",
       markers: "id, date, kind, projectId",
     });
+    // v3 (US-020): task types become per-project. taskTypes gains a `projectId`
+    // index; the upgrade clones each existing global type into every project,
+    // relinks each task's taskTypeId to its project's clone, and removes the
+    // originals (existing data preserved). A fresh DB opens straight at v3 with
+    // no upgrade — seedIfEmpty seeds the default project's per-project types.
+    this.version(3)
+      .stores({
+        projects: "id, order, visible",
+        taskTypes: "id, projectId, order",
+        tasks: "id, projectId, taskTypeId, startDate, endDate",
+        markers: "id, date, kind, projectId",
+      })
+      .upgrade(async (tx) => {
+        const [projects, globalTaskTypes, tasks] = await Promise.all([
+          tx.table("projects").toArray() as Promise<Project[]>,
+          tx.table("taskTypes").toArray() as Promise<TaskType[]>,
+          tx.table("tasks").toArray() as Promise<Task[]>,
+        ]);
+        if (projects.length === 0 || globalTaskTypes.length === 0) return;
+        const plan = planTaskTypeScopeMigration(
+          projects,
+          globalTaskTypes,
+          tasks,
+          newId,
+          Date.now(),
+        );
+        const types = tx.table("taskTypes");
+        const taskTable = tx.table("tasks");
+        await types.bulkAdd(plan.taskTypes);
+        await Promise.all(
+          plan.relinks.map((r) =>
+            taskTable.update(r.id, { taskTypeId: r.taskTypeId }),
+          ),
+        );
+        await types.bulkDelete(plan.removeTaskTypeIds);
+      });
   }
 }
 

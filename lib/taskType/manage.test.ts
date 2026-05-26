@@ -15,6 +15,7 @@ import {
 /** Build a TaskType with only the fields a given test cares about. */
 function taskType(p: Partial<TaskType> & { id: string }): TaskType {
   return {
+    projectId: "p1",
     name: p.id,
     mode: "tint",
     k: 0.32,

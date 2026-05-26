@@ -1,4 +1,5 @@
 import type { TaskType } from "@/lib/types";
+import { defaultTaskTypesForProject } from "@/lib/taskType/scope";
 import { db } from "./index";
 import { newId, now } from "./util";
 
@@ -18,9 +19,21 @@ export function getTaskType(id: string): Promise<TaskType | undefined> {
   return db.taskTypes.get(id);
 }
 
-/** All task types, ascending by `order`. Globally shared across projects. */
+/** All task types, ascending by `order` (US-020: each carries a projectId). */
 export function getAllTaskTypes(): Promise<TaskType[]> {
   return db.taskTypes.orderBy("order").toArray();
+}
+
+/** A single project's task types, ascending by `order` (US-020). */
+export function getTaskTypesByProject(projectId: string): Promise<TaskType[]> {
+  return db.taskTypes.where("projectId").equals(projectId).sortBy("order");
+}
+
+/** Seed a project's default 4 task types (US-020 AC2). Returns the created rows. */
+export async function seedTaskTypesForProject(projectId: string): Promise<TaskType[]> {
+  const types = defaultTaskTypesForProject(projectId, newId, now());
+  await db.taskTypes.bulkAdd(types);
+  return types;
 }
 
 export async function updateTaskType(id: string, changes: TaskTypeChanges): Promise<void> {
@@ -29,4 +42,9 @@ export async function updateTaskType(id: string, changes: TaskTypeChanges): Prom
 
 export async function deleteTaskType(id: string): Promise<void> {
   await db.taskTypes.delete(id);
+}
+
+/** Delete every task type owned by a project (used when deleting a project). */
+export async function deleteTaskTypesByProject(projectId: string): Promise<void> {
+  await db.taskTypes.where("projectId").equals(projectId).delete();
 }

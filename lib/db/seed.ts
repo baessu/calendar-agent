@@ -1,14 +1,15 @@
 import {
   DEFAULT_PROJECT_COLOR,
   DEFAULT_PROJECT_NAME,
-  TASK_TYPE_TONES,
 } from "@/lib/color/tokens";
+import { defaultTaskTypesForProject } from "@/lib/taskType/scope";
 import { db } from "./index";
 import { newId, now } from "./util";
 
 /**
- * First-run seeding: one default project ("기본") + the 4 global task types
+ * First-run seeding: one default project ("기본") + that project's 4 task types
  * (리서치/회의/작업/마감, lightest → darkest) from docs/design/color-system.md.
+ * Task types are per-project (US-020), so the seeds carry the default project id.
  *
  * Idempotent and race-safe. The empty-check runs INSIDE the rw transaction so
  * concurrent calls (React StrictMode double-invoking the effect in dev, or a
@@ -22,23 +23,15 @@ export async function seedIfEmpty(): Promise<void> {
       db.taskTypes.count(),
     ]);
     if (projectCount > 0 || taskTypeCount > 0) return; // already seeded
+    const projectId = newId();
     await db.projects.add({
-      id: newId(),
+      id: projectId,
       name: DEFAULT_PROJECT_NAME,
       color: DEFAULT_PROJECT_COLOR,
       visible: true,
       order: 0,
       createdAt: ts,
     });
-    await db.taskTypes.bulkAdd(
-      TASK_TYPE_TONES.map((t) => ({
-        id: newId(),
-        name: t.name,
-        mode: t.mode,
-        k: t.k,
-        order: t.order,
-        createdAt: ts,
-      })),
-    );
+    await db.taskTypes.bulkAdd(defaultTaskTypesForProject(projectId, newId, ts));
   });
 }

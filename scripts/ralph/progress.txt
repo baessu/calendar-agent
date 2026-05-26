@@ -503,3 +503,30 @@
   - 인쇄 '포함'은 점(시각 플래그)만으론 내용 누락 → 부록(별도 페이지) 패턴으로 텍스트 본문까지. tasksWithNotesInRange가 인쇄 범위 겹침 필터 담당(전체 visibleTasks 중 그 달들에 걸친 노트만). 공유 스냅샷도 동일 함수 재사용 가능.
   - 멀티주 막대 중복 방지=!seg.contL(선두 세그먼트=막대 시작이 이 주에 있음) 게이트. 마커/막대 등 '일정당 1회' 표시에 재사용 가능한 관용구.
 ---
+
+## 2026-05-26T18:35:00 - US-020
+- 태스크 종류 프로젝트별 전환(전역 공유 폐지). TaskType.projectId 추가 + Dexie v2→v3 마이그레이션(전역 종류를 각 프로젝트로 복제, 일정 taskTypeId 재연결) + 새 프로젝트 4종 자동 시드 + 관리/범례/생성/필터를 현재 프로젝트 종류로 스코프.
+- 순수 로직: lib/taskType/scope.ts(신규) — defaultTaskTypesForProject(projectId,genId,ts)=4종 시드 빌더(시드/새프로젝트 공용), taskTypesForProject(filter+order), planTaskTypeScopeMigration(projects,globalTypes,tasks,genId,ts)=프로젝트×전역종류 clone + (projectId,원본id)→clone 맵으로 task relink + 원본 삭제목록(고아 미연결), matchTaskTypeAcrossProjects(이름→dest 기본 폴백). id/ts 주입이라 Dexie upgrade(실 crypto)와 테스트(결정적)가 같은 경로. manage.ts는 배열 인자라 무변경 — 호출부 subset 전달로 per-project.
+- Dexie v3(lib/db/index.ts): taskTypes 'id, projectId, order' + .upgrade(tx){projects/types/tasks 읽기 → plan → clone bulkAdd → task relink → 원본 bulkDelete; projects/types 0이면 skip}. 신규 DB는 v3 직행(upgrade 미실행) → seedIfEmpty가 per-project 시드.
+- DB: seed.ts seedIfEmpty=기본 프로젝트 + defaultTaskTypesForProject(그 id). taskTypes.ts TaskTypeInput에 projectId 필수, getTaskTypesByProject/seedTaskTypesForProject(AC2)/deleteTaskTypesByProject 추가.
+- CalendarApp: projectTaskTypes memo(selectedProjectId owned, null=전체). handleSaveProject 생성=seedTaskTypesForProject 후 taskTypes append(AC2). handleDeleteProject reassign=matchTaskTypeAcrossProjects로 taskTypeId 재매핑 + deleteTaskTypesByProject. taskTypePopover state에 projectId(생성=selectedProjectId/편집=type.projectId), openTaskTypeCreate 전체뷰 no-op, handleSaveTaskType 생성=pop.projectId+nextTaskTypeOrder(그 프로젝트), handleDeleteTaskType dest=defaultTaskTypeId(같은 프로젝트 잔여)(AC5). TaskTypePopover에 프로젝트별 subset + 그 프로젝트색 previewColor.
+- 팝오버: CreatePopover/EditPopover projectTaskTypes=filter(projectId) memo, selectProject(pid)로 프로젝트 변경 시 종류를 새 프로젝트 첫 종류로 리셋(이벤트 핸들러 — effect setState 회피), 종류 옵션=projectTaskTypes(AC4). Create 전체뷰(projectId='')는 종류 disabled+'프로젝트 먼저 선택'.
+- TaskListPanel: projectTaskTypeIds(used)→projectTaskTypes(owned) prop, 종류 범례가 owned만(AC4), 전체뷰 .ed-type-hint 안내+＋종류 숨김. taskTypes 배열 prop 제거(미사용). hiddenTaskTypeIds는 type id 기준이라 프로젝트별 자동 분리.
+- 파일: lib/types.ts, lib/taskType/{scope.ts(신규),scope.test.ts(신규)}, lib/db/{index.ts,seed.ts,taskTypes.ts,crud.test.ts}, lib/taskType/manage.test.ts, components/calendar/{CalendarApp.tsx,CreatePopover.tsx,EditPopover.tsx,TaskListPanel.tsx}, app/globals.css, scripts/ralph/{prd.json,progress.txt}
+- 품질: typecheck ✓ / lint ✓(0) / test ✓(216 passed: 기존 207 + scope 8 + crud 1). dev GET / 200, SSR 217셀·data-today 1·ed-list·month-name 8, 서버 에러/경고 없음.
+- Needs human browser verification:
+  - 개별 프로젝트 뷰에서 종류 범례가 그 프로젝트 종류만 보이고, 다른 프로젝트로 전환하면 종류 세트가 바뀌는지(프로젝트마다 다른 종류)
+  - 전체(통합) 뷰에서 종류 범례 대신 '프로젝트를 선택하면 종류를 관리할 수 있어요' 안내가 뜨고 ＋종류가 숨는지
+  - 새 프로젝트 생성 시 기본 4종(리서치/회의/작업/마감)이 자동으로 생기고, 그 프로젝트 드래그→등록 종류 select에 그 4종이 뜨는지
+  - 일정 등록/편집에서 프로젝트를 바꾸면 종류 select가 그 프로젝트 종류로 갱신되고 첫 종류로 리셋되는지
+  - 종류 추가/이름·톤 변경/삭제가 그 프로젝트에만 영향(다른 프로젝트 동일 이름 종류 무관)·톤 중복 방지·기본종류 삭제 불가가 프로젝트 단위로 동작하는지(AC5)
+  - 프로젝트 삭제 시 reassign이면 일정이 기본 프로젝트로 가며 종류가 이름 매칭(없으면 기본)으로 재연결되는지, 그 프로젝트 종류가 함께 삭제되는지
+  - **마이그레이션(핵심)**: 기존 v2 사용자(전역 4종)가 새 코드 로드 시 각 프로젝트가 자기 4종을 갖고, 기존 일정 막대 색(톤)이 유지되는지(taskTypeId 재연결) — 헤드리스 불가, 실 브라우저+기존 IndexedDB 필요
+- Learnings for future iterations:
+  - 마이그레이션은 순수 plan 함수(planTaskTypeScopeMigration)로 분리해 단위 테스트, Dexie .upgrade는 그 위 얇은 glue(읽기→plan→bulkAdd/update/bulkDelete). id/ts 주입으로 결정적 테스트 + 실 crypto 양립. fake-indexeddb 테스트는 v3 직행이라 upgrade 콜백 자체는 미실행 — plan 테스트가 AC '마이그레이션 테스트'를 충족.
+  - 전역→per-project 전환의 핵심: manage.ts 함수(defaultTaskTypeId/nextTaskTypeOrder/unusedToneStep/exceedsRecommended)가 전부 배열 인자라 무변경 — 호출부에서 taskTypes.filter(projectId) subset만 넘기면 톤중복·기본보호가 per-project로 자동 동작(AC5). 데이터 모델만 쪼개고 로직은 재사용.
+  - 종류 필터(hiddenTaskTypeIds)는 type id 기준이라 프로젝트별로 저절로 분리됨(다른 프로젝트의 같은 이름 종류는 다른 id). 전체뷰엔 토글 UI 없음(현재 프로젝트 종류만=AC4) — 숨김은 그 프로젝트 뷰에서 해제. US-013/014와 AND 합성 유지.
+  - 팝오버에서 프로젝트 변경 시 종류 리셋은 effect 아닌 onChange 핸들러(selectProject)에서 setState — react-hooks set-state-in-effect 룰 회피(US-008 학습과 동일 원칙). EditPopover는 프로젝트 바꾸면 종류가 새 프로젝트 첫 종류로(구 종류는 타 프로젝트 소속이라 무효).
+  - 프로젝트 삭제 reassign 시 일정이 dest 프로젝트로 가면 taskTypeId도 dest 종류로 재매핑 필수(이름 매칭→기본 폴백). 안 하면 막대가 삭제된 종류 id를 가리켜 색이 깨짐. matchTaskTypeAcrossProjects 재사용.
+  - US-021(마커 프로젝트별)은 같은 패턴: Marker.projectId 필수화 + v3→v4 마이그레이션(기존 마커→기본 프로젝트) + 뷰/토글 필터 합성. 마커는 종류 복제 없이 projectId만 채우면 됨(더 단순). scope.ts의 plan 패턴 참고.
+---

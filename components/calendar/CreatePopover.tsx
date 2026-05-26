@@ -64,16 +64,33 @@ export function CreatePopover({
   // In the merged "전체" view (no defaultProjectId) the project is left unchosen
   // so the user must pick one (US-013 AC4); an individual view preselects it.
   const [projectId, setProjectId] = useState(defaultProjectId ?? "");
-  const [taskTypeId, setTaskTypeId] = useState(taskTypes[0]?.id ?? "");
+  // US-020: task types are per-project, so the 종류 options follow the selected
+  // project. The initial type is the chosen project's first.
+  const [taskTypeId, setTaskTypeId] = useState(
+    () => taskTypes.find((t) => t.projectId === (defaultProjectId ?? ""))?.id ?? "",
+  );
   const [error, setError] = useState<{
     field: "title" | "project";
     msg: string;
   } | null>(null);
 
+  // Types belonging to the currently selected project.
+  const projectTaskTypes = useMemo(
+    () => taskTypes.filter((t) => t.projectId === projectId),
+    [taskTypes, projectId],
+  );
+
   const canSave = useMemo(
     () => projects.length > 0 && taskTypes.length > 0,
     [projects.length, taskTypes.length],
   );
+
+  // Switch the project (and reset 종류 to that project's first type).
+  function selectProject(pid: string) {
+    setProjectId(pid);
+    setTaskTypeId(taskTypes.find((t) => t.projectId === pid)?.id ?? "");
+    if (error?.field === "project") setError(null);
+  }
 
   // Clamp the card inside the viewport once its real size is known.
   useLayoutEffect(() => {
@@ -162,10 +179,7 @@ export function CreatePopover({
                 className="cp-select"
                 value={projectId}
                 aria-invalid={error?.field === "project" ? true : undefined}
-                onChange={(e) => {
-                  setProjectId(e.target.value);
-                  if (error?.field === "project") setError(null);
-                }}
+                onChange={(e) => selectProject(e.target.value)}
               >
                 {/* Merged view: an empty placeholder forces a deliberate pick. */}
                 {!defaultProjectId && (
@@ -185,9 +199,16 @@ export function CreatePopover({
               <select
                 className="cp-select"
                 value={taskTypeId}
+                disabled={!projectId}
                 onChange={(e) => setTaskTypeId(e.target.value)}
               >
-                {taskTypes.map((t) => (
+                {/* No project chosen yet (전체 view): prompt to pick one first. */}
+                {!projectId && (
+                  <option value="" disabled>
+                    프로젝트 먼저 선택
+                  </option>
+                )}
+                {projectTaskTypes.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.name}
                   </option>

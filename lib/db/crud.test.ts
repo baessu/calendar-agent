@@ -3,8 +3,11 @@ import { db } from "./index";
 import { createProject, getAllProjects, getProject, updateProject, deleteProject } from "./projects";
 import {
   createTaskType,
+  deleteTaskTypesByProject,
   getAllTaskTypes,
   getTaskType,
+  getTaskTypesByProject,
+  seedTaskTypesForProject,
   updateTaskType,
   deleteTaskType,
 } from "./taskTypes";
@@ -60,14 +63,41 @@ describe("project CRUD", () => {
 
 describe("task type CRUD", () => {
   it("creates, reads, updates, and deletes", async () => {
-    const created = await createTaskType({ name: "마감", mode: "dark", k: 0.4, order: 0 });
-    expect(await getTaskType(created.id)).toMatchObject({ mode: "dark", k: 0.4 });
+    const created = await createTaskType({
+      projectId: "p1",
+      name: "마감",
+      mode: "dark",
+      k: 0.4,
+      order: 0,
+    });
+    expect(await getTaskType(created.id)).toMatchObject({
+      projectId: "p1",
+      mode: "dark",
+      k: 0.4,
+    });
 
     await updateTaskType(created.id, { name: "데드라인", k: 0.5 });
     expect(await getTaskType(created.id)).toMatchObject({ name: "데드라인", k: 0.5 });
 
     await deleteTaskType(created.id);
     expect(await getTaskType(created.id)).toBeUndefined();
+  });
+
+  it("seeds a project's default 4 types and lists/clears them by project (US-020)", async () => {
+    const seeded = await seedTaskTypesForProject("pA");
+    expect(seeded).toHaveLength(TASK_TYPE_TONES.length);
+    expect(seeded.every((t) => t.projectId === "pA")).toBe(true);
+
+    await seedTaskTypesForProject("pB");
+    expect((await getTaskTypesByProject("pA")).map((t) => t.name)).toEqual(
+      TASK_TYPE_TONES.map((t) => t.name),
+    );
+    expect(await getAllTaskTypes()).toHaveLength(TASK_TYPE_TONES.length * 2);
+
+    await deleteTaskTypesByProject("pA");
+    expect(await getTaskTypesByProject("pA")).toHaveLength(0);
+    // The other project's types are untouched.
+    expect(await getTaskTypesByProject("pB")).toHaveLength(TASK_TYPE_TONES.length);
   });
 });
 
@@ -154,6 +184,8 @@ describe("seedIfEmpty", () => {
     expect(taskTypes.map((t) => `${t.mode}:${t.k}`)).toEqual(
       TASK_TYPE_TONES.map((t) => `${t.mode}:${t.k}`),
     );
+    // US-020: seeded types belong to the default project.
+    expect(taskTypes.every((t) => t.projectId === projects[0].id)).toBe(true);
   });
 
   it("is idempotent (does not duplicate on a second call)", async () => {

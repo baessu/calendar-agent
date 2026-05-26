@@ -86,14 +86,12 @@ interface TaskListPanelProps {
   tasks: Task[];
   /** All projects, ordered — drives the project legend (US-011). */
   projects: Project[];
-  /** All task types, ordered — drives the task-type legend (US-012). */
-  taskTypes: TaskType[];
   projectsById: Map<string, Project>;
   taskTypesById: Map<string, TaskType>;
   /** Active project tab (null = 전체/통합); sets the category swatch hue. */
   selectedProjectId: string | null;
-  /** Task-type ids used by the active project (null = 전체 view → show all). */
-  projectTaskTypeIds: Set<string> | null;
+  /** The active project's own task types (US-020); null = 전체 view → prompt. */
+  projectTaskTypes: TaskType[] | null;
   /** Highlight a task's bar in the calendar. */
   onSelectTask: (id: string) => void;
   /** The task currently highlighted (its row gets an active style). */
@@ -121,11 +119,10 @@ interface TaskListPanelProps {
 export function TaskListPanel({
   tasks,
   projects,
-  taskTypes,
   projectsById,
   taskTypesById,
   selectedProjectId,
-  projectTaskTypeIds,
+  projectTaskTypes,
   onSelectTask,
   selectedTaskId,
   onAdd,
@@ -159,16 +156,6 @@ export function TaskListPanel({
   // Q2: the legend cluster is a collapsible "필터·범례" so the 일정 목록 stays
   // the panel's main content (progressive disclosure). Collapsed by default.
   const [showFilters, setShowFilters] = useState(false);
-
-  // Q1-B: an individual project view narrows the type legend to that project's
-  // used types; 전체 view (or a project with no tasks yet) shows all.
-  const shownTaskTypes = useMemo(
-    () =>
-      projectTaskTypeIds && projectTaskTypeIds.size > 0
-        ? taskTypes.filter((tt) => projectTaskTypeIds.has(tt.id))
-        : taskTypes,
-    [taskTypes, projectTaskTypeIds],
-  );
 
   // Flag active filters on the collapsed bar so hidden state stays visible (P9).
   const hasActiveFilter =
@@ -239,55 +226,64 @@ export function TaskListPanel({
         </div>
       </div>
 
-      {/* Task-type legend (US-012/US-015): tone swatch (previewed on a reference
-          hue) + name chip. Clicking the chip toggles that type's on/off filter
-          (its bars show/hide in both views, ANDs with the project filter);
-          hidden chips render faded (.off, no checkbox). A hover pencil icon opens the
-          manage popover. "＋ 종류" creates one. Task types are global. */}
+      {/* Task-type legend (US-012/US-015, per-project in US-020): tone swatch
+          (previewed on the active project's hue) + name chip. Clicking the chip
+          toggles that type's on/off filter; hidden chips render faded (.off). A
+          pencil icon opens the manage popover. "＋ 종류" creates one for the
+          active project. Task types are per-project, so 전체(통합) view — which
+          has no single project — shows a prompt instead. */}
       <div className="ed-type">
         <div className="ed-proj-head">
           태스크 종류
-          <button
-            type="button"
-            className="mk-add"
-            onClick={(e) => onAddTaskType(e.clientX, e.clientY)}
-          >
-            ＋ 종류
-          </button>
+          {projectTaskTypes && (
+            <button
+              type="button"
+              className="mk-add"
+              onClick={(e) => onAddTaskType(e.clientX, e.clientY)}
+            >
+              ＋ 종류
+            </button>
+          )}
         </div>
-        <div className="ed-proj-list">
-          {shownTaskTypes.map((tt) => {
-            const shown = !hiddenTaskTypeIds.has(tt.id);
-            return (
-              <span key={tt.id} className={`proj-row${shown ? "" : " off"}`}>
-                <button
-                  type="button"
-                  className="proj-name"
-                  onClick={() => onToggleTaskType(tt.id)}
-                  aria-pressed={shown}
-                  aria-label={`${tt.name} 표시/숨김`}
-                  title={shown ? "클릭하여 숨기기" : "클릭하여 표시"}
-                >
-                  <span
-                    className="proj-sw"
-                    style={{ background: applyTone(refColor, tt) }}
-                    aria-hidden
-                  />
-                  {tt.name}
-                </button>
-                <button
-                  type="button"
-                  className="proj-edit"
-                  onClick={(e) => onEditTaskType(tt, e.clientX, e.clientY)}
-                  aria-label={`${tt.name} 태스크 종류 관리`}
-                  title="관리"
-                >
-                  <EditIcon />
-                </button>
-              </span>
-            );
-          })}
-        </div>
+        {projectTaskTypes ? (
+          <div className="ed-proj-list">
+            {projectTaskTypes.map((tt) => {
+              const shown = !hiddenTaskTypeIds.has(tt.id);
+              return (
+                <span key={tt.id} className={`proj-row${shown ? "" : " off"}`}>
+                  <button
+                    type="button"
+                    className="proj-name"
+                    onClick={() => onToggleTaskType(tt.id)}
+                    aria-pressed={shown}
+                    aria-label={`${tt.name} 표시/숨김`}
+                    title={shown ? "클릭하여 숨기기" : "클릭하여 표시"}
+                  >
+                    <span
+                      className="proj-sw"
+                      style={{ background: applyTone(refColor, tt) }}
+                      aria-hidden
+                    />
+                    {tt.name}
+                  </button>
+                  <button
+                    type="button"
+                    className="proj-edit"
+                    onClick={(e) => onEditTaskType(tt, e.clientX, e.clientY)}
+                    aria-label={`${tt.name} 태스크 종류 관리`}
+                    title="관리"
+                  >
+                    <EditIcon />
+                  </button>
+                </span>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="ed-type-hint">
+            프로젝트를 선택하면 종류를 관리할 수 있어요.
+          </p>
+        )}
       </div>
 
       {/* Marker legend (US-017): monochrome chips, distinct from colored bars.
