@@ -43,6 +43,7 @@ import { weekSegments } from "@/lib/calendar/segments";
 import { DEFAULT_MAX_LANES, layoutWeek } from "@/lib/calendar/layout";
 import { groupMarkersByDate } from "@/lib/calendar/markers";
 import { hasNote } from "@/lib/calendar/notes";
+import { HEAT_LEVELS, heatLevel, taskDensityByDate } from "@/lib/calendar/heatmap";
 import { barColors } from "@/lib/color/compose";
 import type { MarkerChanges, MarkerInput } from "@/lib/db";
 import type { DateString, Marker, Project, Task, TaskType } from "@/lib/types";
@@ -229,6 +230,18 @@ export function CalendarView({
 
   // Markers keyed by date so each cell can render its chips (US-017).
   const markersByDate = useMemo(() => groupMarkersByDate(markers), [markers]);
+
+  // --- Density heatmap (US-022) ---------------------------------------------
+  // Only on the 전체(통합) view: shade each cell by how many tasks overlap that
+  // day. Toggling off (or switching to an individual project) restores the plain
+  // grid. The density is computed from the visible tasks so the shading matches
+  // the bars actually shown; monochrome only (color stays on the bars).
+  const [heatmapOn, setHeatmapOn] = useState(false);
+  const heatmapActive = heatmapOn && selectedProjectId === null;
+  const densityByDate = useMemo(
+    () => (heatmapActive ? taskDensityByDate(tasks) : null),
+    [heatmapActive, tasks],
+  );
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const didInitialScroll = useRef(false);
@@ -780,6 +793,17 @@ export function CalendarView({
         <button type="button" className="ed-today ed-print" onClick={openPrint}>
           인쇄
         </button>
+        {/* Heatmap toggle (US-022): only on the 전체(통합) view. Filled when on. */}
+        {selectedProjectId === null && (
+          <button
+            type="button"
+            className={`ed-today heat-toggle${heatmapOn ? " on" : ""}`}
+            aria-pressed={heatmapOn}
+            onClick={() => setHeatmapOn((v) => !v)}
+          >
+            히트맵
+          </button>
+        )}
       </div>
 
       {/* Project tabs (US-013): 전체(통합) + each project, underline-active. The
@@ -828,6 +852,24 @@ export function CalendarView({
           </button>
         ))}
       </div>
+
+      {/* Density shade scale legend (US-022): shown while the heatmap is active.
+          Monochrome swatches from few (light) to many (dark). */}
+      {heatmapActive && (
+        <div className="heat-legend" aria-label="일정 밀도 범례">
+          <span className="heat-legend-label">밀도</span>
+          <span className="heat-legend-scale" aria-hidden>
+            {Array.from({ length: HEAT_LEVELS }, (_, i) => i + 1).map((l) => (
+              <span
+                key={l}
+                className={`heat-sw heat-${l}`}
+                title={l === HEAT_LEVELS ? `${l}개 이상` : `${l}개`}
+              />
+            ))}
+          </span>
+          <span className="heat-legend-ends">적음 → 많음</span>
+        </div>
+      )}
 
       <div
         className={`ed-calwrap${isDragging ? " is-selecting" : ""}${
@@ -878,12 +920,16 @@ export function CalendarView({
                         highlight != null &&
                         isWithinRange(dy.date, highlight.start, highlight.end);
                       const cellMarkers = markersByDate.get(dy.date);
+                      // Density shade (US-022): 0 = none, else heat-1..HEAT_LEVELS.
+                      const heat = densityByDate
+                        ? heatLevel(densityByDate.get(dy.date) ?? 0)
+                        : 0;
                       return (
                         <div
                           key={dy.date}
                           className={`cal-cell${dy.month !== g.month ? " out" : ""}${
                             dy.isToday ? " today" : ""
-                          }${selected ? " sel" : ""}`}
+                          }${heat ? ` heat-${heat}` : ""}${selected ? " sel" : ""}`}
                           data-today={dy.isToday ? "true" : undefined}
                           data-date={dy.date}
                           onPointerDown={(e) => onCellPointerDown(dy.date, e)}
