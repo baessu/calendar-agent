@@ -7,9 +7,11 @@ import {
   defaultTaskTypeId,
   exceedsRecommendedTaskTypes,
   isDefaultTaskType,
+  nearestToneStepIndex,
   nextTaskTypeOrder,
   toneStepIndex,
   unusedToneStep,
+  usedToneStepIndices,
 } from "./manage";
 
 /** Build a TaskType with only the fields a given test cares about. */
@@ -104,6 +106,35 @@ describe("toneStepIndex", () => {
   });
 });
 
+describe("nearestToneStepIndex", () => {
+  it("returns the exact index for an on-ladder tone", () => {
+    expect(nearestToneStepIndex("dark", 0.5)).toBe(0);
+    expect(nearestToneStepIndex("tint", 0.82)).toBe(7);
+  });
+
+  it("maps a legacy off-ladder tone to the nearest step of the same mode", () => {
+    // Old seeds before the 8-step ladder: 마감 dark 0.40, 리서치 tint 0.80.
+    expect(nearestToneStepIndex("dark", 0.4)).toBe(1); // dark 0.43, not 0.36
+    expect(nearestToneStepIndex("tint", 0.8)).toBe(7); // tint 0.82
+  });
+
+  it("never crosses dark↔tint even when the other mode's k is closer", () => {
+    // tint 0.30 is numerically nearer dark 0.36, but mode must match → tint 0.32.
+    expect(nearestToneStepIndex("tint", 0.3)).toBe(3);
+  });
+});
+
+describe("usedToneStepIndices", () => {
+  it("claims each type's nearest step, including legacy tones", () => {
+    const used = usedToneStepIndices([
+      { mode: "dark", k: 0.4 }, // → step 1
+      { mode: "tint", k: 0.8 }, // → step 7
+      { mode: "tint", k: 0.32 }, // → step 3
+    ]);
+    expect([...used].sort((a, b) => a - b)).toEqual([1, 3, 7]);
+  });
+});
+
 describe("unusedToneStep", () => {
   it("recommends the darkest step when none are used", () => {
     expect(unusedToneStep([])).toEqual(TONE_STEPS[0]);
@@ -115,6 +146,13 @@ describe("unusedToneStep", () => {
       { mode: TONE_STEPS[1].mode, k: TONE_STEPS[1].k },
     ];
     expect(unusedToneStep(used)).toEqual(TONE_STEPS[2]);
+  });
+
+  it("skips the nearest step of a legacy off-ladder tone", () => {
+    // dark 0.40 claims step 1 (dark 0.43); the first free step is step 0.
+    const rec = unusedToneStep([{ mode: "dark", k: 0.4 }]);
+    expect(usedToneStepIndices([rec])).not.toContain(1);
+    expect(rec).toEqual(TONE_STEPS[0]);
   });
 
   it("falls back to the darkest step once all are used", () => {

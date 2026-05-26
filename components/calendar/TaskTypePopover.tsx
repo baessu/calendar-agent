@@ -24,7 +24,9 @@ import {
   type ToneStep,
   exceedsRecommendedTaskTypes,
   isDefaultTaskType,
+  nearestToneStepIndex,
   unusedToneStep,
+  usedToneStepIndices,
 } from "@/lib/taskType/manage";
 import type { TaskType } from "@/lib/types";
 
@@ -75,9 +77,12 @@ export function TaskTypePopover({
     : false;
 
   const [name, setName] = useState(taskType?.name ?? "");
+  // Editing snaps a (possibly legacy) tone to its nearest ladder step so a
+  // swatch is always highlighted and saving nudges old tones back onto the
+  // ladder; creating recommends the first unclaimed step.
   const [tone, setTone] = useState<ToneStep>(
     taskType
-      ? { mode: taskType.mode, k: taskType.k }
+      ? TONE_STEPS[nearestToneStepIndex(taskType.mode, taskType.k)]
       : unusedToneStep(taskTypes),
   );
   const [error, setError] = useState<string | null>(null);
@@ -87,12 +92,11 @@ export function TaskTypePopover({
   const showRecommendNote =
     !taskType && exceedsRecommendedTaskTypes(taskTypes.length);
 
-  // Tones already taken by OTHER task types — shown but not selectable so each
-  // type keeps a distinct tone. The editing type's own tone stays allowed.
-  const usedTones = new Set(
-    taskTypes
-      .filter((tt) => tt.id !== taskType?.id)
-      .map((tt) => `${tt.mode}:${tt.k}`),
+  // Ladder steps already taken by OTHER task types — shown but not selectable so
+  // each type keeps a distinct tone. Matched by nearest step so legacy off-ladder
+  // tones still block their slot. The editing type's own tone stays allowed.
+  const usedSteps = usedToneStepIndices(
+    taskTypes.filter((tt) => tt.id !== taskType?.id),
   );
 
   // Clamp the card inside the viewport once its real size is known.
@@ -181,7 +185,7 @@ export function TaskTypePopover({
             <div className="pp-palette" role="radiogroup" aria-label="톤 단계">
               {TONE_STEPS.map((s, i) => {
                 const selected = s.mode === tone.mode && s.k === tone.k;
-                const used = !selected && usedTones.has(`${s.mode}:${s.k}`);
+                const used = !selected && usedSteps.has(i);
                 return (
                   <button
                     key={`${s.mode}-${s.k}`}

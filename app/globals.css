@@ -582,6 +582,7 @@ body {
  * white; the chosen step gets a black ring (UI chrome stays monochrome).
  */
 .tt-sw {
+  position: relative;
   width: 22px;
   height: 22px;
   border-radius: 50%;
@@ -597,10 +598,24 @@ body {
 .tt-sw:focus-visible {
   outline: 2px solid var(--text);
 }
-/* Tone already used by another task type: shown but dimmed + not selectable. */
+/* Tone already used by another task type: dimmed, struck through, not selectable. */
 .tt-sw.used {
-  opacity: 0.3;
+  opacity: 0.4;
   cursor: not-allowed;
+}
+.tt-sw.used::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 50%;
+  /* A hairline diagonal slash = the universal "unavailable" mark. */
+  background: linear-gradient(
+    to top right,
+    transparent calc(50% - 0.75px),
+    var(--text) calc(50% - 0.75px),
+    var(--text) calc(50% + 0.75px),
+    transparent calc(50% + 0.75px)
+  );
 }
 .tt-sw.used:hover {
   outline: none;

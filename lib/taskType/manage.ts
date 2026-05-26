@@ -77,15 +77,48 @@ export function toneStepIndex(mode: ToneMode, k: number): number {
 }
 
 /**
- * A recommended tone for a new task type: the first step not already used,
+ * The ladder step index closest to an arbitrary tone — including legacy tones
+ * left by earlier app versions whose k no longer sits exactly on the ladder
+ * (e.g. an old 마감 dark 0.40 / 리서치 tint 0.80). Same mode is required first
+ * (a dark tone never maps to a tint step) so the resulting color stays faithful;
+ * the nearest k within that mode wins. Lets the used-tone check work regardless
+ * of how the existing types were seeded.
+ */
+export function nearestToneStepIndex(mode: ToneMode, k: number): number {
+  let best = 0;
+  let bestD = Infinity;
+  TONE_STEPS.forEach((s, i) => {
+    // Heavily penalize a mode mismatch so we never cross dark↔tint.
+    const d = Math.abs(s.k - k) + (s.mode === mode ? 0 : 100);
+    if (d < bestD) {
+      bestD = d;
+      best = i;
+    }
+  });
+  return best;
+}
+
+/**
+ * The ladder step indices already claimed by these task types — each type maps
+ * to its nearest step (see nearestToneStepIndex), so even legacy off-ladder
+ * tones occupy a slot. The picker disables these so two types in a project
+ * never share a tone.
+ */
+export function usedToneStepIndices(
+  taskTypes: Pick<TaskType, "mode" | "k">[],
+): Set<number> {
+  return new Set(taskTypes.map((t) => nearestToneStepIndex(t.mode, t.k)));
+}
+
+/**
+ * A recommended tone for a new task type: the first step not already claimed,
  * matching the unused-color idea from project management. Falls back to the
- * darkest step once all four are in use.
+ * darkest step once all eight are in use.
  */
 export function unusedToneStep(
   taskTypes: Pick<TaskType, "mode" | "k">[],
 ): ToneStep {
-  const used = new Set(taskTypes.map((t) => `${t.mode}:${t.k}`));
-  return (
-    TONE_STEPS.find((s) => !used.has(`${s.mode}:${s.k}`)) ?? TONE_STEPS[0]
-  );
+  const used = usedToneStepIndices(taskTypes);
+  const i = TONE_STEPS.findIndex((_, idx) => !used.has(idx));
+  return i === -1 ? TONE_STEPS[0] : TONE_STEPS[i];
 }
