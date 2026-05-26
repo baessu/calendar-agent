@@ -390,8 +390,8 @@
         "Typecheck passes"
       ],
       "priority": 11,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "DEFERRED — v2 phase 4 (외부 공유/백엔드). Ralph 대상 아님, 수동 구현 예정."
     },
     {
       "id": "US-024",
@@ -406,8 +406,8 @@
         "Verify in browser: 공유 링크로 보기/인쇄"
       ],
       "priority": 11,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "DEFERRED — v2 phase 4 (외부 공유/백엔드). Ralph 대상 아님, 수동 구현 예정."
     },
     {
       "id": "US-025",
@@ -421,8 +421,8 @@
         "Verify in browser: 공유 켜기/링크복사/해제"
       ],
       "priority": 12,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "DEFERRED — v2 phase 4 (외부 공유/백엔드). Ralph 대상 아님, 수동 구현 예정."
     }
   ]
 }
