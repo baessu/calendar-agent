@@ -37,7 +37,11 @@ import {
   filterTasksByVisibleProjects,
 } from "@/lib/calendar/view";
 import { DEFAULT_PROJECT_COLOR } from "@/lib/color/tokens";
-import { defaultProjectId, nextProjectOrder } from "@/lib/project/manage";
+import {
+  defaultProjectId,
+  nextProjectOrder,
+  reorderProjects,
+} from "@/lib/project/manage";
 import {
   defaultTaskTypeId,
   nextTaskTypeOrder,
@@ -331,6 +335,25 @@ export function CalendarApp() {
     [projectPopover, projects],
   );
 
+  // Reorder projects by drag (US-018): move `fromId` into `toId`'s slot, renumber
+  // order, and persist only the projects whose order changed. The shared state
+  // drives the tabs, the legend, and every view, so the new order lands at once
+  // and survives a refresh (order is in IndexedDB).
+  const handleReorderProject = useCallback(
+    async (fromId: string, toId: string) => {
+      const reordered = reorderProjects(projects, fromId, toId);
+      if (reordered === projects) return; // no-op
+      const prevOrder = new Map(projects.map((p) => [p.id, p.order]));
+      await Promise.all(
+        reordered
+          .filter((p) => prevOrder.get(p.id) !== p.order)
+          .map((p) => updateProject(p.id, { order: p.order })),
+      );
+      setProjects(reordered);
+    },
+    [projects],
+  );
+
   // Delete a project (AC4/AC5). `reassign` moves its tasks to the default
   // project; `deleteTasks` removes them too. Default project never reaches here
   // (the popover hides delete for it).
@@ -473,6 +496,7 @@ export function CalendarApp() {
         taskTypesById={taskTypesById}
         selectedProjectId={selectedProjectId}
         onSelectProject={handleSelectProject}
+        onReorderProject={handleReorderProject}
         onCreateTask={handleCreateTask}
         onUpdateTask={handleUpdateTask}
         onMoveTask={handleMoveTask}

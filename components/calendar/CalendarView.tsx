@@ -84,6 +84,15 @@ function dateUnderPoint(x: number, y: number): DateString | null {
   return null;
 }
 
+/** The project tab id directly under a viewport point, or null if none (US-018). */
+function projectTabUnderPoint(x: number, y: number): string | null {
+  for (const el of document.elementsFromPoint(x, y)) {
+    const tab = (el as HTMLElement).closest?.<HTMLElement>("[data-project-tab]");
+    if (tab?.dataset.projectTab) return tab.dataset.projectTab;
+  }
+  return null;
+}
+
 /** Which day of `week` a horizontal viewport position falls on (0=Sun..6=Sat). */
 function dateAtClientX(weekEl: HTMLElement, week: CalendarWeek, clientX: number): DateString {
   const rect = weekEl.getBoundingClientRect();
@@ -130,6 +139,8 @@ interface CalendarViewProps {
   selectedProjectId: string | null;
   /** Switch the active project tab. */
   onSelectProject: (id: string | null) => void;
+  /** Reorder project tabs by drag — move `fromId` into `toId`'s slot (US-018). */
+  onReorderProject: (fromId: string, toId: string) => Promise<void> | void;
   /** Persist a new task across the committed selection. */
   onCreateTask: (input: NewTaskInput) => Promise<void> | void;
   /** Patch an existing task (title/dates/project/task-type) — US-009. */
@@ -165,6 +176,7 @@ export function CalendarView({
   taskTypesById,
   selectedProjectId,
   onSelectProject,
+  onReorderProject,
   onCreateTask,
   onUpdateTask,
   onMoveTask,
@@ -553,6 +565,81 @@ export function CalendarView({
     };
   }, [onMoveTask]);
 
+  // --- Drag a project tab to reorder (US-018) -------------------------------
+  // A press on a project tab records a candidate drag; once travel passes
+  // MOVE_THRESHOLD it becomes a reorder (else it stays a click -> view switch,
+  // US-013, AC4). The tab under the pointer is the drop target; releasing
+  // persists the new order via onReorderProject. justReorderedRef swallows the
+  // trailing click so a reorder doesn't also switch the view.
+  const tabDragRef = useRef<{
+    fromId: string;
+    startX: number;
+    startY: number;
+    moved: boolean;
+    overId: string | null;
+  } | null>(null);
+  const justReorderedRef = useRef(false);
+  const [draggingProjectId, setDraggingProjectId] = useState<string | null>(null);
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
+
+  const onTabPointerDown = useCallback((projectId: string, e: React.PointerEvent) => {
+    if (e.button !== 0) return; // primary button only
+    justReorderedRef.current = false;
+    tabDragRef.current = {
+      fromId: projectId,
+      startX: e.clientX,
+      startY: e.clientY,
+      moved: false,
+      overId: null,
+    };
+  }, []);
+
+  useEffect(() => {
+    function onMove(e: PointerEvent) {
+      const d = tabDragRef.current;
+      if (!d) return;
+      if (!d.moved) {
+        if (
+          Math.abs(e.clientX - d.startX) < MOVE_THRESHOLD &&
+          Math.abs(e.clientY - d.startY) < MOVE_THRESHOLD
+        ) {
+          return;
+        }
+        d.moved = true;
+        setDraggingProjectId(d.fromId);
+      }
+      const over = projectTabUnderPoint(e.clientX, e.clientY);
+      d.overId = over;
+      setDropTargetId(over && over !== d.fromId ? over : null);
+    }
+    function onUp() {
+      const d = tabDragRef.current;
+      if (!d) return;
+      tabDragRef.current = null;
+      setDraggingProjectId(null);
+      setDropTargetId(null);
+      if (!d.moved) return; // a plain click -> let onClick switch the view
+      justReorderedRef.current = true;
+      if (d.overId && d.overId !== d.fromId) {
+        void onReorderProject(d.fromId, d.overId);
+      }
+    }
+    function onCancel() {
+      if (!tabDragRef.current) return;
+      tabDragRef.current = null;
+      setDraggingProjectId(null);
+      setDropTargetId(null);
+    }
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onCancel);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onCancel);
+    };
+  }, [onReorderProject]);
+
   // --- Markers: add / click-to-edit (US-017) --------------------------------
   // One popover handles both create (marker:null) and edit. Opening it clears any
   // pending task create/edit so the popovers stay mutually exclusive.
@@ -698,7 +785,11 @@ export function CalendarView({
           merged view shows all bars (distinguished by hue); an individual tab
           filters to that project (task-type tone preserved). Project identity
           colors are allowed on the dot (color-system §2), unlike grid chrome. */}
-      <div className="ptabs" role="tablist" aria-label="프로젝트 뷰">
+      <div
+        className={`ptabs${draggingProjectId ? " is-reordering" : ""}`}
+        role="tablist"
+        aria-label="프로젝트 뷰"
+      >
         <button
           type="button"
           role="tab"
@@ -708,14 +799,28 @@ export function CalendarView({
         >
           전체
         </button>
+        {/* Each project tab switches the view on click and reorders on drag
+            (US-018). data-project-tab lets the drop target be found by point. */}
         {projects.map((p) => (
           <button
             key={p.id}
             type="button"
             role="tab"
             aria-selected={selectedProjectId === p.id}
-            className={`ptab${selectedProjectId === p.id ? " on" : ""}`}
-            onClick={() => onSelectProject(p.id)}
+            data-project-tab={p.id}
+            className={`ptab${selectedProjectId === p.id ? " on" : ""}${
+              p.id === draggingProjectId ? " tab-dragging" : ""
+            }${p.id === dropTargetId ? " drop-target" : ""}`}
+            onPointerDown={(e) => onTabPointerDown(p.id, e)}
+            onClick={() => {
+              // Swallow the click that trails a committed reorder so the drag
+              // doesn't also switch the view (AC4: click vs drag).
+              if (justReorderedRef.current) {
+                justReorderedRef.current = false;
+                return;
+              }
+              onSelectProject(p.id);
+            }}
           >
             <span className="pd" style={{ background: p.color }} aria-hidden />
             {p.name}

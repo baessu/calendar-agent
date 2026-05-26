@@ -306,8 +306,8 @@
         "Verify in browser: 드래그로 순서가 바뀌고 유지"
       ],
       "priority": 8,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "lib/project/manage.ts reorderProjects(projects,fromId,toId): from을 to 슬롯으로 이동 후 order 0..n-1 재번호. 방향성 드롭 — 앞으로 끌면 타깃 뒤, 뒤로 끌면 타깃 앞(splice out 후 원본 toIndex 삽입에서 자연 도출). no-op(같은 id/미존재 id)은 입력 동일참조 반환(쓰기 스킵). +9 단위 테스트(no-op 2/전진·후진·인접스왑·재번호·순서보존·단일). CalendarView: 상단 프로젝트 탭(.ptabs, AC4 '클릭(뷰 전환)'이 탭 동작이라 사이드 범례 대신 탭에 구현)에 pointer 기반 드래그. tabDragRef(fromId/startX/Y/moved/overId)+justReorderedRef. onTabPointerDown(기본버튼만)→후보 기록(preventDefault 미사용=click 신뢰성). window pointermove: MOVE_THRESHOLD 4px 넘으면 moved=true→draggingProjectId, projectTabUnderPoint(elementsFromPoint→[data-project-tab])로 드롭타깃→dropTargetId. pointerup: moved & overId!=from이면 justReorderedRef=true 후 onReorderProject, 아니면 onClick이 뷰 전환(AC4 click vs drag, US-010 패턴 재사용). pointercancel 리셋. 탭에 data-project-tab + onClick은 justReordered면 swallow. CalendarApp: handleReorderProject(reorderProjects→no-op면 return, order 바뀐 프로젝트만 updateProject{order} 병렬 영속→setProjects(reordered)) — 공유 projects state라 탭·범례·뷰·CreatePopover select 전반에 새 순서 즉시 반영(AC3), Dexie 영속으로 새로고침 유지(AC2). getAllProjects가 order 정렬이라 로드 시 순서 복원. globals.css: .ptabs.is-reordering .ptab(grabbing+user-select none)/.ptab.tab-dragging(opacity .45)/.ptab.drop-target(var(--sel) 모노크롬 틴트, 그림자 없음). defaultProjectId는 createdAt 기준이라 재정렬 무관(기본 프로젝트 불변). 197 tests green(+9). typecheck ✓ / lint ✓(0) / dev GET / 200, SSR .ptabs+전체 탭+cal-cell 217(프로젝트별 탭은 클라 DB 로드 후 마운트), 서버 에러/경고 없음."
     },
     {
       "id": "US-019",

@@ -49,3 +49,33 @@ export function unusedProjectColor(projects: Pick<Project, "color">[]): string {
 export function nextProjectOrder(projects: Pick<Project, "order">[]): number {
   return projects.reduce((max, p) => Math.max(max, p.order + 1), 0);
 }
+
+/**
+ * Reorder projects by moving the dragged project (`fromId`) to the slot held by
+ * the drop target (`toId`), then renumber every `order` to its new index
+ * (0..n-1) so the array sequence and the stored order stay in lockstep (US-018).
+ *
+ * The move is directional, matching the drag gesture: dragging forward lands the
+ * project just after the target, dragging backward lands it just before — which
+ * falls out naturally from inserting at the target's original index after the
+ * source is spliced out. Unrelated projects keep their relative order.
+ *
+ * Returns the input array unchanged (same reference) on a no-op — same id, or an
+ * id not present — so callers can skip the write.
+ */
+export function reorderProjects(
+  projects: Project[],
+  fromId: string,
+  toId: string,
+): Project[] {
+  if (fromId === toId) return projects;
+  const fromIndex = projects.findIndex((p) => p.id === fromId);
+  const toIndex = projects.findIndex((p) => p.id === toId);
+  if (fromIndex === -1 || toIndex === -1) return projects;
+
+  const next = [...projects];
+  const [moved] = next.splice(fromIndex, 1);
+  next.splice(toIndex, 0, moved);
+  // Renumber to the new sequence; keep referential identity where order is same.
+  return next.map((p, i) => (p.order === i ? p : { ...p, order: i }));
+}

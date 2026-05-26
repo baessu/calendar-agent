@@ -5,6 +5,7 @@ import {
   defaultProjectId,
   isDefaultProject,
   nextProjectOrder,
+  reorderProjects,
   unusedProjectColor,
 } from "./manage";
 
@@ -77,5 +78,59 @@ describe("nextProjectOrder", () => {
 
   it("is one past the current max order", () => {
     expect(nextProjectOrder([{ order: 0 }, { order: 2 }, { order: 1 }])).toBe(3);
+  });
+});
+
+describe("reorderProjects", () => {
+  const ps = () => [
+    project({ id: "a", order: 0 }),
+    project({ id: "b", order: 1 }),
+    project({ id: "c", order: 2 }),
+    project({ id: "d", order: 3 }),
+  ];
+
+  it("returns the same reference for a no-op (same id)", () => {
+    const input = ps();
+    expect(reorderProjects(input, "a", "a")).toBe(input);
+  });
+
+  it("returns the same reference when an id is missing", () => {
+    const input = ps();
+    expect(reorderProjects(input, "x", "b")).toBe(input);
+    expect(reorderProjects(input, "a", "x")).toBe(input);
+  });
+
+  it("drops a forward-dragged project after the target", () => {
+    const r = reorderProjects(ps(), "a", "c");
+    expect(r.map((p) => p.id)).toEqual(["b", "c", "a", "d"]);
+  });
+
+  it("drops a backward-dragged project before the target", () => {
+    const r = reorderProjects(ps(), "d", "b");
+    expect(r.map((p) => p.id)).toEqual(["a", "d", "b", "c"]);
+  });
+
+  it("swaps two adjacent projects", () => {
+    const r = reorderProjects(ps(), "b", "a");
+    expect(r.map((p) => p.id)).toEqual(["b", "a", "c", "d"]);
+  });
+
+  it("renumbers order to the new 0..n-1 sequence", () => {
+    const r = reorderProjects(ps(), "a", "c");
+    // sequence is b, c, a, d → order equals index
+    expect(r.map((p) => p.order)).toEqual([0, 1, 2, 3]);
+    expect(r.find((p) => p.id === "a")!.order).toBe(2);
+    expect(r.find((p) => p.id === "b")!.order).toBe(0);
+    expect(r.find((p) => p.id === "d")!.order).toBe(3);
+  });
+
+  it("preserves the relative order of untouched projects", () => {
+    const r = reorderProjects(ps(), "b", "d");
+    expect(r.map((p) => p.id)).toEqual(["a", "c", "d", "b"]);
+  });
+
+  it("is a no-op for a single-project list", () => {
+    const one = [project({ id: "a", order: 0 })];
+    expect(reorderProjects(one, "a", "a")).toBe(one);
   });
 });

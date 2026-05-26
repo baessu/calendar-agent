@@ -450,3 +450,33 @@
   - seg.contL/contR(US-005 weekSegments의 주-연속 플래그)이 핸들 배치의 핵심 — 분할 막대에서 엣지 소유 세그먼트 판별에 그대로 활용. 새 엣지 affordance도 이 플래그를 기준으로.
   - **전 스토리(US-001~017) passes:true.** 무한 스크롤 캘린더 + 드래그 생성/이동/리사이즈 + 레인 패킹 + 프로젝트/종류 관리 + 뷰 필터 + 마커까지 v1 기능 완결. 미해결 open question(가상화 시점, 영문 Plain woff2 호스팅, 완료 체크)은 v1 비범위.
 ---
+
+## 2026-05-26T18:12:00 - US-018
+- 프로젝트 순서 수동 변경(드래그 정렬). 상단 프로젝트 탭(.ptabs)에서 드래그로 재정렬, 클릭=뷰 전환 유지. v2 phase의 첫 스토리(US-001~017 이후).
+- 순수 로직 분리: `lib/project/manage.ts` reorderProjects(projects, fromId, toId)
+  - from을 to 슬롯으로 이동(splice out 후 원본 toIndex에 삽입) → 방향성 드롭: 앞으로 끌면 타깃 '뒤', 뒤로 끌면 타깃 '앞'(제거가 from<to일 때 타깃을 왼쪽으로 당기는 산술에서 자연 도출). 이후 order를 0..n-1 재번호(순서 동일하면 객체 동일참조 유지).
+  - no-op(fromId===toId, 또는 미존재 id)은 입력 배열 동일참조 반환 → 호출부가 DB 쓰기 스킵.
+  - +9 단위 테스트(no-op 같은id/미존재id, 전진 드롭=타깃뒤, 후진 드롭=타깃앞, 인접 스왑, order 재번호 0..n-1, 무관 프로젝트 순서 보존, 단일 프로젝트 no-op).
+- `components/calendar/CalendarView.tsx`:
+  - projectTabUnderPoint(x,y)=elementsFromPoint로 [data-project-tab] 찾기(dateUnderPoint와 동형). 각 프로젝트 탭에 data-project-tab=id.
+  - tabDragRef{fromId,startX,startY,moved,overId} = window 핸들러 진실원본 + justReorderedRef(이동 후 트레일링 click 흡수). draggingProjectId/dropTargetId state = 시각용.
+  - onTabPointerDown(기본버튼만): 후보 기록. preventDefault 미사용(US-010과 동일 — click 신뢰성, 텍스트선택은 CSS user-select:none으로 차단).
+  - window pointermove: MOVE_THRESHOLD(4px, US-010 상수 재사용) 넘으면 moved=true→draggingProjectId. projectTabUnderPoint로 드롭타깃→dropTargetId(자기 자신이면 null). pointerup: moved면 justReorderedRef=true 후 overId!=fromId일 때만 onReorderProject, moved 아니면(짧은 클릭) onClick이 뷰 전환(AC4 click vs drag). pointercancel 리셋.
+  - 탭 onClick: justReorderedRef면 swallow+리셋(드래그 직후 뷰 전환 안 됨), 아니면 onSelectProject. 전체(통합) 탭은 프로젝트 아님 → 드래그 핸들러/데이터속성 없음(재정렬 비대상).
+- `components/calendar/CalendarApp.tsx`: handleReorderProject(fromId,toId) — reorderProjects 후 no-op이면 return, order가 바뀐 프로젝트만 updateProject({order}) 병렬 영속 + setProjects(reordered). 공유 projects state라 탭·사이드 범례·CreatePopover/EditPopover 종류·프로젝트 select·뷰 전반에 새 순서 즉시 반영(AC3). onReorderProject prop 전달.
+- `app/globals.css`: .ptabs.is-reordering .ptab(grabbing 커서 + user-select:none)/.ptab.tab-dragging(opacity .45 — 드래그 중 dim)/.ptab.drop-target(var(--sel) 모노크롬 틴트로 착지 위치 표시). 그림자 없음(스위스 규칙) — 색은 .pd 점에만(프로젝트 정체성, color-system §2).
+- 파일: lib/project/{manage.ts,manage.test.ts}, components/calendar/{CalendarView.tsx,CalendarApp.tsx}, app/globals.css, scripts/ralph/{prd.json,progress.txt}
+- 품질: typecheck ✓ / lint ✓(0 errors/0 warnings) / test ✓(197 passed: 기존 188 + 신규 9 reorderProjects). dev GET / 200, SSR에 .ptabs 컨테이너 + 전체 탭 + cal-cell 217 렌더(프로젝트별 탭은 클라 DB 로드 후 마운트라 SSR엔 전체 탭만, 정상), 서버 에러/경고 없음.
+- Needs human browser verification:
+  - 프로젝트 탭을 잡고 좌우로 끌면 끌리는 탭이 흐려지고(dim) 드롭 위치 탭에 모노크롬 틴트가 뜨는지, 놓으면 순서가 바뀌는지
+  - 짧은 클릭은 그 프로젝트 뷰로 전환되고(이동 없음), 4px 넘게 끌면 뷰 전환 없이 순서만 바뀌는지(AC4 click vs drag)
+  - 바뀐 순서가 우측 사이드 범례(프로젝트 목록)·생성/편집 팝오버의 프로젝트 select에도 동일하게 반영되는지(AC3 '전반에 새 순서')
+  - 새로고침 후에도 순서가 유지되는지(IndexedDB order 인덱스, getAllProjects 정렬)
+  - '전체' 탭은 드래그 대상이 아니고(고정 첫 위치), 기본 프로젝트도 재정렬해도 여전히 기본(삭제 불가) 유지되는지
+- Learnings for future iterations:
+  - 드래그 재정렬은 US-010(막대 이동) 패턴 그대로 재사용: pointerdown 후보 기록 → window pointermove 4px 임계 → pointerup 커밋, justXxxRef로 트레일링 click 무력화. 막대=move, 탭=reorder로 의미만 다름. preventDefault 대신 user-select:none CSS(click 신뢰성).
+  - AC1 '탭 또는 사이드 범례' 중 탭을 택한 이유=AC4가 '클릭(뷰 전환)'을 명시 → 뷰 전환은 탭의 동작이라 탭이 자연스러움. 사이드 범례 클릭은 가시성 토글/편집이라 다른 의미. 향후 범례 드래그도 원하면 같은 reorderProjects + proj-row에 동형 핸들러 얹기 가능.
+  - reorderProjects는 order를 0..n-1로 정규화 → 기존 비연속 order(시드+nextProjectOrder로 max+1 증가분)가 첫 재정렬 시 콤팩트해짐. 무해(getAllProjects는 order 정렬만 사용). handleReorderProject는 바뀐 것만 써서 쓰기 최소화.
+  - defaultProjectId는 createdAt→id 기반이라 order 변경과 무관 → 재정렬해도 기본 프로젝트(삭제 불가/고아 이동 대상) 불변. 안전.
+  - 여러 window pointer 리스너(셀 선택/막대 이동/막대 리사이즈/탭 재정렬)가 공존하지만 각자 ref(draggingRef/barDragRef/barResizeRef/tabDragRef)로 게이트 → 서로 early-return, 무간섭. 탭 pointerdown은 .ptabs 영역이라 셀/막대와 물리적으로도 분리.
+---

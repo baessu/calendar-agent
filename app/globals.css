@@ -150,6 +150,19 @@ body {
   border-radius: 2px;
   flex: none;
 }
+/* Drag-to-reorder project tabs (US-018). Monochrome chrome — only the .pd dot
+   keeps the project color. The dragged tab dims; the drop target fills with the
+   monochrome selection tint to mark where it will land. No shadows. */
+.ptabs.is-reordering .ptab {
+  cursor: grabbing;
+  user-select: none;
+}
+.ptab.tab-dragging {
+  opacity: 0.45;
+}
+.ptab.drop-target {
+  background: var(--sel);
+}
 
 /* Scroll container for the continuous months. */
 .ed-calwrap {
