@@ -291,6 +291,138 @@
       "priority": 4,
       "passes": true,
       "notes": "lib/calendar/markers.ts groupMarkersByDate(markers): 날짜별 버킷 + 버킷 내 정렬(데드라인 우선 → createdAt 오름차순) 순수 함수 + 5 단위 테스트(빈/단일/다중날짜/데드라인우선/동종 createdAt 정렬). components/calendar/MarkerPopover.tsx(신규): 생성/편집 겸용 — kind 토글(⚑데드라인/◆이벤트 모노크롬 세그먼트, aria radiogroup) + 라벨 input(trim 빈값 차단 '라벨을 입력하세요') + native date input. marker?=null이면 생성(기본 deadline·defaultDate), 있으면 편집(prefill)+2단계 인라인 삭제 확인(native confirm 미사용, cp-foot/cp-confirm 재사용). ESC/✕/투명 backdrop 닫힘, 뷰포트 클램프, cpIn. CalendarView: markers props + markersByDate=groupMarkersByDate. 셀 daynum 뒤에 마커 칩(button.mk .mk-dl/.mk-ev, '⚑/◆ 라벨', onPointerDown stopPropagation으로 드래그선택 비차단, onClick→openMarkerEdit at clientX/Y). markerPopover state{marker,date,x,y} 생성/편집 겸용, openMarkerCreate(closeTaskPopovers 후)/openMarkerEdit, handleMarkerSave(marker면 onUpdateMarker, 아니면 onCreateMarker)/handleMarkerDelete. markerAddNonce effect(rAF)→openMarkerCreate(today, 중앙). CalendarApp: markers state + getAllMarkers 로드, handleCreate/Update/DeleteMarker(DB + setMarkers 미러링 → 캘린더 칩 즉시 갱신), markerAddNonce/handleAddMarker. TaskListPanel: ed-legend-row 마커 범례(mk-dl ⚑데드라인 / mk-ev ◆이벤트) + ＋마커 버튼(onAddMarker). globals.css: .mk/.mk-dl(검은 채움)/.mk-ev(외곽선) 칩(F탭 미러, button reset+focus 링), .ed-legend-row, .mk-add, .mk-kinds/.mk-kind(.on 검은 채움) 토글. 색은 막대에만 규칙 유지(마커=흑백). projectId는 v1 미설정(open question §6). 117 tests green(+5). typecheck ✓ / lint ✓(0) / dev GET / 200, SSR에 ed-legend-row/mk-dl/mk-ev/데드라인/이벤트/＋마커 + cal-cell 217·ed-list 렌더, 서버 에러/경고 없음(셀 마커 칩·팝오버는 클라 DB 로드 후 마운트 = SSR엔 범례만, 정상)."
+    },
+    {
+      "id": "US-018",
+      "title": "프로젝트 순서 수동 변경 (드래그 정렬)",
+      "description": "As a user, I want to drag projects to reorder them.",
+      "acceptanceCriteria": [
+        "상단 프로젝트 탭(또는 사이드 범례)에서 드래그로 순서 변경",
+        "변경된 order 저장 + 새로고침 후 유지",
+        "탭/범례/뷰 전반에 새 순서 반영",
+        "클릭(뷰 전환)과 드래그(정렬) 구분",
+        "정렬 로직 단위 테스트",
+        "Typecheck passes",
+        "Verify in browser: 드래그로 순서가 바뀌고 유지"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-019",
+      "title": "일정별 노트",
+      "description": "As a user, I want to add a note to each task.",
+      "acceptanceCriteria": [
+        "Task.note?: string 스키마 추가 (Dexie 버전업)",
+        "편집 팝오버에 노트 textarea (저장/수정)",
+        "노트 있는 일정은 막대/리스트에 작은 표시(점/아이콘)",
+        "노트가 인쇄·공유 스냅샷에 포함",
+        "새로고침 후 유지",
+        "Typecheck passes",
+        "Verify in browser: 노트 추가/표시"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-020",
+      "title": "태스크 종류 프로젝트별 전환",
+      "description": "As a developer/user, I want task types scoped per project (drop global sharing).",
+      "acceptanceCriteria": [
+        "TaskType.projectId 추가 — 각 종류는 한 프로젝트 소속",
+        "새 프로젝트 생성 시 기본 4종(리서치/회의/작업/마감 톤) 자동 시드",
+        "마이그레이션: 기존 전역 종류를 각 프로젝트로 복제하고 일정 taskTypeId를 같은 프로젝트 종류로 재연결 (Dexie 버전 업그레이드, 기존 데이터 보존)",
+        "종류 관리·범례·생성·필터가 현재 프로젝트 종류만 대상",
+        "톤 중복 방지·기본종류 보호를 프로젝트 단위로 유지",
+        "마이그레이션·CRUD 단위 테스트",
+        "Typecheck passes",
+        "Verify in browser: 프로젝트마다 다른 종류"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-021",
+      "title": "데드라인·이벤트(마커) 프로젝트별 전환",
+      "description": "As a user, I want markers scoped per project.",
+      "acceptanceCriteria": [
+        "Marker.projectId 필수화 — 마커는 프로젝트 소속",
+        "마커 추가 시 현재(선택) 프로젝트에 귀속; 통합 뷰에선 프로젝트 선택",
+        "뷰(전체/개별)·프로젝트 토글에 따라 마커 표시/숨김",
+        "마이그레이션: 기존 마커 → 기본 프로젝트",
+        "단위 테스트",
+        "Typecheck passes",
+        "Verify in browser: 마커가 프로젝트별로 필터됨"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-022",
+      "title": "전체 캘린더 일정 히트맵 (모노크롬)",
+      "description": "As a user, I want a monochrome heatmap of task density on the 전체 view.",
+      "acceptanceCriteria": [
+        "전체(통합) 뷰에 히트맵 on/off 토글",
+        "각 날짜 셀 배경을 그날 일정 밀도(겹치는 일정 수)에 따라 모노크롬 농담으로",
+        "농담 스케일 범례",
+        "밀도 계산 순수 함수 + 단위 테스트",
+        "토글 off면 기존 뷰",
+        "Typecheck passes",
+        "Verify in browser: 바쁜 날이 진하게"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-023",
+      "title": "공유 스냅샷 발행 (Vercel Blob 백엔드)",
+      "description": "As a developer, I want to publish a project snapshot to the server by token (local-first stays).",
+      "acceptanceCriteria": [
+        "@vercel/blob 연동 + API 라우트(발행/갱신/해제)",
+        "스냅샷 = 프로젝트 + 해당 일정·태스크종류·마커·노트 (직렬화 순수함수 + 테스트)",
+        "추측 불가 토큰 발급; 해제 시 스냅샷 삭제",
+        "BLOB 토큰 등 env 설정(vercel env)",
+        "Typecheck passes"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-024",
+      "title": "공개 읽기전용 공유 페이지 /s/[token]",
+      "description": "As an external viewer, I can view + print a shared calendar (no editing).",
+      "acceptanceCriteria": [
+        "/s/[token] SSR이 스냅샷을 불러와 읽기 전용 캘린더 렌더(드래그/편집/생성 불가)",
+        "디자인 그대로 + 인쇄 버튼 동작(기존 인쇄 CSS 재사용)",
+        "없는/해제된 토큰은 안내 페이지",
+        "외부인은 로컬 데이터 접근 없음(스냅샷만)",
+        "Typecheck passes",
+        "Verify in browser: 공유 링크로 보기/인쇄"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-025",
+      "title": "공유 관리 UI",
+      "description": "As a user, I want to publish/copy/refresh/revoke a project's share link.",
+      "acceptanceCriteria": [
+        "프로젝트별 '공유' 액션 → 발행 + 링크 복사",
+        "갱신(재발행)·해제(삭제) 가능, 공유 상태 표시",
+        "해제는 확인 단계",
+        "Typecheck passes",
+        "Verify in browser: 공유 켜기/링크복사/해제"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": ""
     }
   ]
 }
