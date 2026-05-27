@@ -27,7 +27,14 @@ import { formatRangeLabel } from "@/lib/calendar/selection";
 
 /** What the create popover hands back — a task or a marker, discriminated. */
 export type CreateDraft =
-  | { kind: "task"; title: string; projectId: string; taskTypeId: string }
+  | {
+      kind: "task";
+      title: string;
+      projectId: string;
+      taskTypeId: string;
+      /** Free-text note, trimmed; "" = none (US-019). */
+      note: string;
+    }
   | { kind: "marker"; markerKind: MarkerKind; label: string; projectId: string };
 
 /** Back-compat alias for the task shape some callers still reference. */
@@ -71,6 +78,8 @@ export function CreatePopover({
   const isMarker = mode !== "task";
 
   const [title, setTitle] = useState("");
+  // Optional free-text note for a 일정 (US-019); markers have no note.
+  const [note, setNote] = useState("");
   // In the merged "전체" view (no defaultProjectId) the project is left unchosen
   // so the user must pick one (US-013 AC4); an individual view preselects it.
   const [projectId, setProjectId] = useState(defaultProjectId ?? "");
@@ -145,7 +154,7 @@ export function CreatePopover({
       return;
     }
     if (!taskTypeId) return;
-    onCreate({ kind: "task", title: trimmed, projectId, taskTypeId });
+    onCreate({ kind: "task", title: trimmed, projectId, taskTypeId, note: note.trim() });
   }
 
   function pickMode(next: Mode) {
@@ -158,7 +167,7 @@ export function CreatePopover({
     <div className="cp-backdrop" onPointerDown={onClose}>
       <div
         ref={cardRef}
-        className="create-pop"
+        className="create-pop cp-create"
         style={{ left: pos.left, top: pos.top }}
         role="dialog"
         aria-label="새 일정"
@@ -275,6 +284,17 @@ export function CreatePopover({
             )}
           </div>
           {error?.field === "project" && <p className="cp-err">{error.msg}</p>}
+
+          {/* Note applies to 일정 only — markers have no note (US-019). */}
+          {!isMarker && (
+            <textarea
+              className="cp-note"
+              value={note}
+              placeholder="메모를 입력하세요 (선택)"
+              aria-label="메모"
+              onChange={(e) => setNote(e.target.value)}
+            />
+          )}
 
           <button type="submit" className="cp-save" disabled={!canSave}>
             저장

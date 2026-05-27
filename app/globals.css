@@ -328,6 +328,11 @@ body {
   letter-spacing: -0.03em;
   animation: cpIn 120ms ease-out;
 }
+/* Create popover: fixed width so toggling 일정/이벤트/데드라인 (which adds or
+   drops the 종류/메모 fields) never makes the card jump in size. */
+.cp-create {
+  width: 288px;
+}
 .cp-head {
   display: flex;
   align-items: baseline;
@@ -1141,13 +1146,14 @@ button.mk:focus-visible {
   margin: 0;
   padding: 0;
 }
-/* Row is a button (clickable -> highlight); reset native button chrome. */
+/* Row is a button (clickable -> highlight); reset native button chrome.
+   Compact single line: dot + title + meta + note glyph, all on one row. */
 .tp-item {
   display: flex;
-  gap: 10px;
-  align-items: baseline;
+  gap: 8px;
+  align-items: center;
   width: 100%;
-  padding: 13px 22px;
+  padding: 9px 22px;
   border: none;
   border-bottom: 1px solid var(--border-soft);
   background: none;
@@ -1166,14 +1172,19 @@ button.mk:focus-visible {
   width: 8px;
   height: 8px;
   border-radius: 2px;
-  margin-top: 4px;
 }
+/* Title + meta share one line; title grows & truncates, meta hugs the right
+   and truncates first when space runs out (full text via the hover tooltip). */
 .tp-body {
-  display: block;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
   min-width: 0;
+  flex: 1;
 }
 .tp-title {
-  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
   font-size: 13px;
   font-weight: 500;
   color: var(--text);
@@ -1182,11 +1193,17 @@ button.mk:focus-visible {
   white-space: nowrap;
 }
 .tp-meta {
-  display: block;
-  margin-top: 2px;
+  /* Keep date·project·type visible; the (free-text) title truncates instead.
+     Capped so a pathologically long meta still yields to the title. */
+  flex: none;
+  max-width: 62%;
+  margin-left: auto;
   font-size: 11px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 /* Note indicator (US-019): monochrome glyph at the row's trailing edge. */
 .tp-note {
@@ -1194,6 +1211,28 @@ button.mk:focus-visible {
   align-self: center;
   display: inline-flex;
   color: var(--muted);
+}
+
+/* Marker list — its own chronological section below the 일정 목록. The subhead
+   is a divider; rows mirror the task rows but are static (markers are edited by
+   clicking their chip on the calendar). */
+.ed-list-subhead {
+  border-top: 1px solid var(--border);
+}
+.tp-mkrow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 9px 22px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.tp-mkchip {
+  flex: none;
+  align-self: center;
+  margin-left: 0;
+  min-width: 22px;
+  text-align: center;
+  line-height: 18px;
 }
 /* Empty state: nudge the drag-to-create flow (PRD §8). */
 .tp-empty {

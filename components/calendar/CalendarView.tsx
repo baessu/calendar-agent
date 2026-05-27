@@ -404,6 +404,7 @@ export function CalendarView({
           title: draft.title,
           startDate: selection.start,
           endDate: selection.end,
+          note: draft.note,
         });
       } else {
         await onCreateMarker({

@@ -19,7 +19,7 @@ import { hasNote } from "@/lib/calendar/notes";
 import { formatRangeLabel } from "@/lib/calendar/selection";
 import { applyTone, barColors } from "@/lib/color/compose";
 import { DEFAULT_PROJECT_COLOR } from "@/lib/color/tokens";
-import type { Project, Task, TaskType } from "@/lib/types";
+import type { Marker, Project, Task, TaskType } from "@/lib/types";
 
 /** Pencil icon for the manage (edit) affordance on legend chips. */
 function EditIcon() {
@@ -84,6 +84,8 @@ function ChevronIcon({ open }: { open: boolean }) {
 
 interface TaskListPanelProps {
   tasks: Task[];
+  /** Visible markers (event/deadline) — listed chronologically, apart from tasks. */
+  markers: Marker[];
   /** All projects, ordered — drives the project legend (US-011). */
   projects: Project[];
   projectsById: Map<string, Project>;
@@ -118,6 +120,7 @@ interface TaskListPanelProps {
 
 export function TaskListPanel({
   tasks,
+  markers,
   projects,
   projectsById,
   taskTypesById,
@@ -144,6 +147,15 @@ export function TaskListPanel({
           a.title.localeCompare(b.title),
       ),
     [tasks],
+  );
+
+  // Markers, chronological by date (ISO strings sort correctly), then label.
+  const sortedMarkers = useMemo(
+    () =>
+      [...markers].sort(
+        (a, b) => a.date.localeCompare(b.date) || a.label.localeCompare(b.label),
+      ),
+    [markers],
   );
 
   // Category (task-type) swatches preview their tone on the active project's
@@ -327,8 +339,12 @@ export function TaskListPanel({
                 >
                   <span className="tp-dot" style={{ background: swatch }} aria-hidden />
                   <span className="tp-body">
-                    <span className="tp-title">{task.title}</span>
-                    <span className="tp-meta">{meta}</span>
+                    <span className="tp-title" title={task.title}>
+                      {task.title}
+                    </span>
+                    <span className="tp-meta" title={meta}>
+                      {meta}
+                    </span>
                   </span>
                   {/* Note indicator (US-019): monochrome glyph when noted. */}
                   {hasNote(task) && (
@@ -341,6 +357,44 @@ export function TaskListPanel({
             );
           })}
         </ul>
+      )}
+
+      {/* Marker list (event/deadline), separate from the 일정 목록 and ordered
+          chronologically by date. Edit a marker by clicking its chip on the
+          calendar; this panel is a quick time-ordered overview. */}
+      {sortedMarkers.length > 0 && (
+        <>
+          <div className="ed-list-head ed-list-subhead">
+            마커 <span className="numbadge">{markers.length}</span>
+            <span className="ed-list-sort">날짜순</span>
+          </div>
+          <ul className="tp-list tp-mklist">
+            {sortedMarkers.map((mk) => {
+              const project = projectsById.get(mk.projectId);
+              const meta = [formatRangeLabel(mk.date, mk.date), project?.name]
+                .filter(Boolean)
+                .join(" · ");
+              return (
+                <li key={mk.id} className="tp-mkrow">
+                  <span
+                    className={`mk ${mk.kind === "deadline" ? "mk-dl" : "mk-ev"} tp-mkchip`}
+                    aria-hidden
+                  >
+                    {mk.kind === "deadline" ? "⚑" : "◆"}
+                  </span>
+                  <span className="tp-body">
+                    <span className="tp-title" title={mk.label}>
+                      {mk.label}
+                    </span>
+                    <span className="tp-meta" title={meta}>
+                      {meta}
+                    </span>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </>
       )}
 
       <button type="button" className="ed-contact" onClick={onAdd}>

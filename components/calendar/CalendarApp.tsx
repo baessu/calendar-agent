@@ -87,6 +87,8 @@ export interface NewTaskInput {
   title: string;
   startDate: DateString;
   endDate: DateString;
+  /** Optional free-text note (US-019); created alongside the task. */
+  note?: string;
 }
 
 // How long a panel-selected bar stays ringed in the calendar.
@@ -797,6 +799,7 @@ export function CalendarApp() {
       />
       <TaskListPanel
         tasks={visibleTasks}
+        markers={visibleMarkers}
         projects={projects}
         projectsById={projectsById}
         taskTypesById={taskTypesById}
