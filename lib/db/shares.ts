@@ -1,4 +1,4 @@
-import type { ShareRecord } from "@/lib/types";
+import type { Marker, ShareRecord, Task, TaskType } from "@/lib/types";
 import { db } from "./index";
 import { now } from "./util";
 
@@ -27,4 +27,34 @@ export async function putShare(
 
 export async function deleteShare(projectId: string): Promise<void> {
   await db.shares.delete(projectId);
+}
+
+/**
+ * Pull a collaborator's edits back into local storage (edit-link sharing).
+ *
+ * Replaces, in one transaction, the project's tasks and markers with the
+ * published snapshot's, and upserts its task types (collaborators can't change
+ * types, but upserting keeps ids aligned defensively). This is last-write-wins
+ * at the project granularity: whatever the shared copy holds becomes the local
+ * truth for that project. Other projects are untouched.
+ */
+export async function replaceProjectSharedData(
+  projectId: string,
+  data: { taskTypes: TaskType[]; tasks: Task[]; markers: Marker[] },
+): Promise<void> {
+  await db.transaction("rw", db.tasks, db.markers, db.taskTypes, async () => {
+    const [oldTaskIds, oldMarkerIds] = await Promise.all([
+      db.tasks.where("projectId").equals(projectId).primaryKeys(),
+      db.markers.where("projectId").equals(projectId).primaryKeys(),
+    ]);
+    await Promise.all([
+      db.tasks.bulkDelete(oldTaskIds as string[]),
+      db.markers.bulkDelete(oldMarkerIds as string[]),
+    ]);
+    await Promise.all([
+      db.tasks.bulkPut(data.tasks),
+      db.markers.bulkPut(data.markers),
+      db.taskTypes.bulkPut(data.taskTypes),
+    ]);
+  });
 }

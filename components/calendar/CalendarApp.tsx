@@ -29,6 +29,7 @@ import {
   putShare,
   seedIfEmpty,
   seedTaskTypesForProject,
+  replaceProjectSharedData,
   updateMarker,
   updateProject,
   updateTask,
@@ -66,7 +67,7 @@ import type {
   TaskType,
 } from "@/lib/types";
 import type { YearMonth } from "@/lib/calendar/infinite";
-import { buildSnapshot } from "@/lib/share/snapshot";
+import { buildSnapshot, parseSnapshot } from "@/lib/share/snapshot";
 import { CalendarView } from "./CalendarView";
 import { PrintCalendar } from "./PrintCalendar";
 import type { EditTaskDraft } from "./EditPopover";
@@ -99,6 +100,9 @@ export function CalendarApp() {
   // Local share registry (US-025), keyed by projectId — which projects are
   // currently published and to what token/url.
   const [shares, setShares] = useState<Map<string, ShareRecord>>(new Map());
+  // Projects whose published snapshot is newer than what the owner last synced
+  // — i.e. a collaborator edited via the edit link. Drives the "가져오기" prompt.
+  const [staleShareIds, setStaleShareIds] = useState<Set<string>>(() => new Set());
 
   // Seed (idempotent) then load all data on mount. Seeding here avoids a race
   // with <DbInit> so the popover always has a project/task-type to pick.
@@ -124,6 +128,39 @@ export function CalendarApp() {
       alive = false;
     };
   }, []);
+
+  // Freshness check (edit links): once shares are loaded, ask the server for
+  // each share's current snapshot publishedAt and compare with the time the
+  // owner last synced. Newer ⟹ a collaborator edited it ⟹ offer 가져오기. Runs
+  // once per shares change, no polling — the user re-opens the popover to act.
+  useEffect(() => {
+    if (shares.size === 0) return;
+    let alive = true;
+    (async () => {
+      const stale = new Set<string>();
+      await Promise.all(
+        [...shares.values()].map(async (s) => {
+          // Only edit-enabled shares can drift; legacy view-only can't.
+          if (!s.editToken) return;
+          try {
+            const res = await fetch(`/api/share?token=${s.token}`);
+            if (!res.ok) return;
+            const { publishedAt } = (await res.json()) as { publishedAt: number | null };
+            const synced = s.publishedAt ?? s.updatedAt;
+            if (typeof publishedAt === "number" && publishedAt > synced) {
+              stale.add(s.projectId);
+            }
+          } catch {
+            /* offline / transient — leave it un-stale, retried next mount */
+          }
+        }),
+      );
+      if (alive && stale.size > 0) setStaleShareIds(stale);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [shares]);
 
   const projectsById = useMemo(() => {
     const m = new Map<string, Project>();
@@ -586,9 +623,21 @@ export function CalendarApp() {
   );
   const closeShare = useCallback(() => setSharePopover(null), []);
 
-  // Publish or refresh: build a fresh snapshot from local data, POST it (reusing
-  // the existing token if any so refresh overwrites in place), persist the
-  // returned token/url locally, and copy the link.
+  // Clear a project's "collaborator edited" flag (after the owner publishes or
+  // pulls, their local copy and the Blob are back in sync).
+  const clearStale = useCallback((pid: string) => {
+    setStaleShareIds((prev) => {
+      if (!prev.has(pid)) return prev;
+      const next = new Set(prev);
+      next.delete(pid);
+      return next;
+    });
+  }, []);
+
+  // Publish or refresh: build a fresh snapshot from local data, POST it. The
+  // edit token (when present) authorizes overwriting the existing snapshot; the
+  // server mints both tokens on first publish or adopts a legacy view-only one.
+  // Refresh re-publishes the owner's local copy, so it clears the stale flag.
   const handlePublishShare = useCallback(async () => {
     const pid = sharePopover?.projectId;
     const project = pid ? projectsById.get(pid) : undefined;
@@ -601,33 +650,90 @@ export function CalendarApp() {
       const res = await fetch("/api/share", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ token: existing?.token, snapshot }),
+        body: JSON.stringify({
+          snapshot,
+          viewToken: existing?.token,
+          editToken: existing?.editToken,
+        }),
       });
       const data = (await res.json().catch(() => ({}))) as {
-        token?: string;
+        viewToken?: string;
+        editToken?: string;
         url?: string;
+        publishedAt?: number;
         error?: string;
       };
-      if (!res.ok || !data.token || !data.url) {
+      if (!res.ok || !data.viewToken || !data.url) {
         throw new Error(data.error || "발행에 실패했습니다.");
       }
       const record = await putShare({
         projectId: pid,
-        token: data.token,
+        token: data.viewToken,
+        editToken: data.editToken,
         url: data.url,
+        publishedAt: data.publishedAt ?? snapshot.publishedAt,
       });
       setShares((prev) => new Map(prev).set(pid, record));
-      await navigator.clipboard
-        ?.writeText(`${window.location.origin}/s/${data.token}`)
-        .catch(() => {});
+      clearStale(pid);
     } catch (err) {
       setShareError(err instanceof Error ? err.message : "발행에 실패했습니다.");
     } finally {
       setShareBusy(false);
     }
-  }, [sharePopover, projectsById, taskTypes, tasks, markers, shares]);
+  }, [sharePopover, projectsById, taskTypes, tasks, markers, shares, clearStale]);
 
-  // Revoke: delete the Blob snapshot, then drop the local record.
+  // Pull a collaborator's edits: fetch the current snapshot (server-side, so no
+  // CORS), replace this project's local tasks/markers with it, and mark the
+  // share synced. Last-write-wins — the shared copy wins over local for this
+  // project. Other projects are untouched.
+  const handlePullShare = useCallback(async () => {
+    const pid = sharePopover?.projectId;
+    const existing = pid ? shares.get(pid) : undefined;
+    if (!pid || !existing) return;
+    setShareBusy(true);
+    setShareError(null);
+    try {
+      const res = await fetch(`/api/share?token=${existing.token}&full=1`);
+      const data = (await res.json().catch(() => ({}))) as {
+        snapshot?: unknown;
+        error?: string;
+      };
+      const snap = parseSnapshot(data.snapshot);
+      if (!res.ok || !snap) {
+        throw new Error(data.error || "가져오기에 실패했습니다.");
+      }
+      await replaceProjectSharedData(pid, {
+        taskTypes: snap.taskTypes,
+        tasks: snap.tasks,
+        markers: snap.markers,
+      });
+      // Mirror into shared state: swap this project's slice for the pulled one.
+      setTaskTypes((prev) => [
+        ...prev.filter((tt) => tt.projectId !== pid),
+        ...snap.taskTypes,
+      ]);
+      setTasks((prev) => [...prev.filter((t) => t.projectId !== pid), ...snap.tasks]);
+      setMarkers((prev) => [
+        ...prev.filter((m) => m.projectId !== pid),
+        ...snap.markers,
+      ]);
+      const record = await putShare({
+        projectId: pid,
+        token: existing.token,
+        editToken: existing.editToken,
+        url: existing.url,
+        publishedAt: snap.publishedAt,
+      });
+      setShares((prev) => new Map(prev).set(pid, record));
+      clearStale(pid);
+    } catch (err) {
+      setShareError(err instanceof Error ? err.message : "가져오기에 실패했습니다.");
+    } finally {
+      setShareBusy(false);
+    }
+  }, [sharePopover, shares, clearStale]);
+
+  // Revoke: delete the Blob snapshot + edit key, then drop the local record.
   const handleRevokeShare = useCallback(async () => {
     const pid = sharePopover?.projectId;
     const existing = pid ? shares.get(pid) : undefined;
@@ -638,7 +744,10 @@ export function CalendarApp() {
       const res = await fetch("/api/share", {
         method: "DELETE",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ token: existing.token }),
+        body: JSON.stringify({
+          editToken: existing.editToken,
+          viewToken: existing.token,
+        }),
       });
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
@@ -650,12 +759,13 @@ export function CalendarApp() {
         next.delete(pid);
         return next;
       });
+      clearStale(pid);
     } catch (err) {
       setShareError(err instanceof Error ? err.message : "해제에 실패했습니다.");
     } finally {
       setShareBusy(false);
     }
-  }, [sharePopover, shares]);
+  }, [sharePopover, shares, clearStale]);
 
   return (
     <>
@@ -683,6 +793,7 @@ export function CalendarApp() {
         onPrint={handlePrint}
         onShare={openShare}
         isShared={selectedProjectId ? shares.has(selectedProjectId) : false}
+        shareStale={selectedProjectId ? staleShareIds.has(selectedProjectId) : false}
       />
       <TaskListPanel
         tasks={visibleTasks}
@@ -750,11 +861,18 @@ export function CalendarApp() {
               ? `${typeof window !== "undefined" ? window.location.origin : ""}/s/${shares.get(sharePopover.projectId)!.token}`
               : null
           }
+          editShareUrl={
+            shares.get(sharePopover.projectId)?.editToken
+              ? `${typeof window !== "undefined" ? window.location.origin : ""}/e/${shares.get(sharePopover.projectId)!.editToken}`
+              : null
+          }
+          stale={staleShareIds.has(sharePopover.projectId)}
           x={sharePopover.x}
           y={sharePopover.y}
           busy={shareBusy}
           error={shareError}
           onPublish={handlePublishShare}
+          onPull={handlePullShare}
           onRevoke={handleRevokeShare}
           onClose={closeShare}
         />

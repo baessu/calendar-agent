@@ -171,6 +171,14 @@ interface CalendarViewProps {
   onShare: (x: number, y: number) => void;
   /** Whether the active project is currently shared (button state). */
   isShared: boolean;
+  /** A collaborator edited the shared copy since the owner's last sync. */
+  shareStale?: boolean;
+  /**
+   * Whether to show the 공유 button (default true). The edit-link page reuses
+   * this view to let a collaborator edit, but they can't re-share, so it's
+   * hidden there.
+   */
+  canShare?: boolean;
 }
 
 export function CalendarView({
@@ -197,6 +205,8 @@ export function CalendarView({
   onPrint,
   onShare,
   isShared,
+  shareStale = false,
+  canShare = true,
 }: CalendarViewProps) {
   const today = useMemo(() => todayDateString(), []);
   const todayYM = useMemo(() => ymFromDate(today), [today]);
@@ -800,14 +810,17 @@ export function CalendarView({
           인쇄
         </button>
         {/* Share (US-025): only on an individual project view. Dot when shared. */}
-        {selectedProjectId !== null && (
+        {canShare && selectedProjectId !== null && (
           <button
             type="button"
-            className={`ed-today ed-share${isShared ? " on" : ""}`}
+            className={`ed-today ed-share${isShared ? " on" : ""}${
+              shareStale ? " stale" : ""
+            }`}
             onClick={(e) => onShare(e.clientX, e.clientY)}
+            title={shareStale ? "협업자가 편집했어요 — 가져오기" : undefined}
           >
             {isShared && <span className="ed-share-dot" aria-hidden />}
-            공유
+            공유{shareStale && "•"}
           </button>
         )}
         {/* Heatmap toggle (US-022): only on the 전체(통합) view. Filled when on. */}

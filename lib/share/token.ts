@@ -33,7 +33,17 @@ export function isValidToken(token: string): boolean {
   return token.length >= 16 && token.length <= 64 && /^[0-9a-z]+$/.test(token);
 }
 
-/** The Blob pathname a token's snapshot is stored at. */
+/** The Blob pathname a view token's snapshot is stored at. */
 export function snapshotPath(token: string): string {
   return `shares/${token}.json`;
+}
+
+/**
+ * The Blob pathname of an edit token's key pointer. The pointer holds the
+ * view token its snapshot lives under, so an edit link can resolve to the
+ * shared snapshot and authorize writes to it. Kept under a separate `keys/`
+ * prefix so it never collides with a snapshot path.
+ */
+export function editKeyPath(editToken: string): string {
+  return `shares/keys/${editToken}.json`;
 }

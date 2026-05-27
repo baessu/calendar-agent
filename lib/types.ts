@@ -65,9 +65,25 @@ export interface Task {
 export interface ShareRecord {
   /** Primary key — a project has at most one active share. */
   projectId: string;
+  /** Read-only capability — the public view link `/s/{token}`. */
   token: string;
+  /**
+   * Read-write capability — the edit link `/e/{editToken}`. The owner always
+   * holds it (it authorizes refresh/revoke) and may hand it to a collaborator
+   * to grant editing. Optional only for legacy rows published before edit
+   * links existed; a refresh mints one (see app/api/share).
+   */
+  editToken?: string;
   /** Public Blob URL of the snapshot (returned by publish). */
   url: string;
+  /**
+   * The `publishedAt` of the snapshot the owner last synced to (their own
+   * publish/refresh, or a pull of a collaborator's edits). Comparing it to the
+   * Blob's current `publishedAt` tells the owner a collaborator has edited
+   * since (US: pull). Optional for legacy rows.
+   */
+  publishedAt?: Timestamp;
+  /** When this local row was last written. */
   updatedAt: Timestamp;
 }
 

@@ -1332,6 +1332,12 @@ button.mk:focus-visible {
   border-radius: 50%;
   background: var(--text);
 }
+/* A collaborator edited the shared copy — nudge the owner to 가져오기. */
+.ed-share.stale {
+  color: var(--text);
+  border-color: var(--text);
+  font-weight: 600;
+}
 
 /*
  * Share popover (US-025) — publish / copy / refresh / revoke. Shares .cp-* /
@@ -1384,6 +1390,125 @@ button.mk:focus-visible {
 }
 .share-foot {
   margin-top: 14px;
+}
+/* Edit-link sharing: per-link label, edit-link caption, refresh warning. */
+.share-linklabel {
+  margin-top: 14px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.share-linklabel:first-of-type {
+  margin-top: 12px;
+}
+.share-cap {
+  margin-top: 5px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted);
+  letter-spacing: -0.02em;
+}
+.share-warn {
+  margin-top: 10px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--muted);
+  letter-spacing: -0.02em;
+}
+/* "협업자가 편집했어요 · 가져오기" row, shown when the Blob is newer. */
+.share-pull {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  background: var(--surface, transparent);
+}
+.share-pull-txt {
+  font-size: 12px;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+.share-pull-btn {
+  flex: none;
+  font-size: 12px;
+  border: 1px solid var(--text);
+  background: var(--text);
+  color: var(--bg, #fff);
+  padding: 5px 12px;
+  cursor: pointer;
+  font-family: inherit;
+  letter-spacing: -0.03em;
+}
+.share-pull-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/*
+ * Collaborative edit page (/e/{editToken}). Reuses .app-shell for the print
+ * reset but stacks a thin save-status banner above the reused <CalendarView>.
+ */
+.edit-shell {
+  flex-direction: column;
+}
+.edit-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 30px;
+  border-bottom: 1px solid var(--border);
+  flex: none;
+}
+.edit-id {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.edit-ttl {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+.edit-sub {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: -0.02em;
+  margin-top: 1px;
+}
+.edit-save {
+  flex: none;
+  font-size: 12px;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.edit-save-busy {
+  color: var(--muted);
+}
+.edit-save-ok {
+  color: var(--faint);
+}
+.edit-save-err {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+}
+.edit-retry {
+  font-size: 12px;
+  border: 1px solid var(--text);
+  background: none;
+  color: var(--text);
+  padding: 3px 10px;
+  cursor: pointer;
+  font-family: inherit;
+  letter-spacing: -0.03em;
 }
 
 /*

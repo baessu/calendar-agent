@@ -109,6 +109,19 @@ export class CalendarDB extends Dexie {
       markers: "id, date, kind, projectId",
       shares: "projectId, token",
     });
+    // v6 (edit links): a share gains `editToken` (read-write capability) and
+    // `publishedAt` (last-synced snapshot time, for pulling collaborator edits).
+    // Both are non-indexed props Dexie stores automatically — no data upgrade is
+    // needed; legacy v5 rows simply read them as undefined until a refresh mints
+    // an editToken. `editToken` is indexed for potential lookup but old rows
+    // missing it just won't appear in that index.
+    this.version(6).stores({
+      projects: "id, order, visible",
+      taskTypes: "id, projectId, order",
+      tasks: "id, projectId, taskTypeId, startDate, endDate",
+      markers: "id, date, kind, projectId",
+      shares: "projectId, token, editToken",
+    });
   }
 }
 
