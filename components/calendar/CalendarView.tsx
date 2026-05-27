@@ -165,6 +165,10 @@ interface CalendarViewProps {
   highlightedTaskId: string | null;
   /** Bumps on each panel click so repeat clicks re-scroll. */
   highlightNonce: number;
+  /** Marker whose chip should be ringed (from a panel marker row click). */
+  highlightedMarkerId: string | null;
+  /** Bumps on each marker panel click so repeat clicks re-scroll. */
+  markerHighlightNonce: number;
   /** Bumps when the panel's "＋ 일정 추가" asks to create for today. */
   addNonce: number;
   /** Bumps when the panel's "＋ 마커 추가" asks to add a marker for today. */
@@ -204,6 +208,8 @@ export function CalendarView({
   onDeleteMarker,
   highlightedTaskId,
   highlightNonce,
+  highlightedMarkerId,
+  markerHighlightNonce,
   addNonce,
   markerAddNonce,
   onPrint,
@@ -789,6 +795,28 @@ export function CalendarView({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fire on click, not on every tasks change
   }, [highlightNonce]);
 
+  // Marker panel row click (req): scroll the marker's date cell into view. The
+  // chip is ringed via `highlightedMarkerId`. Keyed on the nonce so repeat
+  // clicks re-scroll.
+  useEffect(() => {
+    if (!highlightedMarkerId) return;
+    const mk = markers.find((m) => m.id === highlightedMarkerId);
+    if (!mk) return;
+    const raf = requestAnimationFrame(() => {
+      const el = scrollRef.current;
+      if (!el) return;
+      const cell = el.querySelector<HTMLElement>(`[data-date="${mk.date}"]`);
+      if (!cell) return;
+      const offset =
+        cell.getBoundingClientRect().top -
+        el.getBoundingClientRect().top -
+        el.clientHeight / 2;
+      el.scrollTo({ top: el.scrollTop + offset, behavior: "smooth" });
+    });
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fire on click, not on every markers change
+  }, [markerHighlightNonce]);
+
   // --- Panel "＋ 일정 추가" -> open the popover for today --------------------
   // Deferred to the next frame so it runs after commit, not synchronously here.
   useEffect(() => {
@@ -953,7 +981,8 @@ export function CalendarView({
                   (m, dy) => Math.max(m, markersByDate.get(dy.date)?.length ?? 0),
                   0,
                 );
-                const markerBandH = markerRows > 0 ? markerRows * MK_ROW_H + 4 : 0;
+                // +10 leaves a clear gap between the marker band and the bars.
+                const markerBandH = markerRows > 0 ? markerRows * MK_ROW_H + 10 : 0;
                 // Lanes drawn as bars, and the lane row the chips sit on.
                 const visibleLanes = expanded
                   ? layout.laneCount
@@ -1003,7 +1032,9 @@ export function CalendarView({
                                 <button
                                   key={mk.id}
                                   type="button"
-                                  className={`mk ${mk.kind === "deadline" ? "mk-dl" : "mk-ev"}`}
+                                  className={`mk ${mk.kind === "deadline" ? "mk-dl" : "mk-ev"}${
+                                    mk.id === highlightedMarkerId ? " hl" : ""
+                                  }`}
                                   title={mk.label}
                                   aria-label={`${
                                     mk.kind === "deadline" ? "데드라인" : "이벤트"

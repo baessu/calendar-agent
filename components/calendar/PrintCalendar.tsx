@@ -90,7 +90,7 @@ export function PrintCalendar({
                 (m, dy) => Math.max(m, markersByDate.get(dy.date)?.length ?? 0),
                 0,
               );
-              const barTop = HEAD_H + (markerRows > 0 ? markerRows * MK_ROW_H + 4 : 0);
+              const barTop = HEAD_H + (markerRows > 0 ? markerRows * MK_ROW_H + 10 : 0);
               const weekMinH = Math.max(
                 ROW_MIN,
                 barTop + rows * (BAR_H + BAR_GAP) + 6,

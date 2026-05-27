@@ -215,6 +215,8 @@ export function EditableSharedCalendar({
         onDeleteMarker={handleDeleteMarker}
         highlightedTaskId={null}
         highlightNonce={0}
+        highlightedMarkerId={null}
+        markerHighlightNonce={0}
         addNonce={0}
         markerAddNonce={0}
         onPrint={handlePrint}

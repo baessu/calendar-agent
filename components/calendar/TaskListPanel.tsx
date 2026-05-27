@@ -98,6 +98,10 @@ interface TaskListPanelProps {
   onSelectTask: (id: string) => void;
   /** The task currently highlighted (its row gets an active style). */
   selectedTaskId: string | null;
+  /** Scroll the calendar to a marker's date + ring its chip (marker row click). */
+  onSelectMarker: (id: string) => void;
+  /** The marker currently highlighted (its row gets an active style). */
+  selectedMarkerId: string | null;
   /** Open the creation popover for a new task (footer "＋ 일정 추가"). */
   onAdd: () => void;
   /** Open the marker form for a new marker (legend "＋ 마커"). */
@@ -128,6 +132,8 @@ export function TaskListPanel({
   projectTaskTypes,
   onSelectTask,
   selectedTaskId,
+  onSelectMarker,
+  selectedMarkerId,
   onAdd,
   onAddMarker,
   onAddProject,
@@ -174,14 +180,8 @@ export function TaskListPanel({
     projects.some((p) => !p.visible) || hiddenTaskTypeIds.size > 0;
 
   return (
-    <aside className="ed-list" aria-label="일정 목록">
-      <div className="ed-list-head">
-        일정 <span className="numbadge">{tasks.length}</span>
-        <span className="ed-list-sort">날짜순</span>
-      </div>
-
-      {/* Q2: collapsible 필터·범례 — keeps the 일정 목록 the panel's main content
-          (progressive disclosure); collapsed by default. */}
+    <aside className="ed-list" aria-label="일정·마커 목록">
+      {/* 필터·범례 (collapsible, top): 프로젝트/종류 범례 + ＋마커. */}
       <div className="ed-filters">
         <button
           type="button"
@@ -311,6 +311,57 @@ export function TaskListPanel({
         )}
       </div>
 
+      {/* 마커 목록 (날짜순) — 패널 상단. 행 클릭 시 캘린더의 해당 날짜로 이동
+          + 칩 하이라이트(일정 목록과 동일). */}
+      {sortedMarkers.length > 0 && (
+        <>
+          <div className="ed-list-head">
+            마커 <span className="numbadge">{markers.length}</span>
+            <span className="ed-list-sort">날짜순</span>
+          </div>
+          <ul className="tp-list">
+            {sortedMarkers.map((mk) => {
+              const project = projectsById.get(mk.projectId);
+              const meta = [formatRangeLabel(mk.date, mk.date), project?.name]
+                .filter(Boolean)
+                .join(" · ");
+              return (
+                <li key={mk.id}>
+                  <button
+                    type="button"
+                    className={`tp-item${mk.id === selectedMarkerId ? " on" : ""}`}
+                    title={`${mk.label} · ${meta}`}
+                    onClick={() => onSelectMarker(mk.id)}
+                  >
+                    <span
+                      className={`mk ${mk.kind === "deadline" ? "mk-dl" : "mk-ev"} tp-mkchip`}
+                      aria-hidden
+                    >
+                      {mk.kind === "deadline" ? "⚑" : "◆"}
+                    </span>
+                    <span className="tp-body">
+                      <span className="tp-title" title={mk.label}>
+                        {mk.label}
+                      </span>
+                      <span className="tp-meta" title={meta}>
+                        {meta}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
+
+      {/* 일정 목록 (날짜순). 마커가 위에 있으면 구분선(subhead). */}
+      <div
+        className={`ed-list-head${sortedMarkers.length > 0 ? " ed-list-subhead" : ""}`}
+      >
+        일정 <span className="numbadge">{tasks.length}</span>
+        <span className="ed-list-sort">날짜순</span>
+      </div>
       {sorted.length === 0 ? (
         <p className="tp-empty">일칸을 드래그해 첫 일정을 추가하세요.</p>
       ) : (
@@ -335,6 +386,7 @@ export function TaskListPanel({
                 <button
                   type="button"
                   className={`tp-item${task.id === selectedTaskId ? " on" : ""}`}
+                  title={`${task.title} · ${meta}`}
                   onClick={() => onSelectTask(task.id)}
                 >
                   <span className="tp-dot" style={{ background: swatch }} aria-hidden />
@@ -357,44 +409,6 @@ export function TaskListPanel({
             );
           })}
         </ul>
-      )}
-
-      {/* Marker list (event/deadline), separate from the 일정 목록 and ordered
-          chronologically by date. Edit a marker by clicking its chip on the
-          calendar; this panel is a quick time-ordered overview. */}
-      {sortedMarkers.length > 0 && (
-        <>
-          <div className="ed-list-head ed-list-subhead">
-            마커 <span className="numbadge">{markers.length}</span>
-            <span className="ed-list-sort">날짜순</span>
-          </div>
-          <ul className="tp-list tp-mklist">
-            {sortedMarkers.map((mk) => {
-              const project = projectsById.get(mk.projectId);
-              const meta = [formatRangeLabel(mk.date, mk.date), project?.name]
-                .filter(Boolean)
-                .join(" · ");
-              return (
-                <li key={mk.id} className="tp-mkrow">
-                  <span
-                    className={`mk ${mk.kind === "deadline" ? "mk-dl" : "mk-ev"} tp-mkchip`}
-                    aria-hidden
-                  >
-                    {mk.kind === "deadline" ? "⚑" : "◆"}
-                  </span>
-                  <span className="tp-body">
-                    <span className="tp-title" title={mk.label}>
-                      {mk.label}
-                    </span>
-                    <span className="tp-meta" title={meta}>
-                      {meta}
-                    </span>
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        </>
       )}
 
       <button type="button" className="ed-contact" onClick={onAdd}>

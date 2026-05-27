@@ -353,8 +353,23 @@ export function CalendarApp() {
     hlTimer.current = setTimeout(() => setHighlightedTaskId(null), HIGHLIGHT_MS);
   }, []);
 
+  // Same mechanism for marker panel rows: scroll the calendar to the marker's
+  // date and ring its chip. Separate state so a marker and a task don't fight
+  // over one highlight.
+  const [highlightedMarkerId, setHighlightedMarkerId] = useState<string | null>(null);
+  const [markerHighlightNonce, setMarkerHighlightNonce] = useState(0);
+  const mkHlTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleSelectMarker = useCallback((id: string) => {
+    setHighlightedMarkerId(id);
+    setMarkerHighlightNonce((n) => n + 1);
+    if (mkHlTimer.current) clearTimeout(mkHlTimer.current);
+    mkHlTimer.current = setTimeout(() => setHighlightedMarkerId(null), HIGHLIGHT_MS);
+  }, []);
+
   useEffect(() => () => {
     if (hlTimer.current) clearTimeout(hlTimer.current);
+    if (mkHlTimer.current) clearTimeout(mkHlTimer.current);
   }, []);
 
   // --- Panel -> calendar "+ 일정 추가" --------------------------------------
@@ -790,6 +805,8 @@ export function CalendarApp() {
         onDeleteMarker={handleDeleteMarker}
         highlightedTaskId={highlightedTaskId}
         highlightNonce={highlightNonce}
+        highlightedMarkerId={highlightedMarkerId}
+        markerHighlightNonce={markerHighlightNonce}
         addNonce={addNonce}
         markerAddNonce={markerAddNonce}
         onPrint={handlePrint}
@@ -807,6 +824,8 @@ export function CalendarApp() {
         projectTaskTypes={projectTaskTypes}
         onSelectTask={handleSelectTask}
         selectedTaskId={highlightedTaskId}
+        onSelectMarker={handleSelectMarker}
+        selectedMarkerId={highlightedMarkerId}
         onAdd={handleAdd}
         onAddMarker={handleAddMarker}
         onAddProject={openProjectCreate}

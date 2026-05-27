@@ -842,6 +842,13 @@ button.mk:hover {
   outline: 1px solid var(--text);
   outline-offset: 1px;
 }
+/* Panel marker-row click rings the matching chip (mirrors .cal-bar.hl). */
+.mk.hl {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+  position: relative;
+  z-index: 4;
+}
 button.mk:focus-visible {
   outline: 2px solid var(--text);
   outline-offset: 1px;
@@ -1213,18 +1220,11 @@ button.mk:focus-visible {
   color: var(--muted);
 }
 
-/* Marker list — its own chronological section below the 일정 목록. The subhead
-   is a divider; rows mirror the task rows but are static (markers are edited by
-   clicking their chip on the calendar). */
+/* Marker list — its own chronological section. The subhead divides it from the
+   adjacent 일정 목록 (markers sit on top). Marker rows reuse .tp-item (clickable
+   — clicking scrolls the calendar to the marker's date and rings its chip). */
 .ed-list-subhead {
   border-top: 1px solid var(--border);
-}
-.tp-mkrow {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  padding: 9px 22px;
-  border-bottom: 1px solid var(--border-soft);
 }
 .tp-mkchip {
   flex: none;
