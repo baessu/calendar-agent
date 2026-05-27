@@ -17,6 +17,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CalendarView } from "@/components/calendar/CalendarView";
 import { PrintCalendar } from "@/components/calendar/PrintCalendar";
+import { TaskListPanel } from "@/components/calendar/TaskListPanel";
+import { filterTasksByTaskTypes } from "@/lib/calendar/view";
 import type { NewTaskInput } from "@/components/calendar/CalendarApp";
 import type { EditTaskDraft } from "@/components/calendar/EditPopover";
 import { buildSnapshot, type ShareSnapshot } from "@/lib/share/snapshot";
@@ -30,6 +32,9 @@ type SaveState = "saved" | "saving" | "error";
 // Wait this long after the last edit before persisting, so a burst of changes
 // (a drag, then a quick retitle) collapses into one upload.
 const SAVE_DEBOUNCE_MS = 800;
+
+// How long a panel-row click keeps its calendar target ringed (mirrors the app).
+const HIGHLIGHT_MS = 1800;
 
 export function EditableSharedCalendar({
   snapshot,
@@ -109,6 +114,54 @@ export function EditableSharedCalendar({
   const handleDeleteMarker = useCallback((id: string) => {
     setMarkers((prev) => prev.filter((m) => m.id !== id));
   }, []);
+
+  // --- Task-type filter (US-015) — the panel's one view control --------------
+  // Ephemeral, viewer-local; narrows the bars shown (markers carry no type).
+  // Edits still save the full set — the filter never drops data from the Blob.
+  const [hiddenTaskTypeIds, setHiddenTaskTypeIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const handleToggleTaskType = useCallback((id: string) => {
+    setHiddenTaskTypeIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+  const visibleTasks = useMemo(
+    () => filterTasksByTaskTypes(tasks, hiddenTaskTypeIds),
+    [tasks, hiddenTaskTypeIds],
+  );
+
+  // --- Panel row click -> scroll + ring the bar/chip (US-008) ----------------
+  // CalendarView already does the scroll+ring; we just drive it via the nonce.
+  const [highlightedTaskId, setHighlightedTaskId] = useState<string | null>(null);
+  const [highlightNonce, setHighlightNonce] = useState(0);
+  const hlTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [highlightedMarkerId, setHighlightedMarkerId] = useState<string | null>(null);
+  const [markerHighlightNonce, setMarkerHighlightNonce] = useState(0);
+  const mkHlTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleSelectTask = useCallback((id: string) => {
+    setHighlightedTaskId(id);
+    setHighlightNonce((n) => n + 1);
+    if (hlTimer.current) clearTimeout(hlTimer.current);
+    hlTimer.current = setTimeout(() => setHighlightedTaskId(null), HIGHLIGHT_MS);
+  }, []);
+  const handleSelectMarker = useCallback((id: string) => {
+    setHighlightedMarkerId(id);
+    setMarkerHighlightNonce((n) => n + 1);
+    if (mkHlTimer.current) clearTimeout(mkHlTimer.current);
+    mkHlTimer.current = setTimeout(() => setHighlightedMarkerId(null), HIGHLIGHT_MS);
+  }, []);
+  useEffect(
+    () => () => {
+      if (hlTimer.current) clearTimeout(hlTimer.current);
+      if (mkHlTimer.current) clearTimeout(mkHlTimer.current);
+    },
+    [],
+  );
 
   // --- Print (reuse the app's print path) ------------------------------------
   const [printRange, setPrintRange] = useState<{ from: YearMonth; to: YearMonth } | null>(null);
@@ -196,40 +249,58 @@ export function EditableSharedCalendar({
         </div>
       </header>
 
-      <CalendarView
-        projects={[project]}
-        taskTypes={taskTypes}
-        tasks={tasks}
-        markers={markers}
-        projectsById={projectsById}
-        taskTypesById={taskTypesById}
-        selectedProjectId={project.id}
-        onSelectProject={() => {}}
-        onReorderProject={() => {}}
-        onCreateTask={handleCreateTask}
-        onUpdateTask={handleUpdateTask}
-        onMoveTask={handleMoveTask}
-        onDeleteTask={handleDeleteTask}
-        onCreateMarker={handleCreateMarker}
-        onUpdateMarker={handleUpdateMarker}
-        onDeleteMarker={handleDeleteMarker}
-        highlightedTaskId={null}
-        highlightNonce={0}
-        highlightedMarkerId={null}
-        markerHighlightNonce={0}
-        addNonce={0}
-        markerAddNonce={0}
-        onPrint={handlePrint}
-        onShare={() => {}}
-        isShared={false}
-        canShare={false}
-      />
+      <div className="edit-body share-screen">
+        <CalendarView
+          projects={[project]}
+          taskTypes={taskTypes}
+          tasks={visibleTasks}
+          markers={markers}
+          projectsById={projectsById}
+          taskTypesById={taskTypesById}
+          selectedProjectId={project.id}
+          onSelectProject={() => {}}
+          onReorderProject={() => {}}
+          onCreateTask={handleCreateTask}
+          onUpdateTask={handleUpdateTask}
+          onMoveTask={handleMoveTask}
+          onDeleteTask={handleDeleteTask}
+          onCreateMarker={handleCreateMarker}
+          onUpdateMarker={handleUpdateMarker}
+          onDeleteMarker={handleDeleteMarker}
+          highlightedTaskId={highlightedTaskId}
+          highlightNonce={highlightNonce}
+          highlightedMarkerId={highlightedMarkerId}
+          markerHighlightNonce={markerHighlightNonce}
+          addNonce={0}
+          markerAddNonce={0}
+          onPrint={handlePrint}
+          onShare={() => {}}
+          isShared={false}
+          canShare={false}
+        />
+        <TaskListPanel
+          readOnly
+          tasks={visibleTasks}
+          markers={markers}
+          projects={[project]}
+          projectsById={projectsById}
+          taskTypesById={taskTypesById}
+          selectedProjectId={project.id}
+          projectTaskTypes={taskTypes}
+          onSelectTask={handleSelectTask}
+          selectedTaskId={highlightedTaskId}
+          onSelectMarker={handleSelectMarker}
+          selectedMarkerId={highlightedMarkerId}
+          hiddenTaskTypeIds={hiddenTaskTypeIds}
+          onToggleTaskType={handleToggleTaskType}
+        />
+      </div>
 
       {printRange && (
         <PrintCalendar
           from={printRange.from}
           to={printRange.to}
-          tasks={tasks}
+          tasks={visibleTasks}
           markers={markers}
           projectsById={projectsById}
           taskTypesById={taskTypesById}

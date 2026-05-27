@@ -1537,6 +1537,16 @@ button.mk:focus-visible {
 .edit-shell .ed-main {
   min-height: 0;
 }
+/*
+ * Body row under the save banner: reused <CalendarView> (.ed-main) + read-only
+ * <TaskListPanel> (.ed-list). min-height:0 so the tall month list scrolls inside
+ * .ed-calwrap instead of overflowing the column shell.
+ */
+.edit-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
 .edit-banner {
   display: flex;
   align-items: center;
@@ -1652,6 +1662,16 @@ button.mk:focus-visible {
 .share-print:hover {
   color: var(--text);
   border-color: var(--text);
+}
+/*
+ * Body row under the share bar: scrollable month grids (.share-cal) + read-only
+ * <TaskListPanel> (.ed-list). min-height:0 so .share-cal scrolls within the row
+ * rather than stretching the column.
+ */
+.share-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
 }
 /* Scroll container for the months, mirroring .ed-calwrap. */
 .share-cal {

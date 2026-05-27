@@ -36,6 +36,10 @@ interface StaticMonthsProps {
   markers: Marker[];
   projectsById: Map<string, Project>;
   taskTypesById: Map<string, TaskType>;
+  /** Task whose bar(s) should be ringed (from a panel row click). */
+  highlightedTaskId?: string | null;
+  /** Marker whose chip should be ringed (from a panel marker row click). */
+  highlightedMarkerId?: string | null;
 }
 
 export function StaticMonths({
@@ -45,6 +49,8 @@ export function StaticMonths({
   markers,
   projectsById,
   taskTypesById,
+  highlightedTaskId = null,
+  highlightedMarkerId = null,
 }: StaticMonthsProps) {
   const groups = groupWeeksByMonth(buildWeeksRange(from, to));
   const markersByDate = groupMarkersByDate(markers);
@@ -88,6 +94,7 @@ export function StaticMonths({
                     return (
                       <div
                         key={dy.date}
+                        data-date={dy.date}
                         className={`cal-cell${dy.month !== g.month ? " out" : ""}${
                           dy.isToday ? " today" : ""
                         }`}
@@ -98,7 +105,10 @@ export function StaticMonths({
                             {cellMarkers.map((mk) => (
                               <span
                                 key={mk.id}
-                                className={`mk ${mk.kind === "deadline" ? "mk-dl" : "mk-ev"}`}
+                                data-marker-id={mk.id}
+                                className={`mk ${mk.kind === "deadline" ? "mk-dl" : "mk-ev"}${
+                                  mk.id === highlightedMarkerId ? " hl" : ""
+                                }`}
                                 title={mk.label}
                               >
                                 {mk.kind === "deadline" ? "⚑" : "◆"} {mk.label}
@@ -123,7 +133,10 @@ export function StaticMonths({
                     return (
                       <div
                         key={seg.task.id}
-                        className="cal-bar"
+                        data-task-id={seg.task.id}
+                        className={`cal-bar${
+                          seg.task.id === highlightedTaskId ? " hl" : ""
+                        }`}
                         title={seg.task.title}
                         style={{
                           left: `${left}%`,

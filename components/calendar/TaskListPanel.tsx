@@ -102,20 +102,27 @@ interface TaskListPanelProps {
   onSelectMarker: (id: string) => void;
   /** The marker currently highlighted (its row gets an active style). */
   selectedMarkerId: string | null;
-  /** Open the creation popover for a new task (footer "＋ 일정 추가"). */
-  onAdd: () => void;
-  /** Open the marker form for a new marker (legend "＋ 마커"). */
-  onAddMarker: () => void;
-  /** Open the project popover to create a new project (legend "＋ 프로젝트"). */
-  onAddProject: (x: number, y: number) => void;
-  /** Open the project popover to edit/delete a project (legend chip click). */
-  onEditProject: (project: Project, x: number, y: number) => void;
-  /** Toggle a project's visibility (legend chip) — US-014. */
-  onToggleProjectVisible: (id: string) => void;
-  /** Open the task-type popover to create a new type (legend "＋ 종류"). */
-  onAddTaskType: (x: number, y: number) => void;
-  /** Open the task-type popover to edit/delete a type (legend chip click). */
-  onEditTaskType: (taskType: TaskType, x: number, y: number) => void;
+  /**
+   * Shared / read-only mode (shared `/s` + `/e` views). Keeps the marker/task
+   * lists, their row-click navigation, and the task-type filter, but drops every
+   * authoring affordance — project legend, the ＋추가 buttons, and the manage
+   * pencils — since collaborators / viewers can't manage projects or types.
+   */
+  readOnly?: boolean;
+  /** Open the creation popover for a new task (footer "＋ 일정 추가"). Owner only. */
+  onAdd?: () => void;
+  /** Open the marker form for a new marker (legend "＋ 마커"). Owner only. */
+  onAddMarker?: () => void;
+  /** Open the project popover to create a new project (legend "＋ 프로젝트"). Owner only. */
+  onAddProject?: (x: number, y: number) => void;
+  /** Open the project popover to edit/delete a project (legend chip click). Owner only. */
+  onEditProject?: (project: Project, x: number, y: number) => void;
+  /** Toggle a project's visibility (legend chip) — US-014. Owner only. */
+  onToggleProjectVisible?: (id: string) => void;
+  /** Open the task-type popover to create a new type (legend "＋ 종류"). Owner only. */
+  onAddTaskType?: (x: number, y: number) => void;
+  /** Open the task-type popover to edit/delete a type (legend chip click). Owner only. */
+  onEditTaskType?: (taskType: TaskType, x: number, y: number) => void;
   /** Task-type ids toggled off in the legend filter (US-015). */
   hiddenTaskTypeIds: Set<string>;
   /** Toggle a task type's on/off filter (legend chip) — US-015. */
@@ -134,6 +141,7 @@ export function TaskListPanel({
   selectedTaskId,
   onSelectMarker,
   selectedMarkerId,
+  readOnly = false,
   onAdd,
   onAddMarker,
   onAddProject,
@@ -208,14 +216,16 @@ export function TaskListPanel({
         {showFilters && (
           <div className="ed-filters-body">
       {/* Project legend (US-011/US-014): swatch + name chip. Clicking toggles
-          visibility (faded when hidden, no checkbox); pencil manages. */}
+          visibility (faded when hidden, no checkbox); pencil manages. Hidden in
+          shared views — those publish a single project, owner-managed. */}
+      {!readOnly && (
       <div className="ed-proj">
         <div className="ed-proj-head">
           프로젝트
           <button
             type="button"
             className="mk-add"
-            onClick={(e) => onAddProject(e.clientX, e.clientY)}
+            onClick={(e) => onAddProject?.(e.clientX, e.clientY)}
           >
             ＋ 프로젝트
           </button>
@@ -226,7 +236,7 @@ export function TaskListPanel({
               <button
                 type="button"
                 className="proj-name"
-                onClick={() => onToggleProjectVisible(p.id)}
+                onClick={() => onToggleProjectVisible?.(p.id)}
                 aria-pressed={p.visible}
                 aria-label={`${p.name} 표시/숨김`}
                 title={p.visible ? "클릭하여 숨기기" : "클릭하여 표시"}
@@ -237,7 +247,7 @@ export function TaskListPanel({
               <button
                 type="button"
                 className="proj-edit"
-                onClick={(e) => onEditProject(p, e.clientX, e.clientY)}
+                onClick={(e) => onEditProject?.(p, e.clientX, e.clientY)}
                 aria-label={`${p.name} 프로젝트 관리`}
                 title="관리"
               >
@@ -247,6 +257,7 @@ export function TaskListPanel({
           ))}
         </div>
       </div>
+      )}
 
       {/* Task-type legend (US-012/US-015, per-project in US-020): tone swatch
           (previewed on the active project's hue) + name chip. Clicking the chip
@@ -257,11 +268,11 @@ export function TaskListPanel({
       <div className="ed-type">
         <div className="ed-proj-head">
           태스크 종류
-          {projectTaskTypes && (
+          {!readOnly && projectTaskTypes && (
             <button
               type="button"
               className="mk-add"
-              onClick={(e) => onAddTaskType(e.clientX, e.clientY)}
+              onClick={(e) => onAddTaskType?.(e.clientX, e.clientY)}
             >
               ＋ 종류
             </button>
@@ -288,15 +299,17 @@ export function TaskListPanel({
                     />
                     {tt.name}
                   </button>
-                  <button
-                    type="button"
-                    className="proj-edit"
-                    onClick={(e) => onEditTaskType(tt, e.clientX, e.clientY)}
-                    aria-label={`${tt.name} 태스크 종류 관리`}
-                    title="관리"
-                  >
-                    <EditIcon />
-                  </button>
+                  {!readOnly && (
+                    <button
+                      type="button"
+                      className="proj-edit"
+                      onClick={(e) => onEditTaskType?.(tt, e.clientX, e.clientY)}
+                      aria-label={`${tt.name} 태스크 종류 관리`}
+                      title="관리"
+                    >
+                      <EditIcon />
+                    </button>
+                  )}
                 </span>
               );
             })}
@@ -313,9 +326,11 @@ export function TaskListPanel({
       <div className="ed-legend-row">
         <span className="mk mk-dl">⚑ 데드라인</span>
         <span className="mk mk-ev">◆ 이벤트</span>
-        <button type="button" className="mk-add" onClick={onAddMarker}>
-          ＋ 마커
-        </button>
+        {!readOnly && (
+          <button type="button" className="mk-add" onClick={onAddMarker}>
+            ＋ 마커
+          </button>
+        )}
       </div>
           </div>
         )}
@@ -332,7 +347,13 @@ export function TaskListPanel({
           <ul className="tp-list">
             {sortedMarkers.map((mk) => {
               const project = projectsById.get(mk.projectId);
-              const meta = [formatRangeLabel(mk.date, mk.date), project?.name]
+              // Same rule as tasks: 전체 view shows date · project; an individual
+              // project view drops the project name (markers have no 종류, so
+              // just the date).
+              const meta = [
+                formatRangeLabel(mk.date, mk.date),
+                selectedProjectId ? null : project?.name,
+              ]
                 .filter(Boolean)
                 .join(" · ");
               return (
@@ -381,10 +402,12 @@ export function TaskListPanel({
               project && taskType
                 ? barColors(project.color, taskType).background
                 : "var(--text)";
+            // Context-aware meta: 전체 view shows date · project (which project
+            // it belongs to); an individual project view drops the (redundant)
+            // project name and shows date · 종류 instead.
             const meta = [
               formatRangeLabel(task.startDate, task.endDate),
-              project?.name,
-              taskType?.name,
+              selectedProjectId ? taskType?.name : project?.name,
             ]
               .filter(Boolean)
               .join(" · ");
@@ -415,9 +438,11 @@ export function TaskListPanel({
         </ul>
       )}
 
-      <button type="button" className="ed-contact" onClick={onAdd}>
-        ↳ ＋ 일정 추가
-      </button>
+      {!readOnly && (
+        <button type="button" className="ed-contact" onClick={onAdd}>
+          ↳ ＋ 일정 추가
+        </button>
+      )}
 
       {/* Immediate hover tooltip (full title · meta). position:fixed escapes the
           panel's overflow; pointer-events:none so it never steals the hover. */}
