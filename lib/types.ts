@@ -56,6 +56,21 @@ export interface Task {
   updatedAt: Timestamp;
 }
 
+/**
+ * Local registry of a project's published share (US-025). One row per shared
+ * project (projectId is the key); holds the token + public URL so the UI can
+ * show share state and refresh/revoke. The Blob snapshot is the published copy;
+ * this row is just the local handle to it.
+ */
+export interface ShareRecord {
+  /** Primary key — a project has at most one active share. */
+  projectId: string;
+  token: string;
+  /** Public Blob URL of the snapshot (returned by publish). */
+  url: string;
+  updatedAt: Timestamp;
+}
+
 /** A point-date marker (event / hard deadline). */
 export interface Marker {
   id: string;

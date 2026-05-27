@@ -19,11 +19,14 @@ import {
   deleteProject,
   deleteTask,
   deleteTaskType,
+  deleteShare,
   deleteTaskTypesByProject,
   getAllMarkers,
   getAllProjects,
+  getAllShares,
   getAllTaskTypes,
   getAllTasks,
+  putShare,
   seedIfEmpty,
   seedTaskTypesForProject,
   updateMarker,
@@ -54,8 +57,16 @@ import {
   matchTaskTypeAcrossProjects,
   taskTypesForProject,
 } from "@/lib/taskType/scope";
-import type { DateString, Marker, Project, Task, TaskType } from "@/lib/types";
+import type {
+  DateString,
+  Marker,
+  Project,
+  ShareRecord,
+  Task,
+  TaskType,
+} from "@/lib/types";
 import type { YearMonth } from "@/lib/calendar/infinite";
+import { buildSnapshot } from "@/lib/share/snapshot";
 import { CalendarView } from "./CalendarView";
 import { PrintCalendar } from "./PrintCalendar";
 import type { EditTaskDraft } from "./EditPopover";
@@ -64,6 +75,7 @@ import {
   type DeleteProjectMode,
   type ProjectDraft,
 } from "./ProjectPopover";
+import { SharePopover } from "./SharePopover";
 import { TaskListPanel } from "./TaskListPanel";
 import { TaskTypePopover, type TaskTypeDraft } from "./TaskTypePopover";
 
@@ -84,6 +96,9 @@ export function CalendarApp() {
   const [taskTypes, setTaskTypes] = useState<TaskType[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [markers, setMarkers] = useState<Marker[]>([]);
+  // Local share registry (US-025), keyed by projectId — which projects are
+  // currently published and to what token/url.
+  const [shares, setShares] = useState<Map<string, ShareRecord>>(new Map());
 
   // Seed (idempotent) then load all data on mount. Seeding here avoids a race
   // with <DbInit> so the popover always has a project/task-type to pick.
@@ -91,17 +106,19 @@ export function CalendarApp() {
     let alive = true;
     (async () => {
       await seedIfEmpty();
-      const [ps, tts, ts, ms] = await Promise.all([
+      const [ps, tts, ts, ms, shs] = await Promise.all([
         getAllProjects(),
         getAllTaskTypes(),
         getAllTasks(),
         getAllMarkers(),
+        getAllShares(),
       ]);
       if (!alive) return;
       setProjects(ps);
       setTaskTypes(tts);
       setTasks(ts);
       setMarkers(ms);
+      setShares(new Map(shs.map((s) => [s.projectId, s])));
     })().catch((err) => console.error("calendar data load failed", err));
     return () => {
       alive = false;
@@ -548,6 +565,98 @@ export function CalendarApp() {
     setTaskTypePopover(null);
   }, [taskTypePopover, tasks, taskTypes]);
 
+  // --- Project sharing (US-023~025) ----------------------------------------
+  // A snapshot of one project is published to Blob and managed by a per-project
+  // link. The popover opens for the active individual project (전체 뷰에는 없음).
+  const [sharePopover, setSharePopover] = useState<{
+    projectId: string;
+    x: number;
+    y: number;
+  } | null>(null);
+  const [shareBusy, setShareBusy] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
+
+  const openShare = useCallback(
+    (x: number, y: number) => {
+      if (!selectedProjectId) return;
+      setShareError(null);
+      setSharePopover({ projectId: selectedProjectId, x, y });
+    },
+    [selectedProjectId],
+  );
+  const closeShare = useCallback(() => setSharePopover(null), []);
+
+  // Publish or refresh: build a fresh snapshot from local data, POST it (reusing
+  // the existing token if any so refresh overwrites in place), persist the
+  // returned token/url locally, and copy the link.
+  const handlePublishShare = useCallback(async () => {
+    const pid = sharePopover?.projectId;
+    const project = pid ? projectsById.get(pid) : undefined;
+    if (!pid || !project) return;
+    setShareBusy(true);
+    setShareError(null);
+    try {
+      const snapshot = buildSnapshot(project, taskTypes, tasks, markers);
+      const existing = shares.get(pid);
+      const res = await fetch("/api/share", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ token: existing?.token, snapshot }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        token?: string;
+        url?: string;
+        error?: string;
+      };
+      if (!res.ok || !data.token || !data.url) {
+        throw new Error(data.error || "발행에 실패했습니다.");
+      }
+      const record = await putShare({
+        projectId: pid,
+        token: data.token,
+        url: data.url,
+      });
+      setShares((prev) => new Map(prev).set(pid, record));
+      await navigator.clipboard
+        ?.writeText(`${window.location.origin}/s/${data.token}`)
+        .catch(() => {});
+    } catch (err) {
+      setShareError(err instanceof Error ? err.message : "발행에 실패했습니다.");
+    } finally {
+      setShareBusy(false);
+    }
+  }, [sharePopover, projectsById, taskTypes, tasks, markers, shares]);
+
+  // Revoke: delete the Blob snapshot, then drop the local record.
+  const handleRevokeShare = useCallback(async () => {
+    const pid = sharePopover?.projectId;
+    const existing = pid ? shares.get(pid) : undefined;
+    if (!pid || !existing) return;
+    setShareBusy(true);
+    setShareError(null);
+    try {
+      const res = await fetch("/api/share", {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ token: existing.token }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(data.error || "해제에 실패했습니다.");
+      }
+      await deleteShare(pid);
+      setShares((prev) => {
+        const next = new Map(prev);
+        next.delete(pid);
+        return next;
+      });
+    } catch (err) {
+      setShareError(err instanceof Error ? err.message : "해제에 실패했습니다.");
+    } finally {
+      setShareBusy(false);
+    }
+  }, [sharePopover, shares]);
+
   return (
     <>
       <CalendarView
@@ -572,6 +681,8 @@ export function CalendarApp() {
         addNonce={addNonce}
         markerAddNonce={markerAddNonce}
         onPrint={handlePrint}
+        onShare={openShare}
+        isShared={selectedProjectId ? shares.has(selectedProjectId) : false}
       />
       <TaskListPanel
         tasks={visibleTasks}
@@ -628,6 +739,24 @@ export function CalendarApp() {
           onClose={closeTaskTypePopover}
           onSave={handleSaveTaskType}
           onDelete={taskTypePopover.taskType ? handleDeleteTaskType : undefined}
+        />
+      )}
+      {sharePopover && projectsById.get(sharePopover.projectId) && (
+        <SharePopover
+          project={projectsById.get(sharePopover.projectId)!}
+          share={shares.get(sharePopover.projectId) ?? null}
+          shareUrl={
+            shares.get(sharePopover.projectId)
+              ? `${typeof window !== "undefined" ? window.location.origin : ""}/s/${shares.get(sharePopover.projectId)!.token}`
+              : null
+          }
+          x={sharePopover.x}
+          y={sharePopover.y}
+          busy={shareBusy}
+          error={shareError}
+          onPublish={handlePublishShare}
+          onRevoke={handleRevokeShare}
+          onClose={closeShare}
         />
       )}
 

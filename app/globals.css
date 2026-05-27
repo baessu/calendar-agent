@@ -1266,8 +1266,13 @@ button.mk:focus-visible {
   }
   .ed-main,
   .ed-list,
-  .cp-backdrop {
+  .cp-backdrop,
+  .share-screen {
     display: none !important;
+  }
+  .share-page {
+    height: auto;
+    overflow: visible;
   }
   .print-cal {
     display: block;
@@ -1306,4 +1311,170 @@ button.mk:focus-visible {
     size: A4 landscape;
     margin: 12mm;
   }
+}
+
+/*
+ * Share button in the top bar (US-025) — only on an individual project view.
+ * A small filled dot signals "currently shared" (monochrome, like the chrome).
+ */
+.ed-share {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ed-share.on {
+  color: var(--text);
+  border-color: var(--text);
+}
+.ed-share-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text);
+}
+
+/*
+ * Share popover (US-025) — publish / copy / refresh / revoke. Shares .cp-* /
+ * .create-pop chrome; a few extras for the link row + state.
+ */
+.share-pop {
+  min-width: 280px;
+  max-width: 340px;
+}
+.share-note {
+  margin-top: 8px;
+  line-height: 1.55;
+}
+.share-linkrow {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+.share-link {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+.share-copy {
+  flex: none;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  background: none;
+  padding: 0 12px;
+  cursor: pointer;
+  font-family: inherit;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+.share-copy:hover:not(:disabled) {
+  border-color: var(--text);
+}
+.share-copy:disabled {
+  color: var(--faint);
+  cursor: default;
+}
+.share-meta {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--faint);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.share-foot {
+  margin-top: 14px;
+}
+
+/*
+ * Public read-only share page (US-024) — /s/{token}. Reuses the calendar grid
+ * classes; only the page chrome is new. Monochrome shell like the app, no
+ * interactivity. `.share-screen` is the on-screen layer (hidden while printing).
+ */
+.share-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+.share-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 30px 16px;
+  border-bottom: 1px solid var(--border);
+  flex: none;
+}
+.share-id {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.share-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex: none;
+}
+.share-ttl {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+.share-sub {
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: -0.02em;
+  margin-top: 1px;
+  font-variant-numeric: tabular-nums;
+}
+.share-print {
+  flex: none;
+  font-size: 12px;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  padding: 6px 14px;
+  cursor: pointer;
+  background: none;
+  font-family: inherit;
+  letter-spacing: -0.03em;
+}
+.share-print:hover {
+  color: var(--text);
+  border-color: var(--text);
+}
+/* Scroll container for the months, mirroring .ed-calwrap. */
+.share-cal {
+  flex: 1;
+  overflow: auto;
+  padding: 0 30px 40px;
+}
+
+/* Missing / revoked link fallback. */
+.share-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+.share-empty-card {
+  max-width: 360px;
+  text-align: center;
+}
+.share-empty-ttl {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+.share-empty-body {
+  font-size: 13px;
+  line-height: 1.6;
+  letter-spacing: -0.02em;
+  color: var(--muted);
+  margin-top: 10px;
 }

@@ -1,5 +1,5 @@
 import Dexie, { type Table } from "dexie";
-import type { Project, TaskType, Task, Marker } from "@/lib/types";
+import type { Project, TaskType, Task, Marker, ShareRecord } from "@/lib/types";
 import { planTaskTypeScopeMigration } from "@/lib/taskType/scope";
 import { planMarkerScopeMigration } from "@/lib/calendar/markers";
 import { defaultProjectId } from "@/lib/project/manage";
@@ -19,6 +19,7 @@ export class CalendarDB extends Dexie {
   taskTypes!: Table<TaskType, string>;
   tasks!: Table<Task, string>;
   markers!: Table<Marker, string>;
+  shares!: Table<ShareRecord, string>;
 
   constructor() {
     super("CalendarDB");
@@ -98,6 +99,16 @@ export class CalendarDB extends Dexie {
           relinks.map((r) => markerTable.update(r.id, { projectId: r.projectId })),
         );
       });
+    // v5 (US-025): local share registry. A brand-new `shares` table keyed by
+    // projectId — adding a table needs no data upgrade; existing tables are
+    // re-declared unchanged so Dexie carries them forward.
+    this.version(5).stores({
+      projects: "id, order, visible",
+      taskTypes: "id, projectId, order",
+      tasks: "id, projectId, taskTypeId, startDate, endDate",
+      markers: "id, date, kind, projectId",
+      shares: "projectId, token",
+    });
   }
 }
 
@@ -109,4 +120,5 @@ export * from "./projects";
 export * from "./taskTypes";
 export * from "./tasks";
 export * from "./markers";
+export * from "./shares";
 export * from "./seed";

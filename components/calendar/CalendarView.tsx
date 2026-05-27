@@ -167,6 +167,10 @@ interface CalendarViewProps {
   markerAddNonce: number;
   /** Print the given inclusive month range (인쇄 기능). */
   onPrint: (from: YearMonth, to: YearMonth) => void;
+  /** Open the share popover for the active project (US-025). */
+  onShare: (x: number, y: number) => void;
+  /** Whether the active project is currently shared (button state). */
+  isShared: boolean;
 }
 
 export function CalendarView({
@@ -191,6 +195,8 @@ export function CalendarView({
   addNonce,
   markerAddNonce,
   onPrint,
+  onShare,
+  isShared,
 }: CalendarViewProps) {
   const today = useMemo(() => todayDateString(), []);
   const todayYM = useMemo(() => ymFromDate(today), [today]);
@@ -793,6 +799,17 @@ export function CalendarView({
         <button type="button" className="ed-today ed-print" onClick={openPrint}>
           인쇄
         </button>
+        {/* Share (US-025): only on an individual project view. Dot when shared. */}
+        {selectedProjectId !== null && (
+          <button
+            type="button"
+            className={`ed-today ed-share${isShared ? " on" : ""}`}
+            onClick={(e) => onShare(e.clientX, e.clientY)}
+          >
+            {isShared && <span className="ed-share-dot" aria-hidden />}
+            공유
+          </button>
+        )}
         {/* Heatmap toggle (US-022): only on the 전체(통합) view. Filled when on. */}
         {selectedProjectId === null && (
           <button
