@@ -48,7 +48,7 @@ import { barColors } from "@/lib/color/compose";
 import type { MarkerChanges, MarkerInput } from "@/lib/db";
 import type { DateString, Marker, Project, Task, TaskType } from "@/lib/types";
 import type { NewTaskInput } from "./CalendarApp";
-import { CreatePopover, type CreateTaskDraft } from "./CreatePopover";
+import { CreatePopover, type CreateDraft } from "./CreatePopover";
 import { EditPopover, type EditTaskDraft } from "./EditPopover";
 import { MarkerPopover, type MarkerDraft } from "./MarkerPopover";
 
@@ -65,6 +65,10 @@ const BAR_H = 22;
 const BAR_GAP = 5;
 const HEAD_H = 36;
 const ROW_MIN = 116;
+// Markers get their own stacked rows between the day number and the task bars,
+// so they never sit under a bar. Each marker chip occupies one row of this
+// height; a week reserves rows = its busiest cell's marker count.
+const MK_ROW_H = 18;
 
 // Pointer travel (px) past which a bar press becomes a move instead of a click
 // (US-010): below it the press opens the edit popover, at/above it the bar moves.
@@ -387,20 +391,31 @@ export function CalendarView({
     setDragCurrent(null);
   }, []);
 
-  // Persist a new task across the committed selection (parent owns the data).
+  // Persist what the create popover returns (parent owns the data): a task
+  // spans the committed selection; a marker (event/deadline) lands on the
+  // selection's start day, since markers are point-date.
   const handleCreate = useCallback(
-    async (draft: CreateTaskDraft) => {
+    async (draft: CreateDraft) => {
       if (!selection) return;
-      await onCreateTask({
-        projectId: draft.projectId,
-        taskTypeId: draft.taskTypeId,
-        title: draft.title,
-        startDate: selection.start,
-        endDate: selection.end,
-      });
+      if (draft.kind === "task") {
+        await onCreateTask({
+          projectId: draft.projectId,
+          taskTypeId: draft.taskTypeId,
+          title: draft.title,
+          startDate: selection.start,
+          endDate: selection.end,
+        });
+      } else {
+        await onCreateMarker({
+          kind: draft.markerKind,
+          label: draft.label,
+          date: selection.start,
+          projectId: draft.projectId,
+        });
+      }
       closePopover();
     },
-    [selection, onCreateTask, closePopover],
+    [selection, onCreateTask, onCreateMarker, closePopover],
   );
 
   // --- Click a bar -> edit / delete (US-009) --------------------------------
@@ -930,15 +945,24 @@ export function CalendarView({
                 const layout = layoutWeek(segs, DEFAULT_MAX_LANES);
                 const expanded = expandedWeeks.has(weekKey);
                 const hasOverflow = layout.overflow.length > 0;
+                // Reserve a marker band above the bars: as many rows as the
+                // busiest cell in this week, so markers stack on their own lines
+                // and bars start below them (no overlap). +4 keeps a hair of gap.
+                const markerRows = week.reduce(
+                  (m, dy) => Math.max(m, markersByDate.get(dy.date)?.length ?? 0),
+                  0,
+                );
+                const markerBandH = markerRows > 0 ? markerRows * MK_ROW_H + 4 : 0;
                 // Lanes drawn as bars, and the lane row the chips sit on.
                 const visibleLanes = expanded
                   ? layout.laneCount
                   : Math.min(layout.laneCount, DEFAULT_MAX_LANES);
                 const chipLane = expanded ? layout.laneCount : DEFAULT_MAX_LANES;
                 const rows = visibleLanes + (hasOverflow ? 1 : 0);
+                const barTop = HEAD_H + markerBandH;
                 const weekMinH = Math.max(
                   ROW_MIN,
-                  HEAD_H + rows * (BAR_H + BAR_GAP) + 6,
+                  barTop + rows * (BAR_H + BAR_GAP) + 6,
                 );
                 const visibleSegs = expanded
                   ? layout.segments
@@ -966,25 +990,31 @@ export function CalendarView({
                           onPointerEnter={() => onCellPointerEnter(dy.date)}
                         >
                           <span className="cal-daynum">{dy.day}</span>
-                          {/* Point-date markers: monochrome chips (US-017),
-                              distinct from the colored task bars. Click to edit;
-                              swallow pointerdown so the cell drag-select doesn't
-                              start. */}
-                          {cellMarkers?.map((mk) => (
-                            <button
-                              key={mk.id}
-                              type="button"
-                              className={`mk ${mk.kind === "deadline" ? "mk-dl" : "mk-ev"}`}
-                              title={mk.label}
-                              aria-label={`${
-                                mk.kind === "deadline" ? "데드라인" : "이벤트"
-                              } ${mk.label} — 편집`}
-                              onPointerDown={(e) => e.stopPropagation()}
-                              onClick={(e) => openMarkerEdit(mk, e.clientX, e.clientY)}
-                            >
-                              {mk.kind === "deadline" ? "⚑" : "◆"} {mk.label}
-                            </button>
-                          ))}
+                          {/* Point-date markers (US-017): monochrome chips on
+                              their own stacked rows between the day number and the
+                              task bars, so multiple markers never hide under a bar.
+                              Full cell width; long labels truncate with a tooltip.
+                              Click to edit; swallow pointerdown so the cell
+                              drag-select doesn't start. */}
+                          {cellMarkers && cellMarkers.length > 0 && (
+                            <div className="cal-marks">
+                              {cellMarkers.map((mk) => (
+                                <button
+                                  key={mk.id}
+                                  type="button"
+                                  className={`mk ${mk.kind === "deadline" ? "mk-dl" : "mk-ev"}`}
+                                  title={mk.label}
+                                  aria-label={`${
+                                    mk.kind === "deadline" ? "데드라인" : "이벤트"
+                                  } ${mk.label} — 편집`}
+                                  onPointerDown={(e) => e.stopPropagation()}
+                                  onClick={(e) => openMarkerEdit(mk, e.clientX, e.clientY)}
+                                >
+                                  {mk.kind === "deadline" ? "⚑" : "◆"} {mk.label}
+                                </button>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -993,7 +1023,7 @@ export function CalendarView({
                       const taskType = taskTypesById.get(seg.task.taskTypeId);
                       const left = (seg.startCol / 7) * 100;
                       const width = ((seg.endCol - seg.startCol + 1) / 7) * 100;
-                      const top = HEAD_H + seg.lane * (BAR_H + BAR_GAP);
+                      const top = barTop + seg.lane * (BAR_H + BAR_GAP);
                       // Square the edge that continues into an adjacent week.
                       const r = (cont: boolean) => (cont ? "0" : "3px");
                       // Bar bg = project color toned by task type; text auto-contrast.
@@ -1090,7 +1120,7 @@ export function CalendarView({
                           className="cal-more"
                           style={{
                             left: `${(chip.col / 7) * 100}%`,
-                            top: HEAD_H + chipLane * (BAR_H + BAR_GAP),
+                            top: barTop + chipLane * (BAR_H + BAR_GAP),
                           }}
                           onClick={() => toggleWeek(weekKey)}
                           title={`${chip.count}개 더 보기`}
@@ -1103,7 +1133,7 @@ export function CalendarView({
                       <button
                         type="button"
                         className="cal-more cal-collapse"
-                        style={{ left: 0, top: HEAD_H + chipLane * (BAR_H + BAR_GAP) }}
+                        style={{ left: 0, top: barTop + chipLane * (BAR_H + BAR_GAP) }}
                         onClick={() => toggleWeek(weekKey)}
                       >
                         접기

@@ -27,6 +27,7 @@ const HEAD_H = 36;
 const BAR_H = 22;
 const BAR_GAP = 5;
 const ROW_MIN = 116;
+const MK_ROW_H = 18; // marker rows reserved above the bars (see CalendarView)
 
 interface StaticMonthsProps {
   from: YearMonth;
@@ -66,9 +67,15 @@ export function StaticMonths({
             {g.weeks.map((week) => {
               const layout = layoutWeek(weekSegments(week, tasks));
               const rows = Math.max(1, layout.laneCount);
+              // Reserve a marker band above the bars (see CalendarView).
+              const markerRows = week.reduce(
+                (m, dy) => Math.max(m, markersByDate.get(dy.date)?.length ?? 0),
+                0,
+              );
+              const barTop = HEAD_H + (markerRows > 0 ? markerRows * MK_ROW_H + 4 : 0);
               const weekMinH = Math.max(
                 ROW_MIN,
-                HEAD_H + rows * (BAR_H + BAR_GAP) + 6,
+                barTop + rows * (BAR_H + BAR_GAP) + 6,
               );
               return (
                 <div
@@ -86,14 +93,19 @@ export function StaticMonths({
                         }`}
                       >
                         <span className="cal-daynum">{dy.day}</span>
-                        {cellMarkers?.map((mk) => (
-                          <span
-                            key={mk.id}
-                            className={`mk ${mk.kind === "deadline" ? "mk-dl" : "mk-ev"}`}
-                          >
-                            {mk.kind === "deadline" ? "⚑" : "◆"} {mk.label}
-                          </span>
-                        ))}
+                        {cellMarkers && cellMarkers.length > 0 && (
+                          <div className="cal-marks">
+                            {cellMarkers.map((mk) => (
+                              <span
+                                key={mk.id}
+                                className={`mk ${mk.kind === "deadline" ? "mk-dl" : "mk-ev"}`}
+                                title={mk.label}
+                              >
+                                {mk.kind === "deadline" ? "⚑" : "◆"} {mk.label}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -102,7 +114,7 @@ export function StaticMonths({
                     const taskType = taskTypesById.get(seg.task.taskTypeId);
                     const left = (seg.startCol / 7) * 100;
                     const width = ((seg.endCol - seg.startCol + 1) / 7) * 100;
-                    const top = HEAD_H + seg.lane * (BAR_H + BAR_GAP);
+                    const top = barTop + seg.lane * (BAR_H + BAR_GAP);
                     const r = (cont: boolean) => (cont ? "0" : "3px");
                     const { background, text } =
                       project && taskType
