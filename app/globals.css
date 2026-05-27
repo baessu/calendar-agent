@@ -1455,6 +1455,16 @@ button.mk:focus-visible {
 .edit-shell {
   flex-direction: column;
 }
+/*
+ * In the column shell, .ed-main is flex:1 on the main (vertical) axis. Without
+ * min-height:0 its default min-height:auto lets the tall month list push it
+ * past 100vh — the shell clips it and the inner .ed-calwrap never gets a
+ * bounded height, so it can't scroll. (The row app-shell doesn't need this:
+ * there .ed-main's height comes from align-items:stretch.)
+ */
+.edit-shell .ed-main {
+  min-height: 0;
+}
 .edit-banner {
   display: flex;
   align-items: center;
