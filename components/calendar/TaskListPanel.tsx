@@ -13,7 +13,7 @@
  * the same shared task state as the calendar, so it updates the instant a task
  * is added. Monochrome chrome; the only color is the per-task data swatch.
  */
-import { useMemo, useState } from "react";
+import { useMemo, useState, type MouseEvent } from "react";
 import { parseDate } from "@/lib/calendar/dates";
 import { hasNote } from "@/lib/calendar/notes";
 import { formatRangeLabel } from "@/lib/calendar/selection";
@@ -179,6 +179,16 @@ export function TaskListPanel({
   const hasActiveFilter =
     projects.some((p) => !p.visible) || hiddenTaskTypeIds.size > 0;
 
+  // Immediate hover tooltip for truncated rows. The native `title` attribute is
+  // slow and the panel's overflow:auto clips a CSS tooltip, so we render a
+  // position:fixed bubble (escapes the overflow) anchored to the hovered row.
+  const [tip, setTip] = useState<{ text: string; right: number; top: number } | null>(null);
+  const showTip = (e: MouseEvent<HTMLElement>, text: string) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    setTip({ text, right: window.innerWidth - r.right, top: r.bottom + 4 });
+  };
+  const hideTip = () => setTip(null);
+
   return (
     <aside className="ed-list" aria-label="일정·마커 목록">
       {/* 필터·범례 (collapsible, top): 프로젝트/종류 범례 + ＋마커. */}
@@ -330,8 +340,9 @@ export function TaskListPanel({
                   <button
                     type="button"
                     className={`tp-item${mk.id === selectedMarkerId ? " on" : ""}`}
-                    title={`${mk.label} · ${meta}`}
                     onClick={() => onSelectMarker(mk.id)}
+                    onMouseEnter={(e) => showTip(e, `${mk.label} · ${meta}`)}
+                    onMouseLeave={hideTip}
                   >
                     <span
                       className={`mk ${mk.kind === "deadline" ? "mk-dl" : "mk-ev"} tp-mkchip`}
@@ -340,12 +351,8 @@ export function TaskListPanel({
                       {mk.kind === "deadline" ? "⚑" : "◆"}
                     </span>
                     <span className="tp-body">
-                      <span className="tp-title" title={mk.label}>
-                        {mk.label}
-                      </span>
-                      <span className="tp-meta" title={meta}>
-                        {meta}
-                      </span>
+                      <span className="tp-title">{mk.label}</span>
+                      <span className="tp-meta">{meta}</span>
                     </span>
                   </button>
                 </li>
@@ -386,17 +393,14 @@ export function TaskListPanel({
                 <button
                   type="button"
                   className={`tp-item${task.id === selectedTaskId ? " on" : ""}`}
-                  title={`${task.title} · ${meta}`}
                   onClick={() => onSelectTask(task.id)}
+                  onMouseEnter={(e) => showTip(e, `${task.title} · ${meta}`)}
+                  onMouseLeave={hideTip}
                 >
                   <span className="tp-dot" style={{ background: swatch }} aria-hidden />
                   <span className="tp-body">
-                    <span className="tp-title" title={task.title}>
-                      {task.title}
-                    </span>
-                    <span className="tp-meta" title={meta}>
-                      {meta}
-                    </span>
+                    <span className="tp-title">{task.title}</span>
+                    <span className="tp-meta">{meta}</span>
                   </span>
                   {/* Note indicator (US-019): monochrome glyph when noted. */}
                   {hasNote(task) && (
@@ -414,6 +418,14 @@ export function TaskListPanel({
       <button type="button" className="ed-contact" onClick={onAdd}>
         ↳ ＋ 일정 추가
       </button>
+
+      {/* Immediate hover tooltip (full title · meta). position:fixed escapes the
+          panel's overflow; pointer-events:none so it never steals the hover. */}
+      {tip && (
+        <div className="tp-tip" role="tooltip" style={{ right: tip.right, top: tip.top }}>
+          {tip.text}
+        </div>
+      )}
     </aside>
   );
 }

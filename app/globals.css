@@ -1234,6 +1234,22 @@ button.mk:focus-visible {
   text-align: center;
   line-height: 18px;
 }
+/* Immediate hover tooltip for truncated panel rows. Monochrome, no shadow
+   (Swiss); fixed so the panel's overflow:auto can't clip it. */
+.tp-tip {
+  position: fixed;
+  z-index: 60;
+  max-width: 300px;
+  padding: 6px 9px;
+  background: var(--text);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1.45;
+  letter-spacing: -0.02em;
+  white-space: normal;
+  word-break: break-word;
+  pointer-events: none;
+}
 /* Empty state: nudge the drag-to-create flow (PRD §8). */
 .tp-empty {
   padding: 22px;
