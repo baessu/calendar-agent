@@ -258,12 +258,13 @@ export function CalendarView({
   const markersByDate = useMemo(() => groupMarkersByDate(markers), [markers]);
 
   // --- Density heatmap (US-022) ---------------------------------------------
-  // Only on the 전체(통합) view: shade each cell by how many tasks overlap that
-  // day. Toggling off (or switching to an individual project) restores the plain
-  // grid. The density is computed from the visible tasks so the shading matches
-  // the bars actually shown; monochrome only (color stays on the bars).
+  // Shade each cell by how many tasks overlap that day. Available on every view
+  // — 전체(통합) sums across projects, an individual tab shades within that one
+  // project's workload. The density always reads from the visible tasks (already
+  // filtered by tab + project visibility + task-type filter), so the shading and
+  // the bars match. Monochrome only; color stays on the bars.
   const [heatmapOn, setHeatmapOn] = useState(false);
-  const heatmapActive = heatmapOn && selectedProjectId === null;
+  const heatmapActive = heatmapOn;
   const densityByDate = useMemo(
     () => (heatmapActive ? taskDensityByDate(tasks) : null),
     [heatmapActive, tasks],
@@ -867,17 +868,16 @@ export function CalendarView({
             공유{shareStale && "•"}
           </button>
         )}
-        {/* Heatmap toggle (US-022): only on the 전체(통합) view. Filled when on. */}
-        {selectedProjectId === null && (
-          <button
-            type="button"
-            className={`ed-today heat-toggle${heatmapOn ? " on" : ""}`}
-            aria-pressed={heatmapOn}
-            onClick={() => setHeatmapOn((v) => !v)}
-          >
-            히트맵
-          </button>
-        )}
+        {/* Heatmap toggle (US-022): available on every view (전체 / individual
+            project). Filled when on. */}
+        <button
+          type="button"
+          className={`ed-today heat-toggle${heatmapOn ? " on" : ""}`}
+          aria-pressed={heatmapOn}
+          onClick={() => setHeatmapOn((v) => !v)}
+        >
+          히트맵
+        </button>
       </div>
 
       {/* Project tabs (US-013): 전체(통합) + each project, underline-active. The
