@@ -106,30 +106,54 @@ export function CalendarApp() {
   // — i.e. a collaborator edited via the edit link. Drives the "가져오기" prompt.
   const [staleShareIds, setStaleShareIds] = useState<Set<string>>(() => new Set());
 
+  // Load every table from Dexie into React state. Also used after an account
+  // sync, which writes straight to Dexie and would otherwise be invisible to
+  // this in-memory copy until a page reload.
+  const reloadFromDb = useCallback(async () => {
+    const [ps, tts, ts, ms, shs] = await Promise.all([
+      getAllProjects(),
+      getAllTaskTypes(),
+      getAllTasks(),
+      getAllMarkers(),
+      getAllShares(),
+    ]);
+    setProjects(ps);
+    setTaskTypes(tts);
+    setTasks(ts);
+    setMarkers(ms);
+    setShares(new Map(shs.map((s) => [s.projectId, s])));
+  }, []);
+
   // Seed (idempotent) then load all data on mount. Seeding here avoids a race
   // with <DbInit> so the popover always has a project/task-type to pick.
   useEffect(() => {
     let alive = true;
     (async () => {
       await seedIfEmpty();
-      const [ps, tts, ts, ms, shs] = await Promise.all([
-        getAllProjects(),
-        getAllTaskTypes(),
-        getAllTasks(),
-        getAllMarkers(),
-        getAllShares(),
-      ]);
       if (!alive) return;
-      setProjects(ps);
-      setTaskTypes(tts);
-      setTasks(ts);
-      setMarkers(ms);
-      setShares(new Map(shs.map((s) => [s.projectId, s])));
+      await reloadFromDb();
     })().catch((err) => console.error("calendar data load failed", err));
     return () => {
       alive = false;
     };
-  }, []);
+  }, [reloadFromDb]);
+
+  /**
+   * Fingerprint of local data for the sync control: any create, edit, or delete
+   * moves it. Row count catches creates and deletes; the newest `updatedAt`
+   * catches in-place edits, which leave the count unchanged.
+   */
+  const syncRevision = useMemo(() => {
+    let count = 0;
+    let newest = 0;
+    for (const rows of [projects, taskTypes, tasks, markers]) {
+      count += rows.length;
+      for (const row of rows) {
+        if (row.updatedAt > newest) newest = row.updatedAt;
+      }
+    }
+    return `${count}:${newest}`;
+  }, [projects, taskTypes, tasks, markers]);
 
   // Freshness check (edit links): once shares are loaded, ask the server for
   // each share's current snapshot publishedAt and compare with the time the
@@ -813,6 +837,7 @@ export function CalendarApp() {
         onShare={openShare}
         isShared={selectedProjectId ? shares.has(selectedProjectId) : false}
         shareStale={selectedProjectId ? staleShareIds.has(selectedProjectId) : false}
+        sync={{ revision: syncRevision, onSynced: reloadFromDb }}
       />
       <TaskListPanel
         tasks={visibleTasks}

@@ -16,6 +16,7 @@ const project: Project = {
   visible: true,
   order: 0,
   createdAt: 0,
+  updatedAt: 0,
 };
 
 function task(p: Partial<Task> & { id: string }): Task {
@@ -40,6 +41,7 @@ function taskType(p: Partial<TaskType> & { id: string }): TaskType {
     order: 0,
     createdAt: 0,
     ...p,
+    updatedAt: p.updatedAt ?? p.createdAt ?? 0,
   };
 }
 
@@ -51,6 +53,7 @@ function marker(p: Partial<Marker> & { id: string }): Marker {
     projectId: "pA",
     createdAt: 0,
     ...p,
+    updatedAt: p.updatedAt ?? p.createdAt ?? 0,
   };
 }
 

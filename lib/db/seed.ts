@@ -31,6 +31,7 @@ export async function seedIfEmpty(): Promise<void> {
       visible: true,
       order: 0,
       createdAt: ts,
+      updatedAt: ts,
     });
     await db.taskTypes.bulkAdd(defaultTaskTypesForProject(projectId, newId, ts));
   });

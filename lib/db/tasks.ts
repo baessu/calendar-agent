@@ -1,5 +1,6 @@
 import type { Task } from "@/lib/types";
 import { db } from "./index";
+import { recordDeletion } from "./deletions";
 import { newId, now } from "./util";
 
 /** Fields supplied when creating a task (id/createdAt/updatedAt generated). */
@@ -35,4 +36,5 @@ export async function updateTask(id: string, changes: TaskChanges): Promise<void
 
 export async function deleteTask(id: string): Promise<void> {
   await db.tasks.delete(id);
+  await recordDeletion("tasks", id);
 }

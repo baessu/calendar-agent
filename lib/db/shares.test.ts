@@ -26,6 +26,7 @@ const tt = (id: string, projectId: string): TaskType => ({
   k: 0.5,
   order: 0,
   createdAt: 0,
+  updatedAt: 0,
 });
 const task = (id: string, projectId: string): Task => ({
   id,
@@ -44,6 +45,7 @@ const marker = (id: string, projectId: string): Marker => ({
   date: "2026-05-03",
   projectId,
   createdAt: 0,
+  updatedAt: 0,
 });
 
 describe("share registry CRUD", () => {

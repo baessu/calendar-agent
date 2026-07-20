@@ -1,5 +1,12 @@
 import Dexie, { type Table } from "dexie";
-import type { Project, TaskType, Task, Marker, ShareRecord } from "@/lib/types";
+import type {
+  Project,
+  TaskType,
+  Task,
+  Marker,
+  ShareRecord,
+  Deletion,
+} from "@/lib/types";
 import { planTaskTypeScopeMigration } from "@/lib/taskType/scope";
 import { planMarkerScopeMigration } from "@/lib/calendar/markers";
 import { defaultProjectId } from "@/lib/project/manage";
@@ -20,6 +27,7 @@ export class CalendarDB extends Dexie {
   tasks!: Table<Task, string>;
   markers!: Table<Marker, string>;
   shares!: Table<ShareRecord, string>;
+  deletions!: Table<Deletion, string>;
 
   constructor() {
     super("CalendarDB");
@@ -122,6 +130,36 @@ export class CalendarDB extends Dexie {
       markers: "id, date, kind, projectId",
       shares: "projectId, token, editToken",
     });
+    // v7 (account sync): every synced entity gains `updatedAt` so merges can do
+    // per-item last-write-wins, plus a new `deletions` table holding tombstones
+    // (a plain absence can't be told apart from "not created on this device
+    // yet"). Tasks already carried updatedAt; projects/taskTypes/markers are
+    // backfilled from createdAt — the truthful answer for a row that has not
+    // been touched since it was made, and it keeps existing rows from looking
+    // newer than they are when they first meet a remote copy.
+    this.version(7)
+      .stores({
+        projects: "id, order, visible",
+        taskTypes: "id, projectId, order",
+        tasks: "id, projectId, taskTypeId, startDate, endDate",
+        markers: "id, date, kind, projectId",
+        shares: "projectId, token, editToken",
+        deletions: "id, table, deletedAt",
+      })
+      .upgrade(async (tx) => {
+        await Promise.all(
+          (["projects", "taskTypes", "markers"] as const).map((name) =>
+            tx
+              .table(name)
+              .toCollection()
+              .modify((row: { createdAt?: number; updatedAt?: number }) => {
+                if (row.updatedAt === undefined) {
+                  row.updatedAt = row.createdAt ?? 0;
+                }
+              }),
+          ),
+        );
+      });
   }
 }
 
@@ -134,4 +172,5 @@ export * from "./taskTypes";
 export * from "./tasks";
 export * from "./markers";
 export * from "./shares";
+export * from "./deletions";
 export * from "./seed";

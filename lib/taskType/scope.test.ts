@@ -16,7 +16,15 @@ function idGen() {
 
 /** Build a TaskType with only the fields a test cares about. */
 function tt(p: Partial<TaskType> & { id: string; projectId: string }): TaskType {
-  return { name: p.id, mode: "tint", k: 0.32, order: 0, createdAt: 0, ...p };
+  return {
+    name: p.id,
+    mode: "tint",
+    k: 0.32,
+    order: 0,
+    createdAt: 0,
+    ...p,
+    updatedAt: p.updatedAt ?? p.createdAt ?? 0,
+  };
 }
 
 /** Build a Task with only the fields a test cares about. */

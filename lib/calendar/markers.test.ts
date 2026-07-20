@@ -4,7 +4,7 @@ import type { Marker, MarkerKind } from "@/lib/types";
 
 /** Build a Marker with just the fields grouping cares about. */
 function marker(id: string, date: string, kind: MarkerKind, createdAt = 0): Marker {
-  return { id, kind, label: id, date, projectId: "p", createdAt };
+  return { id, kind, label: id, date, projectId: "p", createdAt, updatedAt: createdAt };
 }
 
 describe("groupMarkersByDate", () => {

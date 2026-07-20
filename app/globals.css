@@ -1705,3 +1705,126 @@ button.mk:focus-visible {
   color: var(--muted);
   margin-top: 10px;
 }
+
+/*
+ * Account sync (login-based multi-device sync).
+ *
+ * The sync control sits at the far right of the top bar — `margin-left: auto`
+ * pushes it away from the calendar actions so it reads as account chrome
+ * rather than another calendar verb. It reuses .ed-today's hairline button so
+ * it stays part of the monochrome shell.
+ */
+.ed-sync {
+  margin-left: auto;
+  text-decoration: none;
+  font-variant-numeric: tabular-nums; /* clock digits don't reflow the button */
+  white-space: nowrap;
+}
+.ed-sync:disabled {
+  color: var(--faint);
+  border-color: var(--border-soft);
+  cursor: default;
+}
+/* Failure is stated, not alarmed — monochrome shell has no error red. */
+.ed-sync.err {
+  color: var(--text);
+  border-color: var(--text);
+  font-weight: 600;
+}
+
+/*
+ * Auth pages (/login, /login/check-email) — a centered editorial card. Same
+ * hairline-and-monochrome vocabulary as the app shell, no shadows, no fill.
+ */
+.auth-shell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+.auth-card {
+  width: 100%;
+  max-width: 360px;
+  border: 1px solid var(--border);
+  padding: 34px 30px 28px;
+}
+.auth-ttl {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  margin-bottom: 10px;
+}
+.auth-sub {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin-bottom: 22px;
+}
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.auth-label {
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.auth-input {
+  border: 1px solid var(--border);
+  padding: 9px 11px;
+  font-family: inherit;
+  font-size: 14px;
+  letter-spacing: -0.03em;
+  background: none;
+  color: var(--text);
+}
+.auth-input:focus {
+  outline: none;
+  border-color: var(--text);
+}
+.auth-btn {
+  margin-top: 6px;
+  border: 1px solid var(--text);
+  background: var(--text);
+  color: var(--bg);
+  padding: 9px 11px;
+  font-family: inherit;
+  font-size: 13px;
+  letter-spacing: -0.03em;
+  cursor: pointer;
+}
+.auth-btn:disabled {
+  background: none;
+  color: var(--faint);
+  border-color: var(--border-soft);
+  cursor: default;
+}
+.auth-note {
+  margin-top: 18px;
+  font-size: 11px;
+  color: var(--faint);
+  line-height: 1.6;
+}
+/* Error text stays monochrome; the hairline rule carries the emphasis. */
+.auth-err {
+  border-left: 2px solid var(--text);
+  padding: 8px 0 8px 10px;
+  margin-bottom: 18px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text);
+}
+.auth-link {
+  display: inline-block;
+  margin-top: 18px;
+  font-size: 12px;
+  color: var(--muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.auth-link:hover {
+  color: var(--text);
+}

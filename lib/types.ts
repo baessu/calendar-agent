@@ -26,6 +26,8 @@ export interface Project {
   visible: boolean;
   order: number;
   createdAt: Timestamp;
+  /** Last local edit — the version account sync merges on (LWW). */
+  updatedAt: Timestamp;
 }
 
 /** A per-project task type (US-020) — defines the tone applied over the
@@ -40,6 +42,8 @@ export interface TaskType {
   k: number;
   order: number;
   createdAt: Timestamp;
+  /** Last local edit — the version account sync merges on (LWW). */
+  updatedAt: Timestamp;
 }
 
 /** A dated task — spans startDate..endDate inclusive, rendered as a bar. */
@@ -87,6 +91,20 @@ export interface ShareRecord {
   updatedAt: Timestamp;
 }
 
+/**
+ * A local deletion record (account sync). Written by the delete* helpers and
+ * kept after the row itself is gone, so a sync can tell other devices the item
+ * was removed rather than have them re-upload their stale copy. GC'd by
+ * `lib/sync/merge` once older than the tombstone TTL.
+ */
+export interface Deletion {
+  /** The deleted row's id (primary key — an id is deleted at most once). */
+  id: string;
+  /** Which table it was deleted from; ids are only unique per table. */
+  table: "projects" | "taskTypes" | "tasks" | "markers";
+  deletedAt: Timestamp;
+}
+
 /** A point-date marker (event / hard deadline). */
 export interface Marker {
   id: string;
@@ -96,4 +114,6 @@ export interface Marker {
   /** Owning project (US-021); markers are scoped per project, like tasks. */
   projectId: string;
   createdAt: Timestamp;
+  /** Last local edit — the version account sync merges on (LWW). */
+  updatedAt: Timestamp;
 }

@@ -24,6 +24,7 @@ function taskType(p: Partial<TaskType> & { id: string }): TaskType {
     order: 0,
     createdAt: 0,
     ...p,
+    updatedAt: p.updatedAt ?? p.createdAt ?? 0,
   };
 }
 

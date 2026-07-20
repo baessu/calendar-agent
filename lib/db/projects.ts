@@ -1,15 +1,24 @@
 import type { Project } from "@/lib/types";
 import { db } from "./index";
+import { recordDeletion } from "./deletions";
 import { newId, now } from "./util";
 
-/** Fields supplied when creating a project (id/createdAt are generated). */
-export type ProjectInput = Omit<Project, "id" | "createdAt">;
+/** Fields supplied when creating a project (id/createdAt/updatedAt generated). */
+export type ProjectInput = Omit<Project, "id" | "createdAt" | "updatedAt">;
 
-/** Fields that may be patched on an existing project. */
-export type ProjectChanges = Partial<Omit<Project, "id" | "createdAt">>;
+/** Fields that may be patched on an existing project (updatedAt is bumped). */
+export type ProjectChanges = Partial<
+  Omit<Project, "id" | "createdAt" | "updatedAt">
+>;
 
 export async function createProject(input: ProjectInput): Promise<Project> {
-  const project: Project = { ...input, id: newId(), createdAt: now() };
+  const ts = now();
+  const project: Project = {
+    ...input,
+    id: newId(),
+    createdAt: ts,
+    updatedAt: ts,
+  };
   await db.projects.add(project);
   return project;
 }
@@ -23,10 +32,14 @@ export function getAllProjects(): Promise<Project[]> {
   return db.projects.orderBy("order").toArray();
 }
 
-export async function updateProject(id: string, changes: ProjectChanges): Promise<void> {
-  await db.projects.update(id, changes);
+export async function updateProject(
+  id: string,
+  changes: ProjectChanges,
+): Promise<void> {
+  await db.projects.update(id, { ...changes, updatedAt: now() });
 }
 
 export async function deleteProject(id: string): Promise<void> {
   await db.projects.delete(id);
+  await recordDeletion("projects", id);
 }

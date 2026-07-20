@@ -31,12 +31,13 @@ function project(id: string, visible: boolean): Project {
     visible,
     order: 0,
     createdAt: 0,
+    updatedAt: 0,
   };
 }
 
 /** Build a Marker with just the fields the view filter cares about. */
 function marker(id: string, projectId: string, kind: MarkerKind = "event"): Marker {
-  return { id, kind, label: id, date: "2026-05-21", projectId, createdAt: 0 };
+  return { id, kind, label: id, date: "2026-05-21", projectId, createdAt: 0, updatedAt: 0 };
 }
 
 describe("filterTasksByProject (US-013 view switch)", () => {

@@ -47,6 +47,7 @@ import { HEAT_LEVELS, heatLevel, taskDensityByDate } from "@/lib/calendar/heatma
 import { barColors } from "@/lib/color/compose";
 import type { MarkerChanges, MarkerInput } from "@/lib/db";
 import type { DateString, Marker, Project, Task, TaskType } from "@/lib/types";
+import { SyncButton } from "@/components/sync/SyncButton";
 import type { NewTaskInput } from "./CalendarApp";
 import { CreatePopover, type CreateDraft } from "./CreatePopover";
 import { EditPopover, type EditTaskDraft } from "./EditPopover";
@@ -187,6 +188,16 @@ interface CalendarViewProps {
    * hidden there.
    */
   canShare?: boolean;
+  /**
+   * Account sync (top bar). Omitted on the shared/edit-link pages, which have
+   * no account context — the control simply isn't rendered there.
+   */
+  sync?: {
+    /** Fingerprint of local data; a change schedules a debounced sync. */
+    revision: string;
+    /** Reload the parent's state after sync wrote to Dexie. */
+    onSynced: () => void;
+  };
 }
 
 export function CalendarView({
@@ -217,6 +228,7 @@ export function CalendarView({
   isShared,
   shareStale = false,
   canShare = true,
+  sync,
 }: CalendarViewProps) {
   const today = useMemo(() => todayDateString(), []);
   const todayYM = useMemo(() => ymFromDate(today), [today]);
@@ -878,6 +890,11 @@ export function CalendarView({
         >
           히트맵
         </button>
+        {/* Account sync — pushed right so it reads as chrome, not a calendar
+            action. Absent on the share/edit-link pages (no account there). */}
+        {sync && (
+          <SyncButton revision={sync.revision} onSynced={sync.onSynced} />
+        )}
       </div>
 
       {/* Project tabs (US-013): 전체(통합) + each project, underline-active. The

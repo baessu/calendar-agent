@@ -52,6 +52,7 @@ export function EditableSharedCalendar({
       visible: true,
       order: 0,
       createdAt: snapshot.publishedAt,
+      updatedAt: snapshot.publishedAt,
     }),
     [snapshot.project, snapshot.publishedAt],
   );
@@ -104,7 +105,11 @@ export function EditableSharedCalendar({
 
   // --- Marker handlers -------------------------------------------------------
   const handleCreateMarker = useCallback((input: MarkerInput) => {
-    setMarkers((prev) => [...prev, { ...input, id: newId(), createdAt: now() }]);
+    const ts = now();
+    setMarkers((prev) => [
+      ...prev,
+      { ...input, id: newId(), createdAt: ts, updatedAt: ts },
+    ]);
   }, []);
 
   const handleUpdateMarker = useCallback((id: string, changes: MarkerChanges) => {

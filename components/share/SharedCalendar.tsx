@@ -33,6 +33,7 @@ export function SharedCalendar({ snapshot }: { snapshot: ShareSnapshot }) {
       visible: true,
       order: 0,
       createdAt: snapshot.publishedAt,
+      updatedAt: snapshot.publishedAt,
     }),
     [snapshot.project, snapshot.publishedAt],
   );
