@@ -1863,6 +1863,13 @@ button.mk:focus-visible {
 .bd-refresh {
   margin-left: auto;
 }
+/* Background-refresh + stale hints in the meta line (quiet, monochrome). */
+.bd-syncing {
+  color: var(--faint);
+}
+.bd-stale {
+  color: var(--text);
+}
 .bd-hint {
   padding: 40px 30px;
   font-size: 13px;
@@ -1896,27 +1903,36 @@ button.mk:focus-visible {
   top: 0;
   left: 0;
   transform-origin: 0 0;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 26px;
-  padding: 20px;
-  width: 1120px; /* wraps clusters into a 2D field; fit() frames the whole thing */
+  /* Clusters are absolutely positioned within; size set inline from bounds. */
 }
 
-/* Cluster = a labeled affinity region (one project), width set inline by count. */
+/* Cluster = a labeled affinity region (one project), freely draggable. */
 .bd-cluster {
+  position: absolute;
   border: 1px solid var(--border);
   background: var(--bg);
   padding: 14px 16px 16px;
 }
+/* Header doubles as the drag handle. */
 .bd-cluster-head {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
+  align-items: center;
+  gap: 7px;
   margin-bottom: 12px;
   padding-bottom: 8px;
   border-bottom: 1px solid var(--border-soft);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.bd-cluster-head:active {
+  cursor: grabbing;
+}
+.bd-drag {
+  color: var(--faint);
+  font-size: 12px;
+  line-height: 1;
+  letter-spacing: 1px;
 }
 .bd-cluster-name {
   font-size: 14px;

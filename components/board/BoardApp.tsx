@@ -13,52 +13,67 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { BoardData, BoardTask, Disposition } from "@/lib/board/types";
 import { DISPOSITIONS } from "@/lib/board/types";
+import { readSnapshot, writeSnapshot } from "@/lib/board/store";
 import { BoardCanvas } from "./BoardCanvas";
 
-type Load =
-  | { state: "loading" }
-  | { state: "error"; message: string }
-  | { state: "ready"; data: BoardData };
-
 export function BoardApp() {
-  const [load, setLoad] = useState<Load>({ state: "loading" });
+  // Stale-while-revalidate: `data` is what's on screen (a cached snapshot at
+  // first, then the fresh Notion result); `refreshing` is a background fetch in
+  // flight; `error` is the last fetch failure. The board shows cached data even
+  // while refreshing or after an error, so opening it never blanks to a spinner
+  // when we already have something to show.
+  const [data, setData] = useState<BoardData | null>(null);
+  const [refreshing, setRefreshing] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   // Local disposition overrides applied optimistically, keyed by task id.
   const [overrides, setOverrides] = useState<Record<string, Disposition>>({});
   const [menu, setMenu] = useState<{ task: BoardTask; x: number; y: number } | null>(
     null,
   );
   const [toast, setToast] = useState<string | null>(null);
+  const inFlight = useRef(false);
 
-  // The fetch itself — only sets state AFTER awaiting, so it is safe to call
-  // straight from the mount effect (initial state is already "loading").
+  // Fetch fresh data from Notion and adopt it. Errors are kept in `error` but
+  // don't discard whatever is already shown.
   const fetchBoard = useCallback(async () => {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setRefreshing(true);
     try {
       const res = await fetch("/api/board", { cache: "no-store" });
       if (!res.ok) {
         const d = (await res.json().catch(() => null)) as { error?: string } | null;
         throw new Error(d?.error ?? `board_error_${res.status}`);
       }
-      const data = (await res.json()) as BoardData;
-      setLoad({ state: "ready", data });
+      const fresh = (await res.json()) as BoardData;
+      setData(fresh);
+      writeSnapshot(fresh); // seed the next open's instant paint
       setOverrides({});
+      setError(null);
     } catch (err) {
-      setLoad({ state: "error", message: describeLoad(err) });
+      setError(describeLoad(err));
+    } finally {
+      setRefreshing(false);
+      inFlight.current = false;
     }
   }, []);
 
-  // Manual refresh (button) — shows the loading state, then re-fetches. Not run
-  // from an effect, so the synchronous setState here is fine.
   const refresh = useCallback(() => {
-    setLoad({ state: "loading" });
     void fetchBoard();
   }, [fetchBoard]);
 
-  // Load on mount. The async IIFE + alive-guard mirrors CalendarApp: setState
-  // runs only after the await, and is skipped if the component unmounted first.
+  // On mount: paint the last cached snapshot immediately (if any), then fetch
+  // fresh in the background. Cache read is deferred a microtask so it isn't a
+  // synchronous setState in the effect body — still well before the network
+  // returns, so the board paints from cache essentially instantly.
   useEffect(() => {
     let alive = true;
     void (async () => {
-      if (alive) await fetchBoard();
+      await Promise.resolve();
+      if (!alive) return;
+      const cached = readSnapshot();
+      if (cached) setData(cached);
+      await fetchBoard();
     })();
     return () => {
       alive = false;
@@ -108,36 +123,38 @@ export function BoardApp() {
           ← 캘린더
         </Link>
         <h1 className="bd-ttl">태스크 보드</h1>
-        {load.state === "ready" && (
+        {data && (
           <span className="bd-meta">
-            활성 {load.data.total}건 · {clock(load.data.fetchedAt)} 기준
+            활성 {data.total}건 · {clock(data.fetchedAt)} 기준
+            {refreshing && <span className="bd-syncing"> · 동기화 중…</span>}
+            {error && !refreshing && (
+              <span className="bd-stale"> · 갱신 실패, 이전 데이터</span>
+            )}
           </span>
         )}
         <button
           type="button"
           className="ed-today bd-refresh"
           onClick={refresh}
-          disabled={load.state === "loading"}
+          disabled={refreshing}
         >
-          {load.state === "loading" ? "불러오는 중…" : "새로고침"}
+          {refreshing ? "불러오는 중…" : "새로고침"}
         </button>
       </header>
 
-      {load.state === "loading" && <p className="bd-hint">노션에서 불러오는 중…</p>}
-      {load.state === "error" && (
+      {/* No cached data yet: show a spinner or the first-load error full-screen.
+          Once we have data, it stays on screen through refreshes and errors. */}
+      {!data && refreshing && <p className="bd-hint">노션에서 불러오는 중…</p>}
+      {!data && !refreshing && error && (
         <div className="bd-hint bd-err" role="alert">
-          {load.message}
+          {error}
         </div>
       )}
-      {load.state === "ready" &&
-        (load.data.total === 0 ? (
+      {data &&
+        (data.total === 0 ? (
           <p className="bd-hint">활성 태스크가 없어요.</p>
         ) : (
-          <BoardCanvas
-            groups={load.data.groups}
-            dispOf={dispOf}
-            onOpenMenu={setMenu}
-          />
+          <BoardCanvas groups={data.groups} dispOf={dispOf} onOpenMenu={setMenu} />
         ))}
 
       {menu && (
