@@ -6,6 +6,7 @@
  * so an arbitrary string can't be written into the Notion select.
  */
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 import {
   isBoardConfigured,
   updateDisposition,
@@ -18,6 +19,12 @@ export const dynamic = "force-dynamic";
 const ALLOWED = new Set<string>(DISPOSITIONS.map((d) => d.value));
 
 export async function POST(request: Request) {
+  // Writes to the owner's Notion — require a signed-in session (same gate as
+  // the read route) so a public URL can't mutate the TASK DB.
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
   if (!isBoardConfigured()) {
     return NextResponse.json({ error: "board_not_configured" }, { status: 503 });
   }

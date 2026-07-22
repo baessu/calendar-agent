@@ -16,7 +16,13 @@ import { useSearchParams } from "next/navigation";
 export function LoginForm() {
   const [csrfToken, setCsrfToken] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
-  const error = useSearchParams().get("error");
+  const params = useSearchParams();
+  const error = params.get("error");
+  // Return the user to where they were headed (e.g. /board) after sign-in.
+  // Only same-origin relative paths are honored, so this can't be turned into
+  // an open redirect by a crafted ?callbackUrl=.
+  const raw = params.get("callbackUrl");
+  const callbackUrl = raw && raw.startsWith("/") && !raw.startsWith("//") ? raw : "/";
 
   useEffect(() => {
     let alive = true;
@@ -51,7 +57,7 @@ export function LoginForm() {
 
       <form method="post" action="/api/auth/signin/resend" className="auth-form">
         <input type="hidden" name="csrfToken" value={csrfToken ?? ""} />
-        <input type="hidden" name="callbackUrl" value="/" />
+        <input type="hidden" name="callbackUrl" value={callbackUrl} />
         <label className="auth-label" htmlFor="email">
           이메일
         </label>

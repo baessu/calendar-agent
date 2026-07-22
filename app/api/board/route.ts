@@ -6,12 +6,19 @@
  * setup hint instead of a stack trace.
  */
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 import { getBoard, isBoardConfigured, BoardNotionError } from "@/lib/board/notion";
 
 // Always run fresh — the board reflects Notion's current state, never a cache.
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  // The board is sensitive real task data on a public site — gate it. Without
+  // this, anyone could read the whole TASK DB via a fixed URL.
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
   if (!isBoardConfigured()) {
     return NextResponse.json({ error: "board_not_configured" }, { status: 503 });
   }

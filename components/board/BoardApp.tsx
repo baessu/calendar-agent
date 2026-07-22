@@ -313,6 +313,8 @@ function clock(at: number): string {
 
 function describeLoad(err: unknown): string {
   const msg = err instanceof Error ? err.message : "";
+  if (msg === "unauthorized")
+    return "세션이 만료됐어요. 다시 로그인해 주세요.";
   if (msg === "board_not_configured")
     return "노션 연동이 설정되지 않았어요 (NOTION_TOKEN 필요).";
   if (msg === "notion_fetch_failed" || msg.startsWith("board_error_"))
