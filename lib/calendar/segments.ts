@@ -9,34 +9,47 @@
  * Lane stacking (placing overlapping segments on separate rows) is US-007's
  * `layout.ts`; here we only clip + order.
  */
-import type { Task } from "@/lib/types";
+import type { DateString, Task } from "@/lib/types";
 import type { CalendarWeek } from "./infinite";
 import { diffDays, parseDate } from "./dates";
 
-/** A task clipped to one week, ready to render as a bar. */
-export interface WeekSegment {
-  task: Task;
+/** Anything drawable as a week bar — it just needs an inclusive date span. */
+export interface HasSpan {
+  startDate: DateString;
+  endDate: DateString;
+}
+
+/**
+ * A spanning item clipped to one week, ready to render as a bar. Generic over
+ * the payload so both tasks (default) and project periods reuse the same
+ * clipping + lane-stacking pipeline; `.task` holds whatever was clipped.
+ */
+export interface WeekSegment<T extends HasSpan = Task> {
+  task: T;
   /** First column the bar covers, 0 (Sun) .. 6 (Sat). */
   startCol: number;
   /** Last column the bar covers, 0 (Sun) .. 6 (Sat). */
   endCol: number;
-  /** Task started before this week (bar continues from the left). */
+  /** Item started before this week (bar continues from the left). */
   contL: boolean;
-  /** Task ends after this week (bar continues to the right). */
+  /** Item ends after this week (bar continues to the right). */
   contR: boolean;
 }
 
 /**
- * Clip `tasks` to `week`, returning a segment per task that intersects it.
+ * Clip `items` to `week`, returning a segment per item that intersects it.
  * Segments are ordered by start column, longer spans first on ties — a stable
  * order for naive lane stacking.
  */
-export function weekSegments(week: CalendarWeek, tasks: Task[]): WeekSegment[] {
+export function weekSegments<T extends HasSpan = Task>(
+  week: CalendarWeek,
+  items: T[],
+): WeekSegment<T>[] {
   const wStart = week[0].ts;
   const wEnd = week[6].ts;
-  const segs: WeekSegment[] = [];
+  const segs: WeekSegment<T>[] = [];
 
-  for (const task of tasks) {
+  for (const task of items) {
     const ts0 = parseDate(task.startDate);
     const ts1 = parseDate(task.endDate);
     // No intersection with this week.
