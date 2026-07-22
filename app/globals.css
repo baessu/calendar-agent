@@ -1837,9 +1837,10 @@ button.mk:focus-visible {
  * WEIGHT (data-tier), never by hue — color stays reserved for calendar data.
  * ════════════════════════════════════════════════════════════════════ */
 .bd-shell {
-  min-height: 100vh;
+  height: 100vh; /* fixed so the canvas viewport is bounded, not page-scrolling */
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 .bd-bar {
   display: flex;
@@ -1874,51 +1875,111 @@ button.mk:focus-visible {
   color: var(--text);
 }
 
-/* Columns: one per project, horizontal scroll if they overflow. */
-.bd-grid {
-  display: flex;
-  gap: 0;
-  align-items: flex-start;
-  overflow-x: auto;
-  padding: 4px 0 40px;
+/* Affinity canvas: a pannable/zoomable viewport whose world holds the project
+ * clusters, flow-packed so they read as grouped regions, not kanban columns. */
+.bd-vp {
+  position: relative;
   flex: 1;
+  overflow: hidden;
+  touch-action: none; /* we own pan/zoom gestures */
+  cursor: grab;
+  background:
+    /* faint dot grid — the affinity "board" surface */
+    radial-gradient(circle, var(--border-soft) 0.6px, transparent 0.6px);
+  background-size: 22px 22px;
 }
-.bd-col {
-  flex: 0 0 300px;
-  min-width: 260px;
-  border-right: 1px solid var(--border);
-  padding: 18px 20px;
+.bd-vp:active {
+  cursor: grabbing;
 }
-.bd-col-head {
+.bd-world {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 26px;
+  padding: 20px;
+  width: 1120px; /* wraps clusters into a 2D field; fit() frames the whole thing */
+}
+
+/* Cluster = a labeled affinity region (one project), width set inline by count. */
+.bd-cluster {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  padding: 14px 16px 16px;
+}
+.bd-cluster-head {
   display: flex;
   align-items: baseline;
   gap: 8px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-soft);
 }
-.bd-col-name {
+.bd-cluster-name {
   font-size: 14px;
   font-weight: 600;
   letter-spacing: -0.03em;
   color: var(--text);
 }
-.bd-col-count {
+.bd-cluster-count {
   font-size: 11px;
   color: var(--faint);
   font-variant-numeric: tabular-nums;
 }
-.bd-col-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.bd-cluster-grid {
+  display: grid;
+  gap: 8px;
 }
 
-/* Card: hairline box, left border weight = urgency tier (0 heaviest). */
+/* HUD: zoom controls, pinned to the viewport (not scaled by the world). */
+.bd-hud {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  padding: 4px;
+}
+.bd-hud button {
+  min-width: 30px;
+  height: 26px;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  cursor: pointer;
+}
+.bd-hud button:hover {
+  background: var(--sel);
+}
+.bd-hud-wide {
+  font-size: 12px !important;
+  padding: 0 8px;
+}
+.bd-zoom {
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  min-width: 38px;
+  text-align: center;
+}
+
+/* Card = a sticky note. Disposition is a GRAYSCALE paper shade (darker = more
+ * urgent) so clusters read at a glance even zoomed out — the monochrome analog
+ * of cockpit's colored paper. A left hairline reinforces the same tier. */
 .bd-card {
   border: 1px solid var(--border-soft);
-  border-left-width: 1px;
-  padding: 10px 12px;
+  padding: 9px 11px;
   cursor: pointer;
-  background: none;
+  background: var(--paper, #fff);
+  border-left: 3px solid var(--edge, var(--border-soft));
   text-align: left;
   transition: border-color 0.12s;
 }
@@ -1927,10 +1988,11 @@ button.mk:focus-visible {
   border-color: var(--text);
   outline: none;
 }
-.bd-card[data-tier="0"] { border-left: 3px solid var(--text); }
-.bd-card[data-tier="1"] { border-left: 3px solid var(--muted); }
-.bd-card[data-tier="2"] { border-left: 3px solid var(--border); }
-.bd-card[data-tier="3"] { border-left: 3px dotted var(--border-soft); }
+/* Grayscale paper by urgency tier (0 = do-now → 3 = untriaged). */
+.bd-card[data-tier="0"] { --paper: #dedede; --edge: var(--text); }
+.bd-card[data-tier="1"] { --paper: #eaeaea; --edge: var(--muted); }
+.bd-card[data-tier="2"] { --paper: #f4f4f4; --edge: var(--border); }
+.bd-card[data-tier="3"] { --paper: #fcfcfc; --edge: var(--border-soft); border-left-style: dotted; }
 .bd-card-top {
   display: flex;
   justify-content: space-between;

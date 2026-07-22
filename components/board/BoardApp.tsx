@@ -13,11 +13,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { BoardData, BoardTask, Disposition } from "@/lib/board/types";
 import { DISPOSITIONS } from "@/lib/board/types";
-import {
-  dispositionLabel,
-  dispositionTier,
-  formatEstimate,
-} from "./disposition";
+import { BoardCanvas } from "./BoardCanvas";
 
 type Load =
   | { state: "loading" }
@@ -133,9 +129,16 @@ export function BoardApp() {
           {load.message}
         </div>
       )}
-      {load.state === "ready" && (
-        <BoardGrid data={load.data} dispOf={dispOf} onOpenMenu={setMenu} />
-      )}
+      {load.state === "ready" &&
+        (load.data.total === 0 ? (
+          <p className="bd-hint">활성 태스크가 없어요.</p>
+        ) : (
+          <BoardCanvas
+            groups={load.data.groups}
+            dispOf={dispOf}
+            onOpenMenu={setMenu}
+          />
+        ))}
 
       {menu && (
         <DispositionMenu
@@ -149,85 +152,6 @@ export function BoardApp() {
       )}
       {toast && <div className="bd-toast" role="status">{toast}</div>}
     </main>
-  );
-}
-
-/** The grouped columns. Split out so the menu overlay doesn't re-render it. */
-function BoardGrid({
-  data,
-  dispOf,
-  onOpenMenu,
-}: {
-  data: BoardData;
-  dispOf: (t: BoardTask) => Disposition;
-  onOpenMenu: (m: { task: BoardTask; x: number; y: number }) => void;
-}) {
-  if (data.total === 0) {
-    return <p className="bd-hint">활성 태스크가 없어요.</p>;
-  }
-  return (
-    <div className="bd-grid">
-      {data.groups.map((g) => (
-        <section key={g.project} className="bd-col">
-          <div className="bd-col-head">
-            <h2 className="bd-col-name">{g.project}</h2>
-            <span className="bd-col-count">{g.tasks.length}</span>
-          </div>
-          <div className="bd-col-list">
-            {g.tasks.map((t) => (
-              <Card key={t.id} task={t} disposition={dispOf(t)} onOpen={onOpenMenu} />
-            ))}
-          </div>
-        </section>
-      ))}
-    </div>
-  );
-}
-
-function Card({
-  task,
-  disposition,
-  onOpen,
-}: {
-  task: BoardTask;
-  disposition: Disposition;
-  onOpen: (m: { task: BoardTask; x: number; y: number }) => void;
-}) {
-  const est = formatEstimate(task.estMinutes);
-  const open = (e: React.MouseEvent | React.KeyboardEvent) => {
-    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    onOpen({ task, x: r.right - 6, y: r.top + 6 });
-  };
-  return (
-    <article
-      className="bd-card"
-      data-tier={dispositionTier(disposition)}
-      tabIndex={0}
-      role="button"
-      aria-label={`${task.title} — 처분: ${dispositionLabel(disposition)}. 눌러서 변경`}
-      onClick={open}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          open(e);
-        }
-      }}
-    >
-      <div className="bd-card-top">
-        <span className="bd-disp">{dispositionLabel(disposition)}</span>
-        {task.status && task.status !== "Not started" && (
-          <span className="bd-status">{task.status}</span>
-        )}
-      </div>
-      <div className="bd-card-title">{task.title}</div>
-      {(task.due || est || task.delegate) && (
-        <div className="bd-card-meta">
-          {task.due && <span>{task.due}</span>}
-          {est && <span>{est}</span>}
-          {task.delegate && <span>{task.delegate}</span>}
-        </div>
-      )}
-    </article>
   );
 }
 
