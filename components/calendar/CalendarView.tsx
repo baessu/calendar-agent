@@ -25,6 +25,7 @@ import {
   useRef,
   useState,
 } from "react";
+import Link from "next/link";
 import {
   addMonths,
   buildWeeksRange,
@@ -866,6 +867,10 @@ export function CalendarView({
         <button type="button" className="ed-today ed-print" onClick={openPrint}>
           인쇄
         </button>
+        {/* Cross-link to the Notion-backed task board (separate route). */}
+        <Link href="/board" className="ed-today">
+          보드
+        </Link>
         {/* Share (US-025): only on an individual project view. Dot when shared. */}
         {canShare && selectedProjectId !== null && (
           <button

@@ -1828,3 +1828,204 @@ button.mk:focus-visible {
 .auth-link:hover {
   color: var(--text);
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+ * Task board (/board) — live monochrome view over the Notion TASK DB.
+ *
+ * Same Swiss shell as the calendar: white ground, hairlines, no fill, no
+ * shadow. A disposition is conveyed by a short label + the card's LEFT hairline
+ * WEIGHT (data-tier), never by hue — color stays reserved for calendar data.
+ * ════════════════════════════════════════════════════════════════════ */
+.bd-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.bd-bar {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding: 22px 30px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.bd-ttl {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+.bd-meta {
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.bd-refresh {
+  margin-left: auto;
+}
+.bd-hint {
+  padding: 40px 30px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.bd-err {
+  border-left: 2px solid var(--text);
+  margin: 20px 30px;
+  padding: 10px 0 10px 12px;
+  color: var(--text);
+}
+
+/* Columns: one per project, horizontal scroll if they overflow. */
+.bd-grid {
+  display: flex;
+  gap: 0;
+  align-items: flex-start;
+  overflow-x: auto;
+  padding: 4px 0 40px;
+  flex: 1;
+}
+.bd-col {
+  flex: 0 0 300px;
+  min-width: 260px;
+  border-right: 1px solid var(--border);
+  padding: 18px 20px;
+}
+.bd-col-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.bd-col-name {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+.bd-col-count {
+  font-size: 11px;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+.bd-col-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Card: hairline box, left border weight = urgency tier (0 heaviest). */
+.bd-card {
+  border: 1px solid var(--border-soft);
+  border-left-width: 1px;
+  padding: 10px 12px;
+  cursor: pointer;
+  background: none;
+  text-align: left;
+  transition: border-color 0.12s;
+}
+.bd-card:hover,
+.bd-card:focus-visible {
+  border-color: var(--text);
+  outline: none;
+}
+.bd-card[data-tier="0"] { border-left: 3px solid var(--text); }
+.bd-card[data-tier="1"] { border-left: 3px solid var(--muted); }
+.bd-card[data-tier="2"] { border-left: 3px solid var(--border); }
+.bd-card[data-tier="3"] { border-left: 3px dotted var(--border-soft); }
+.bd-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+.bd-disp {
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.bd-status {
+  font-size: 10px;
+  color: var(--faint);
+  border: 1px solid var(--border-soft);
+  padding: 1px 5px;
+}
+.bd-card-title {
+  font-size: 13px;
+  line-height: 1.45;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+.bd-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Disposition menu — shares the calendar popover vocabulary. */
+.bd-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+.bd-menu {
+  position: fixed;
+  z-index: 41;
+  min-width: 190px;
+  background: var(--bg);
+  border: 1px solid var(--text);
+  padding: 5px;
+}
+.bd-menu-cap {
+  font-size: 11px;
+  color: var(--muted);
+  padding: 6px 8px 8px;
+  border-bottom: 1px solid var(--border-soft);
+  margin-bottom: 4px;
+  letter-spacing: -0.03em;
+}
+.bd-menu-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 7px 8px;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+.bd-menu-item:hover {
+  background: var(--sel);
+}
+.bd-menu-clear {
+  color: var(--muted);
+  border-top: 1px solid var(--border-soft);
+  margin-top: 4px;
+}
+.bd-menu-cur {
+  font-size: 10px;
+  color: var(--faint);
+}
+
+/* Toast — a quiet, transient failure notice. */
+.bd-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  z-index: 50;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 12px;
+  letter-spacing: -0.03em;
+  padding: 8px 14px;
+}
