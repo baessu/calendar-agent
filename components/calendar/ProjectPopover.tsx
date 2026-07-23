@@ -50,6 +50,12 @@ interface ProjectPopoverProps {
   onSave: (draft: ProjectDraft) => void;
   /** Delete the project, handling its tasks per `mode` (edit, non-default only). */
   onDelete?: (mode: DeleteProjectMode) => void;
+  /**
+   * Archive the project — put it away (hidden from tabs/calendar) without
+   * deleting. Edit + non-default only, like delete. Restore is done from the
+   * panel's 아카이브 section.
+   */
+  onArchive?: () => void;
 }
 
 const MARGIN = 12;
@@ -63,6 +69,7 @@ export function ProjectPopover({
   onClose,
   onSave,
   onDelete,
+  onArchive,
 }: ProjectPopoverProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -222,13 +229,20 @@ export function ProjectPopover({
                   </button>
                 </span>
               ) : (
-                <button
-                  type="button"
-                  className="cp-del"
-                  onClick={() => setConfirmingDelete(true)}
-                >
-                  삭제
-                </button>
+                <span className="cp-foot-actions">
+                  {onArchive && (
+                    <button type="button" className="cp-archive" onClick={onArchive}>
+                      아카이브
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="cp-del"
+                    onClick={() => setConfirmingDelete(true)}
+                  >
+                    삭제
+                  </button>
+                </span>
               )
             ) : project && isDefault ? (
               <span className="pp-note">기본 프로젝트는 삭제할 수 없습니다</span>

@@ -28,6 +28,13 @@ export interface Project {
   createdAt: Timestamp;
   /** Last local edit — the version account sync merges on (LWW). */
   updatedAt: Timestamp;
+  /**
+   * When the project was archived (epoch ms), or absent/0 = active. Archiving a
+   * completed project hides it and its tasks/markers/types from normal views
+   * without deleting anything; it can be restored. Distinct from `visible`,
+   * which is a temporary merged-view filter, not a "put away" state.
+   */
+  archivedAt?: Timestamp;
 }
 
 /** A per-project task type (US-020) — defines the tone applied over the
@@ -44,6 +51,12 @@ export interface TaskType {
   createdAt: Timestamp;
   /** Last local edit — the version account sync merges on (LWW). */
   updatedAt: Timestamp;
+  /**
+   * When this task type was archived (epoch ms), or absent/0 = active. An
+   * archived type is dropped from the type picker + the type list, but its
+   * existing tasks stay on the calendar. Restorable.
+   */
+  archivedAt?: Timestamp;
 }
 
 /** A dated task — spans startDate..endDate inclusive, rendered as a bar. */

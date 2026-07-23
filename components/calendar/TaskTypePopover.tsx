@@ -53,6 +53,9 @@ interface TaskTypePopoverProps {
   onSave: (draft: TaskTypeDraft) => void;
   /** Delete the type, reassigning its tasks to the default (edit, non-default). */
   onDelete?: () => void;
+  /** Archive the type — drop it from the picker/legend (its tasks are hidden
+   *  too), without deleting. Edit + non-default only. Restore from the panel. */
+  onArchive?: () => void;
 }
 
 const MARGIN = 12;
@@ -67,6 +70,7 @@ export function TaskTypePopover({
   onClose,
   onSave,
   onDelete,
+  onArchive,
 }: TaskTypePopoverProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -257,13 +261,20 @@ export function TaskTypePopover({
                   </button>
                 </span>
               ) : (
-                <button
-                  type="button"
-                  className="cp-del"
-                  onClick={() => setConfirmingDelete(true)}
-                >
-                  삭제
-                </button>
+                <span className="cp-foot-actions">
+                  {onArchive && (
+                    <button type="button" className="cp-archive" onClick={onArchive}>
+                      아카이브
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="cp-del"
+                    onClick={() => setConfirmingDelete(true)}
+                  >
+                    삭제
+                  </button>
+                </span>
               )
             ) : taskType && isDefault ? (
               <span className="pp-note">기본 태스크종류는 삭제할 수 없습니다</span>

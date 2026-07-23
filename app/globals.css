@@ -2255,3 +2255,78 @@ button.mk:focus-visible {
 .tm-done:hover {
   color: var(--text);
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+ * Archiving — 아카이브/복원 controls in the popovers + the panel section.
+ * ════════════════════════════════════════════════════════════════════ */
+/* Popover foot: archive sits beside delete (left group). */
+.cp-foot-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+.cp-archive {
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: -0.02em;
+  color: var(--muted);
+  background: none;
+  border: none;
+  padding: 7px 2px;
+  cursor: pointer;
+}
+.cp-archive:hover {
+  color: var(--text);
+}
+
+/* Panel 아카이브 section — reuses .proj-row/.proj-list chrome, muted. */
+.ed-archive {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-soft);
+}
+.ed-archive-ttl {
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.proj-row.is-archived .proj-name {
+  color: var(--muted);
+}
+.proj-name--static {
+  cursor: default;
+  background: none;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: inherit;
+  letter-spacing: -0.03em;
+  text-align: left;
+}
+/* A hollow swatch for an archived task type (no project color context here). */
+.proj-sw--type {
+  border: 1px solid var(--border);
+  background: none !important;
+}
+.proj-kind {
+  font-size: 10px;
+  color: var(--faint);
+  margin-left: 2px;
+}
+.proj-restore {
+  margin-left: auto;
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: -0.02em;
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--border-soft);
+  padding: 2px 8px;
+  cursor: pointer;
+}
+.proj-restore:hover {
+  color: var(--text);
+  border-color: var(--text);
+}

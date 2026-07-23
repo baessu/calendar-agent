@@ -223,6 +223,31 @@ export function CalendarApp() {
     return m;
   }, [taskTypes]);
 
+  // Archiving (put-away, restorable): archived projects/types are dropped from
+  // the tabs, legend, and pickers (we pass the ACTIVE lists to those), while the
+  // *ById maps above stay full so any lingering lookup still resolves. Their
+  // tasks/markers are also hidden from the calendar (see visibleTasks below).
+  const activeProjects = useMemo(
+    () => projects.filter((p) => !p.archivedAt),
+    [projects],
+  );
+  const activeTaskTypes = useMemo(
+    () => taskTypes.filter((tt) => !tt.archivedAt),
+    [taskTypes],
+  );
+  const archivedProjects = useMemo(
+    () => projects.filter((p) => !!p.archivedAt).sort((a, b) => (b.archivedAt ?? 0) - (a.archivedAt ?? 0)),
+    [projects],
+  );
+  const archivedProjectIds = useMemo(
+    () => new Set(archivedProjects.map((p) => p.id)),
+    [archivedProjects],
+  );
+  const archivedTypeIds = useMemo(
+    () => new Set(taskTypes.filter((tt) => !!tt.archivedAt).map((tt) => tt.id)),
+    [taskTypes],
+  );
+
   // --- View switch: 전체(통합) ↔ individual project (US-013) -----------------
   // `null` = merged view (all projects, distinguished by hue); a project id =
   // that project's bars only. The same filtered set feeds the calendar and the
@@ -254,12 +279,20 @@ export function CalendarApp() {
     () =>
       filterTasksByTaskTypes(
         filterTasksByProject(
-          filterTasksByVisibleProjects(tasks, projects),
+          filterTasksByVisibleProjects(
+            // Archived projects/types are put away — their bars leave the grid.
+            tasks.filter(
+              (t) =>
+                !archivedProjectIds.has(t.projectId) &&
+                !archivedTypeIds.has(t.taskTypeId),
+            ),
+            projects,
+          ),
           selectedProjectId,
         ),
         hiddenTaskTypeIds,
       ),
-    [tasks, projects, selectedProjectId, hiddenTaskTypeIds],
+    [tasks, projects, selectedProjectId, hiddenTaskTypeIds, archivedProjectIds, archivedTypeIds],
   );
 
   // Visible markers (US-021): markers are scoped per project, so they follow the
@@ -269,10 +302,13 @@ export function CalendarApp() {
   const visibleMarkers = useMemo(
     () =>
       filterMarkersByProject(
-        filterMarkersByVisibleProjects(markers, projects),
+        filterMarkersByVisibleProjects(
+          markers.filter((m) => !archivedProjectIds.has(m.projectId)),
+          projects,
+        ),
         selectedProjectId,
       ),
-    [markers, projects, selectedProjectId],
+    [markers, projects, selectedProjectId, archivedProjectIds],
   );
 
   // US-020: task types are per-project. In an individual project view the
@@ -281,8 +317,18 @@ export function CalendarApp() {
   const projectTaskTypes = useMemo(
     () =>
       selectedProjectId
-        ? taskTypesForProject(taskTypes, selectedProjectId)
+        ? taskTypesForProject(activeTaskTypes, selectedProjectId)
         : null,
+    [activeTaskTypes, selectedProjectId],
+  );
+  // Archived types of the active project — for the restore section in the panel.
+  const archivedTaskTypes = useMemo(
+    () =>
+      selectedProjectId
+        ? taskTypes
+            .filter((tt) => tt.projectId === selectedProjectId && !!tt.archivedAt)
+            .sort((a, b) => (b.archivedAt ?? 0) - (a.archivedAt ?? 0))
+        : [],
     [taskTypes, selectedProjectId],
   );
 
@@ -687,6 +733,31 @@ export function CalendarApp() {
   );
   const closeShare = useCallback(() => setSharePopover(null), []);
 
+  // --- Archiving (put away / restore, US-archive) ---------------------------
+  // archivedAt = a timestamp when archived, 0 when active (0 avoids Dexie's
+  // "update with undefined doesn't delete the key" gotcha). Bumps updatedAt via
+  // the CRUD helper so the change syncs like any other edit.
+  const setProjectArchived = useCallback(
+    async (id: string, archived: boolean) => {
+      const archivedAt = archived ? Date.now() : 0;
+      await updateProject(id, { archivedAt });
+      setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, archivedAt } : p)));
+      // Archiving the active tab falls back to 전체, like deleting it does.
+      if (archived) setSelectedProjectId((cur) => (cur === id ? null : cur));
+      setProjectPopover(null);
+    },
+    [],
+  );
+  const setTaskTypeArchived = useCallback(
+    async (id: string, archived: boolean) => {
+      const archivedAt = archived ? Date.now() : 0;
+      await updateTaskType(id, { archivedAt });
+      setTaskTypes((prev) => prev.map((tt) => (tt.id === id ? { ...tt, archivedAt } : tt)));
+      setTaskTypePopover(null);
+    },
+    [],
+  );
+
   // Clear a project's "collaborator edited" flag (after the owner publishes or
   // pulls, their local copy and the Blob are back in sync).
   const clearStale = useCallback((pid: string) => {
@@ -834,8 +905,8 @@ export function CalendarApp() {
   return (
     <>
       <CalendarView
-        projects={projects}
-        taskTypes={taskTypes}
+        projects={activeProjects}
+        taskTypes={activeTaskTypes}
         tasks={visibleTasks}
         markers={visibleMarkers}
         projectsById={projectsById}
@@ -867,7 +938,7 @@ export function CalendarApp() {
       <TaskListPanel
         tasks={visibleTasks}
         markers={visibleMarkers}
-        projects={projects}
+        projects={activeProjects}
         projectsById={projectsById}
         taskTypesById={taskTypesById}
         selectedProjectId={selectedProjectId}
@@ -885,6 +956,10 @@ export function CalendarApp() {
         onEditTaskType={openTaskTypeEdit}
         hiddenTaskTypeIds={hiddenTaskTypeIds}
         onToggleTaskType={handleToggleTaskType}
+        archivedProjects={archivedProjects}
+        archivedTaskTypes={archivedTaskTypes}
+        onRestoreProject={(id) => void setProjectArchived(id, false)}
+        onRestoreTaskType={(id) => void setTaskTypeArchived(id, false)}
       />
       {projectPopover && (
         <ProjectPopover
@@ -900,6 +975,11 @@ export function CalendarApp() {
           onClose={closeProjectPopover}
           onSave={handleSaveProject}
           onDelete={projectPopover.project ? handleDeleteProject : undefined}
+          onArchive={
+            projectPopover.project
+              ? () => void setProjectArchived(projectPopover.project!.id, true)
+              : undefined
+          }
         />
       )}
       {taskTypePopover && (
@@ -922,6 +1002,11 @@ export function CalendarApp() {
           onClose={closeTaskTypePopover}
           onSave={handleSaveTaskType}
           onDelete={taskTypePopover.taskType ? handleDeleteTaskType : undefined}
+          onArchive={
+            taskTypePopover.taskType
+              ? () => void setTaskTypeArchived(taskTypePopover.taskType!.id, true)
+              : undefined
+          }
         />
       )}
       {sharePopover && projectsById.get(sharePopover.projectId) && (

@@ -127,6 +127,14 @@ interface TaskListPanelProps {
   hiddenTaskTypeIds: Set<string>;
   /** Toggle a task type's on/off filter (legend chip) — US-015. */
   onToggleTaskType: (id: string) => void;
+  /** Archived projects (for the 아카이브 restore section). */
+  archivedProjects?: Project[];
+  /** Archived task types of the active project (for the 아카이브 section). */
+  archivedTaskTypes?: TaskType[];
+  /** Restore an archived project. */
+  onRestoreProject?: (id: string) => void;
+  /** Restore an archived task type. */
+  onRestoreTaskType?: (id: string) => void;
 }
 
 export function TaskListPanel({
@@ -151,6 +159,10 @@ export function TaskListPanel({
   onEditTaskType,
   hiddenTaskTypeIds,
   onToggleTaskType,
+  archivedProjects = [],
+  archivedTaskTypes = [],
+  onRestoreProject,
+  onRestoreTaskType,
 }: TaskListPanelProps) {
   // Start-date ascending; ties broken by title for a stable order.
   const sorted = useMemo(
@@ -332,6 +344,50 @@ export function TaskListPanel({
           </button>
         )}
       </div>
+
+      {/* Archive: put-away projects & task types, each restorable. Only shown
+          when something is archived (and never on the read-only share view). */}
+      {!readOnly &&
+        (archivedProjects.length > 0 || archivedTaskTypes.length > 0) && (
+          <div className="ed-archive">
+            <div className="ed-proj-head">
+              <span className="ed-archive-ttl">아카이브</span>
+            </div>
+            <div className="ed-proj-list">
+              {archivedProjects.map((p) => (
+                <span key={p.id} className="proj-row is-archived">
+                  <span className="proj-name proj-name--static">
+                    <span className="proj-sw" style={{ background: p.color }} />
+                    {p.name}
+                  </span>
+                  <button
+                    type="button"
+                    className="proj-restore"
+                    onClick={() => onRestoreProject?.(p.id)}
+                  >
+                    복원
+                  </button>
+                </span>
+              ))}
+              {archivedTaskTypes.map((tt) => (
+                <span key={tt.id} className="proj-row is-archived">
+                  <span className="proj-name proj-name--static">
+                    <span className="proj-sw proj-sw--type" />
+                    {tt.name}
+                    <span className="proj-kind">종류</span>
+                  </span>
+                  <button
+                    type="button"
+                    className="proj-restore"
+                    onClick={() => onRestoreTaskType?.(tt.id)}
+                  >
+                    복원
+                  </button>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
           </div>
         )}
       </div>

@@ -160,6 +160,18 @@ export class CalendarDB extends Dexie {
           ),
         );
       });
+    // v8 (archiving): projects and task types gain an optional `archivedAt`
+    // (epoch ms; absent = active). It is not indexed — archiving is a filter,
+    // not a query key — so Dexie stores it automatically and no data upgrade is
+    // needed; legacy rows simply read `archivedAt === undefined` (active).
+    this.version(8).stores({
+      projects: "id, order, visible",
+      taskTypes: "id, projectId, order",
+      tasks: "id, projectId, taskTypeId, startDate, endDate",
+      markers: "id, date, kind, projectId",
+      shares: "projectId, token, editToken",
+      deletions: "id, table, deletedAt",
+    });
   }
 }
 
