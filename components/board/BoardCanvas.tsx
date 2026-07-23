@@ -154,6 +154,11 @@ export function BoardCanvas({ groups, dispOf, onOpenMenu }: BoardCanvasProps) {
   const pinchDist = useRef(0);
   const moved = useRef(0);
   const panned = useRef(false);
+  // Whether we've captured the pointer for this gesture. We capture only once a
+  // gesture clearly starts moving — NOT on pointerdown — because capturing on
+  // the viewport swallows a card's `click` event, which is what opens the
+  // disposition menu. A plain tap never captures, so its click fires normally.
+  const captured = useRef(false);
   // Active cluster drag, if any.
   const drag = useRef<{
     project: string;
@@ -166,10 +171,12 @@ export function BoardCanvas({ groups, dispOf, onOpenMenu }: BoardCanvasProps) {
   const onPointerDown = (e: React.PointerEvent) => {
     const target = e.target as HTMLElement;
     if (target.closest(".bd-hud")) return;
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    // Do NOT capture here — see the `captured` ref comment. Capturing now would
+    // stop a tap on a card from firing its click, breaking the menu.
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     moved.current = 0;
     panned.current = false;
+    captured.current = false;
 
     const head = target.closest<HTMLElement>(".bd-cluster-head");
     if (head && pointers.current.size === 1) {
@@ -203,9 +210,18 @@ export function BoardCanvas({ groups, dispOf, onOpenMenu }: BoardCanvasProps) {
     const p = pointers.current;
     if (!p.has(e.pointerId)) return;
     p.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    // Capture once (and only once) a gesture is genuinely moving, so subsequent
+    // moves keep tracking even if the pointer leaves the viewport.
+    const capture = () => {
+      if (!captured.current) {
+        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+        captured.current = true;
+      }
+    };
 
     const d = drag.current;
     if (d) {
+      if (Math.hypot(e.clientX - d.startX, e.clientY - d.startY) > TAP_SLOP) capture();
       // Move in world space: screen delta ÷ scale.
       const s = view.current.scale;
       d.el.style.left = `${d.from.x + (e.clientX - d.startX) / s}px`;
@@ -222,6 +238,7 @@ export function BoardCanvas({ groups, dispOf, onOpenMenu }: BoardCanvasProps) {
       }
       pinchDist.current = dist;
       panned.current = true;
+      capture();
     } else if (panFrom.current) {
       const nx = e.clientX - panFrom.current.x;
       const ny = e.clientY - panFrom.current.y;
@@ -229,7 +246,10 @@ export function BoardCanvas({ groups, dispOf, onOpenMenu }: BoardCanvasProps) {
       view.current.tx = nx;
       view.current.ty = ny;
       apply();
-      if (moved.current > TAP_SLOP) panned.current = true;
+      if (moved.current > TAP_SLOP) {
+        panned.current = true;
+        capture();
+      }
     }
   };
 
@@ -250,7 +270,10 @@ export function BoardCanvas({ groups, dispOf, onOpenMenu }: BoardCanvasProps) {
       }
     }
     if (pointers.current.size < 2) pinchDist.current = 0;
-    if (pointers.current.size === 0) panFrom.current = null;
+    if (pointers.current.size === 0) {
+      panFrom.current = null;
+      captured.current = false;
+    }
   };
 
   const openFor = (task: BoardTask, el: HTMLElement) => {
