@@ -199,6 +199,14 @@ interface CalendarViewProps {
     /** Reload the parent's state after sync wrote to Dexie. */
     onSynced: () => void;
   };
+  /**
+   * Board-task mapping (app-only): calendarTaskId → attached board task ids.
+   * Drives the "🔗 N" bar badge and the edit popover's mapping section.
+   * Omitted on share pages (no board/account context there).
+   */
+  taskMap?: Record<string, string[]>;
+  /** Persist a 일정's attachment set (from the edit popover). */
+  onMappingChange?: (taskId: string, ids: string[]) => void;
 }
 
 export function CalendarView({
@@ -230,6 +238,8 @@ export function CalendarView({
   shareStale = false,
   canShare = true,
   sync,
+  taskMap,
+  onMappingChange,
 }: CalendarViewProps) {
   const today = useMemo(() => todayDateString(), []);
   const todayYM = useMemo(() => ymFromDate(today), [today]);
@@ -1135,6 +1145,13 @@ export function CalendarView({
                             <span className="cal-bar-note" aria-hidden />
                           )}
                           <span className="cal-bar-label">{seg.task.title}</span>
+                          {/* Mapped board-task count, on the leading segment. */}
+                          {!seg.contL &&
+                            (taskMap?.[seg.task.id]?.length ?? 0) > 0 && (
+                              <span className="cal-bar-map" aria-hidden>
+                                🔗{taskMap![seg.task.id].length}
+                              </span>
+                            )}
                           {/* Edge resize handles (US-016). Only on the segment
                               that owns the edge (not a week continuation), so a
                               split bar gets one start handle and one end handle.
@@ -1225,6 +1242,12 @@ export function CalendarView({
           onClose={closeEdit}
           onSave={handleEditSave}
           onDelete={handleEditDelete}
+          mappedBoardIds={taskMap?.[editingTask.id] ?? []}
+          onMappingChange={
+            onMappingChange
+              ? (ids) => onMappingChange(editingTask.id, ids)
+              : undefined
+          }
         />
       )}
 

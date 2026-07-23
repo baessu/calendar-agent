@@ -2107,3 +2107,144 @@ button.mk:focus-visible {
   letter-spacing: -0.03em;
   padding: 8px 14px;
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+ * Board-task mapping — "보드 태스크 연결" section in the 일정 edit popover,
+ * plus the "🔗 N" badge on a calendar bar that has attached board tasks.
+ * ════════════════════════════════════════════════════════════════════ */
+.cal-bar-map {
+  margin-left: auto;
+  padding-left: 6px;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+  flex: none;
+}
+
+.tm-section {
+  border-top: 1px solid var(--border-soft);
+  padding-top: 10px;
+  margin-top: 2px;
+}
+.tm-empty,
+.tm-note {
+  font-size: 11px;
+  color: var(--muted);
+  padding: 2px 0;
+}
+.tm-link {
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.tm-list {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tm-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border-soft);
+  padding: 5px 7px;
+  font-size: 12px;
+}
+.tm-item-title {
+  letter-spacing: -0.03em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+.tm-item-proj {
+  font-size: 10px;
+  color: var(--faint);
+  flex: none;
+}
+.tm-remove {
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+  flex: none;
+}
+.tm-remove:hover {
+  color: var(--text);
+}
+.tm-add {
+  margin-top: 6px;
+  border: 1px solid var(--border);
+  background: none;
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  padding: 5px 10px;
+  cursor: pointer;
+}
+.tm-add:hover {
+  border-color: var(--text);
+}
+.tm-picker {
+  margin-top: 6px;
+  border: 1px solid var(--border-soft);
+  padding: 7px;
+}
+.tm-search {
+  width: 100%;
+  margin-bottom: 6px;
+}
+.tm-cands {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 180px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tm-cand {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  width: 100%;
+  border: none;
+  background: none;
+  font-family: inherit;
+  text-align: left;
+  padding: 5px 6px;
+  cursor: pointer;
+}
+.tm-cand:hover {
+  background: var(--sel);
+}
+.tm-cand-title {
+  font-size: 12px;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+.tm-cand-meta {
+  font-size: 10px;
+  color: var(--faint);
+}
+.tm-done {
+  margin-top: 6px;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.tm-done:hover {
+  color: var(--text);
+}

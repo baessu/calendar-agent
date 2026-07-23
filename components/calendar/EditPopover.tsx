@@ -23,6 +23,7 @@ import {
 } from "react";
 import type { DateString, Project, Task, TaskType } from "@/lib/types";
 import { formatRangeLabel, normalizeRange } from "@/lib/calendar/selection";
+import { TaskMappingSection } from "@/components/mapping/TaskMappingSection";
 
 /** The edited fields handed back to the parent (already title-trimmed + range-normalized). */
 export interface EditTaskDraft {
@@ -45,6 +46,13 @@ interface EditPopoverProps {
   onClose: () => void;
   onSave: (changes: EditTaskDraft) => void;
   onDelete: () => void;
+  /** Board task ids attached to this 일정 (app-only mapping). */
+  mappedBoardIds?: string[];
+  /**
+   * Persist a new attachment set for this 일정. When omitted (e.g. the share
+   * pages, which have no board/account context) the mapping section is hidden.
+   */
+  onMappingChange?: (ids: string[]) => void;
 }
 
 const MARGIN = 12;
@@ -58,6 +66,8 @@ export function EditPopover({
   onClose,
   onSave,
   onDelete,
+  mappedBoardIds = [],
+  onMappingChange,
 }: EditPopoverProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -248,6 +258,10 @@ export function EditPopover({
               onChange={(e) => setNote(e.target.value)}
             />
           </label>
+
+          {onMappingChange && (
+            <TaskMappingSection mappedIds={mappedBoardIds} onChange={onMappingChange} />
+          )}
 
           <div className="cp-foot">
             {confirmingDelete ? (
