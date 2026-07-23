@@ -68,11 +68,6 @@ import type {
 } from "@/lib/types";
 import type { YearMonth } from "@/lib/calendar/infinite";
 import { buildSnapshot, parseSnapshot } from "@/lib/share/snapshot";
-import { addDays, parseDate, toDateString, todayDateString } from "@/lib/calendar/dates";
-import type { ProjectPeriod, ProjectPeriodInput } from "@/lib/periods/types";
-import { addPeriod, deletePeriod, readPeriods } from "@/lib/periods/store";
-import { PeriodTasksPopup } from "@/components/periods/PeriodTasksPopup";
-import { PeriodCreatePopover } from "@/components/periods/PeriodCreatePopover";
 import { CalendarView } from "./CalendarView";
 import { PrintCalendar } from "./PrintCalendar";
 import type { EditTaskDraft } from "./EditPopover";
@@ -110,44 +105,6 @@ export function CalendarApp() {
   // Projects whose published snapshot is newer than what the owner last synced
   // — i.e. a collaborator edited via the edit link. Drives the "가져오기" prompt.
   const [staleShareIds, setStaleShareIds] = useState<Set<string>>(() => new Set());
-
-  // Project periods (app-only, localStorage). Loaded after mount (microtask
-  // defer) so the server render (no localStorage) and the client's first paint
-  // match, then periods appear — no hydration mismatch, no setState-in-effect.
-  const [periods, setPeriods] = useState<ProjectPeriod[]>([]);
-  useEffect(() => {
-    let alive = true;
-    void (async () => {
-      await Promise.resolve();
-      if (alive) setPeriods(readPeriods());
-    })();
-    return () => {
-      alive = false;
-    };
-  }, []);
-  // The task-popup (bar click) and the create popover, each with screen coords.
-  const [periodPopup, setPeriodPopup] = useState<{
-    project: string;
-    x: number;
-    y: number;
-  } | null>(null);
-  const [periodCreate, setPeriodCreate] = useState<{ x: number; y: number } | null>(
-    null,
-  );
-
-  const openPeriodTasks = useCallback((project: string, x: number, y: number) => {
-    setPeriodPopup({ project, x, y });
-  }, []);
-  const openPeriodCreate = useCallback((x: number, y: number) => {
-    setPeriodCreate({ x, y });
-  }, []);
-  const handleAddPeriod = useCallback((input: ProjectPeriodInput) => {
-    setPeriods(addPeriod(input));
-    setPeriodCreate(null);
-  }, []);
-  const handleDeletePeriod = useCallback((id: string) => {
-    setPeriods(deletePeriod(id));
-  }, []);
 
   // Load every table from Dexie into React state. Also used after an account
   // sync, which writes straight to Dexie and would otherwise be invisible to
@@ -881,9 +838,6 @@ export function CalendarApp() {
         isShared={selectedProjectId ? shares.has(selectedProjectId) : false}
         shareStale={selectedProjectId ? staleShareIds.has(selectedProjectId) : false}
         sync={{ revision: syncRevision, onSynced: reloadFromDb }}
-        periods={periods}
-        onPeriodClick={openPeriodTasks}
-        onAddPeriod={openPeriodCreate}
       />
       <TaskListPanel
         tasks={visibleTasks}
@@ -981,26 +935,6 @@ export function CalendarApp() {
           markers={visibleMarkers}
           projectsById={projectsById}
           taskTypesById={taskTypesById}
-        />
-      )}
-      {periodPopup && (
-        <PeriodTasksPopup
-          project={periodPopup.project}
-          x={periodPopup.x}
-          y={periodPopup.y}
-          periods={periods.filter((p) => p.project === periodPopup.project)}
-          onDeletePeriod={handleDeletePeriod}
-          onClose={() => setPeriodPopup(null)}
-        />
-      )}
-      {periodCreate && (
-        <PeriodCreatePopover
-          x={periodCreate.x}
-          y={periodCreate.y}
-          defaultStart={todayDateString()}
-          defaultEnd={toDateString(addDays(parseDate(todayDateString()), 14))}
-          onAdd={handleAddPeriod}
-          onClose={() => setPeriodCreate(null)}
         />
       )}
     </>

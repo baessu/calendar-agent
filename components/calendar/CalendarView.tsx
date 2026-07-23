@@ -49,7 +49,6 @@ import { barColors } from "@/lib/color/compose";
 import type { MarkerChanges, MarkerInput } from "@/lib/db";
 import type { DateString, Marker, Project, Task, TaskType } from "@/lib/types";
 import { SyncButton } from "@/components/sync/SyncButton";
-import type { ProjectPeriod } from "@/lib/periods/types";
 import type { NewTaskInput } from "./CalendarApp";
 import { CreatePopover, type CreateDraft } from "./CreatePopover";
 import { EditPopover, type EditTaskDraft } from "./EditPopover";
@@ -72,13 +71,6 @@ const ROW_MIN = 116;
 // so they never sit under a bar. Each marker chip occupies one row of this
 // height; a week reserves rows = its busiest cell's marker count.
 const MK_ROW_H = 18;
-
-// Project-period bars (app-only): their own band directly under the marker
-// band, above the task bars. Never collapse into "+N" chips (few projects), so
-// layoutWeek gets a high lane cap.
-const PERIOD_BAR_H = 20;
-const PERIOD_GAP = 4;
-const PERIOD_MAX_LANES = 99;
 
 // Pointer travel (px) past which a bar press becomes a move instead of a click
 // (US-010): below it the press opens the edit popover, at/above it the bar moves.
@@ -207,15 +199,6 @@ interface CalendarViewProps {
     /** Reload the parent's state after sync wrote to Dexie. */
     onSynced: () => void;
   };
-  /**
-   * Project periods (app-only) drawn as bars above the task bars. Each spans a
-   * date range; clicking one opens its child tasks. Omitted on share pages.
-   */
-  periods?: ProjectPeriod[];
-  /** Bar click → open the project's task popup at these screen coords. */
-  onPeriodClick?: (project: string, x: number, y: number) => void;
-  /** Top-bar "＋ 기간" pressed → open the create popover at these coords. */
-  onAddPeriod?: (x: number, y: number) => void;
 }
 
 export function CalendarView({
@@ -247,9 +230,6 @@ export function CalendarView({
   shareStale = false,
   canShare = true,
   sync,
-  periods = [],
-  onPeriodClick,
-  onAddPeriod,
 }: CalendarViewProps) {
   const today = useMemo(() => todayDateString(), []);
   const todayYM = useMemo(() => ymFromDate(today), [today]);
@@ -891,16 +871,6 @@ export function CalendarView({
         <Link href="/board" className="ed-today">
           보드
         </Link>
-        {/* Add a project period (app-only bar). Only where periods are wired. */}
-        {onAddPeriod && (
-          <button
-            type="button"
-            className="ed-today"
-            onClick={(e) => onAddPeriod(e.clientX, e.clientY)}
-          >
-            ＋ 기간
-          </button>
-        )}
         {/* Share (US-025): only on an individual project view. Dot when shared. */}
         {canShare && selectedProjectId !== null && (
           <button
@@ -1035,23 +1005,13 @@ export function CalendarView({
                 );
                 // +10 leaves a clear gap between the marker band and the bars.
                 const markerBandH = markerRows > 0 ? markerRows * MK_ROW_H + 10 : 0;
-                // Project-period band: sits directly under the markers, above the
-                // task bars, which shift down by its height. Reuses the same
-                // clip + lane pipeline as tasks (both are just date spans).
-                const periodSegs = weekSegments(week, periods);
-                const periodLayout = layoutWeek(periodSegs, PERIOD_MAX_LANES);
-                const periodTop = HEAD_H + markerBandH;
-                const periodBandH =
-                  periodLayout.laneCount > 0
-                    ? periodLayout.laneCount * (PERIOD_BAR_H + PERIOD_GAP) + 8
-                    : 0;
                 // Lanes drawn as bars, and the lane row the chips sit on.
                 const visibleLanes = expanded
                   ? layout.laneCount
                   : Math.min(layout.laneCount, DEFAULT_MAX_LANES);
                 const chipLane = expanded ? layout.laneCount : DEFAULT_MAX_LANES;
                 const rows = visibleLanes + (hasOverflow ? 1 : 0);
-                const barTop = HEAD_H + markerBandH + periodBandH;
+                const barTop = HEAD_H + markerBandH;
                 const weekMinH = Math.max(
                   ROW_MIN,
                   barTop + rows * (BAR_H + BAR_GAP) + 6,
@@ -1110,36 +1070,6 @@ export function CalendarView({
                             </div>
                           )}
                         </div>
-                      );
-                    })}
-                    {/* Project-period bars — a container band above the tasks.
-                        Monochrome (color stays for task data); the project name
-                        labels the leading segment. Click → child-task popup. */}
-                    {periodLayout.segments.map((seg) => {
-                      const period = seg.task;
-                      const left = (seg.startCol / 7) * 100;
-                      const width = ((seg.endCol - seg.startCol + 1) / 7) * 100;
-                      const top = periodTop + seg.lane * (PERIOD_BAR_H + PERIOD_GAP);
-                      const rr = (cont: boolean) => (cont ? "0" : "3px");
-                      return (
-                        <button
-                          type="button"
-                          key={`${period.id}-${weekKey}`}
-                          className="cal-period-bar"
-                          style={{
-                            left: `${left}%`,
-                            width: `calc(${width}% - 4px)`,
-                            top,
-                            height: PERIOD_BAR_H,
-                            borderRadius: `${rr(seg.contL)} ${rr(seg.contR)} ${rr(seg.contR)} ${rr(seg.contL)}`,
-                          }}
-                          title={`${period.project} — ${period.startDate} ~ ${period.endDate}`}
-                          onClick={(e) => onPeriodClick?.(period.project, e.clientX, e.clientY)}
-                        >
-                          {!seg.contL && (
-                            <span className="cal-period-label">{period.project}</span>
-                          )}
-                        </button>
                       );
                     })}
                     {visibleSegs.map((seg) => {

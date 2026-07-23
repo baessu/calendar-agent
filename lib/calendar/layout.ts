@@ -8,14 +8,13 @@
  * lanes are needed than `maxLanes`, the extra bars are summarized as per-column
  * "+N" overflow chips that the UI expands on click.
  */
-import type { Task } from "@/lib/types";
-import type { HasSpan, WeekSegment } from "./segments";
+import type { WeekSegment } from "./segments";
 
 /** Default number of lanes shown before bars collapse into "+N" chips. */
 export const DEFAULT_MAX_LANES = 3;
 
 /** A segment with its assigned vertical lane (0-based, top = lane 0). */
-export interface PlacedSegment<T extends HasSpan = Task> extends WeekSegment<T> {
+export interface PlacedSegment extends WeekSegment {
   lane: number;
 }
 
@@ -27,9 +26,9 @@ export interface OverflowChip {
   count: number;
 }
 
-export interface WeekLayout<T extends HasSpan = Task> {
+export interface WeekLayout {
   /** Every segment with its lane assignment (full — ignores maxLanes). */
-  segments: PlacedSegment<T>[];
+  segments: PlacedSegment[];
   /** Total lanes used by all segments. */
   laneCount: number;
   /** Per-column overflow chips for lanes >= maxLanes; empty if nothing overflows. */
@@ -42,14 +41,14 @@ export interface WeekLayout<T extends HasSpan = Task> {
  * which keeps placement stable. Two segments overlap when their inclusive
  * [startCol, endCol] ranges intersect (touching at a column counts as overlap).
  */
-export function layoutWeek<T extends HasSpan = Task>(
-  segments: WeekSegment<T>[],
+export function layoutWeek(
+  segments: WeekSegment[],
   maxLanes: number = DEFAULT_MAX_LANES,
-): WeekLayout<T> {
+): WeekLayout {
   // laneEnd[i] = last column occupied in lane i. A segment reuses a lane only
   // when it starts strictly after that lane's current end (no overlap).
   const laneEnd: number[] = [];
-  const placed: PlacedSegment<T>[] = segments.map((seg) => {
+  const placed: PlacedSegment[] = segments.map((seg) => {
     let lane = laneEnd.findIndex((end) => end < seg.startCol);
     if (lane === -1) {
       lane = laneEnd.length;
