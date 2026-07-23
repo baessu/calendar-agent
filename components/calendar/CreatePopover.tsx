@@ -72,7 +72,9 @@ export function CreatePopover({
 }: CreatePopoverProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [pos, setPos] = useState({ left: x, top: y });
+  const [pos, setPos] = useState<{ left: number; top: number; maxHeight?: number }>(
+    { left: x, top: y },
+  );
 
   const [mode, setMode] = useState<Mode>("task");
   const isMarker = mode !== "task";
@@ -120,7 +122,8 @@ export function CreatePopover({
     const { width, height } = el.getBoundingClientRect();
     const left = Math.max(MARGIN, Math.min(x, window.innerWidth - width - MARGIN));
     const top = Math.max(MARGIN, Math.min(y, window.innerHeight - height - MARGIN));
-    setPos({ left, top });
+    const maxHeight = window.innerHeight - top - MARGIN;
+    setPos({ left, top, maxHeight });
   }, [x, y, mode]);
 
   // Focus the title field on open.
@@ -168,7 +171,7 @@ export function CreatePopover({
       <div
         ref={cardRef}
         className="create-pop cp-create"
-        style={{ left: pos.left, top: pos.top }}
+        style={{ left: pos.left, top: pos.top, maxHeight: pos.maxHeight }}
         role="dialog"
         aria-label="새 일정"
         // Keep clicks inside the card from reaching the backdrop.

@@ -327,6 +327,13 @@ body {
   padding: 14px 16px 16px;
   letter-spacing: -0.03em;
   animation: cpIn 120ms ease-out;
+  /* Tall cards (e.g. the edit popover with the board-mapping section) near a
+     screen edge scroll internally instead of running off-screen. Edit/Create
+     set a precise max-height inline (space below their clamped top); this caps
+     the rest and provides the scroll. */
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 /* Create popover: fixed width so toggling 일정/이벤트/데드라인 (which adds or
    drops the 종류/메모 fields) never makes the card jump in size. */

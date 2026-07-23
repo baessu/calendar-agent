@@ -71,7 +71,9 @@ export function EditPopover({
 }: EditPopoverProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [pos, setPos] = useState({ left: x, top: y });
+  const [pos, setPos] = useState<{ left: number; top: number; maxHeight?: number }>(
+    { left: x, top: y },
+  );
 
   // Prefill from the task's current values.
   const [title, setTitle] = useState(task.title);
@@ -107,14 +109,17 @@ export function EditPopover({
     return formatRangeLabel(start, end);
   }, [startDate, endDate]);
 
-  // Clamp the card inside the viewport once its real size is known.
+  // Clamp the card inside the viewport once its real size is known, and cap its
+  // height to the space below `top` so a tall card (e.g. with the board-mapping
+  // section) scrolls internally instead of running off the bottom of the screen.
   useLayoutEffect(() => {
     const el = cardRef.current;
     if (!el) return;
     const { width, height } = el.getBoundingClientRect();
     const left = Math.max(MARGIN, Math.min(x, window.innerWidth - width - MARGIN));
     const top = Math.max(MARGIN, Math.min(y, window.innerHeight - height - MARGIN));
-    setPos({ left, top });
+    const maxHeight = window.innerHeight - top - MARGIN;
+    setPos({ left, top, maxHeight });
   }, [x, y]);
 
   // Focus the title field on open.
@@ -157,7 +162,7 @@ export function EditPopover({
       <div
         ref={cardRef}
         className="create-pop"
-        style={{ left: pos.left, top: pos.top }}
+        style={{ left: pos.left, top: pos.top, maxHeight: pos.maxHeight }}
         role="dialog"
         aria-label="일정 편집"
         // Keep clicks inside the card from reaching the backdrop.
