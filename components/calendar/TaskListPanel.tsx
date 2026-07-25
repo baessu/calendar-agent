@@ -350,9 +350,7 @@ export function TaskListPanel({
       {!readOnly &&
         (archivedProjects.length > 0 || archivedTaskTypes.length > 0) && (
           <div className="ed-archive">
-            <div className="ed-proj-head">
-              <span className="ed-archive-ttl">아카이브</span>
-            </div>
+            <div className="ed-proj-head">아카이브</div>
             <div className="ed-proj-list">
               {archivedProjects.map((p) => (
                 <span key={p.id} className="proj-row is-archived">

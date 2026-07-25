@@ -2279,30 +2279,29 @@ button.mk:focus-visible {
   color: var(--text);
 }
 
-/* Panel 아카이브 section — reuses .proj-row/.proj-list chrome, muted. */
+/* Panel 아카이브 section — identical box model to .ed-proj / .ed-type so it
+   lines up with the other filter sub-blocks (same 12/22 padding + separator).
+   Being the last child of .ed-filters-body, its bottom border is removed by
+   the existing `.ed-filters-body > :last-child` rule. */
 .ed-archive {
-  margin-top: 18px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border-soft);
+  padding: 12px 22px;
+  border-bottom: 1px solid var(--border);
 }
-.ed-archive-ttl {
-  font-size: 11px;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  color: var(--faint);
-}
-.proj-row.is-archived .proj-name {
-  color: var(--muted);
-}
+/* Archived name reuses .proj-name's metrics exactly (gap 6, same font), just
+   static (not a toggle) and muted. */
 .proj-name--static {
   cursor: default;
   background: none;
   border: none;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   font-family: inherit;
-  letter-spacing: -0.03em;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--muted);
+  padding: 0;
   text-align: left;
 }
 /* A hollow swatch for an archived task type (no project color context here). */
@@ -2315,18 +2314,22 @@ button.mk:focus-visible {
   color: var(--faint);
   margin-left: 2px;
 }
+/* Restore action — compact so the archived chip keeps the same height as the
+   active project/type chips (matches .proj-edit's footprint, not a big button). */
 .proj-restore {
-  margin-left: auto;
   font-family: inherit;
   font-size: 11px;
   letter-spacing: -0.02em;
   color: var(--muted);
   background: none;
-  border: 1px solid var(--border-soft);
-  padding: 2px 8px;
+  border: none;
+  padding: 0 1px;
+  margin-left: 2px;
   cursor: pointer;
+  flex: none;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 .proj-restore:hover {
   color: var(--text);
-  border-color: var(--text);
 }
