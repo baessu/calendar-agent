@@ -76,7 +76,7 @@ document.querySelectorAll('.ck-cpb').forEach(function(b){b.addEventListener('cli
 })();`;
 
 type Ask = { face: string; who: string; slug?: string; msg: string; sub: string; path: string; detail?: string; prompt?: string };
-type Goal = { goal: string; owner: string; kpi: string };
+type Goal = { goal: string; owner: string; kpi: string; personas?: string[] };
 type Pod = { face: string; name: string; slug?: string; msg?: string; askIdx?: number; state: "wait" | "active" | "idle" };
 type HbGroup = { group: string; members: Pod[] };
 type PAgent = { num: string; name: string; intro: string; purpose: string; stance: string; model: string; tok: string; collab: { who: string; rel: string; what: string }[]; principles: string };
@@ -123,6 +123,14 @@ export default async function CockpitPage() {
             <div className="ck-goal" key={g.goal}>
               <span className="ck-gd" />
               <div className="ck-gt">{g.goal}<div className="ck-gs">{g.owner} · {g.kpi}</div></div>
+              {(g.personas || []).length > 0 && (
+                <span className="ck-gavs">
+                  {(g.personas || []).map((s) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img className="ck-gav" key={s} src={`/avatars/${s}.jpg`} alt={s} />
+                  ))}
+                </span>
+              )}
             </div>
           ))}
         </div>
