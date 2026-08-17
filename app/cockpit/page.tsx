@@ -16,8 +16,9 @@ function layout(){
  document.querySelectorAll('.ck-hg').forEach(function(card){
   var bubs=[].slice.call(card.querySelectorAll('.ck-bub'));
   if(!bubs.length) return;
-  bubs.forEach(function(b){b.style.marginLeft='';b.style.marginBottom='';});
+  card.style.paddingTop='';bubs.forEach(function(b){b.style.marginLeft='';b.style.marginBottom='';});
   var cr=card.getBoundingClientRect(), placed=[];
+  var maxLift=0;
   bubs.forEach(function(b){
    var r=b.getBoundingClientRect(), dx=0, dy=0;
    if(r.left<cr.left+4) dx=(cr.left+4)-r.left;
@@ -25,8 +26,10 @@ function layout(){
    function hit(){return placed.some(function(p){return !(r.right+dx<p.l-4||r.left+dx>p.r+4||r.bottom+dy<p.t-4||r.top+dy>p.b+4);});}
    while(hit()) dy-=r.height+6;
    b.style.marginLeft=dx+'px'; b.style.marginBottom=(-dy)+'px';
+   maxLift=Math.max(maxLift,-dy);
    placed.push({l:r.left+dx,r:r.right+dx,t:r.top+dy,b:r.bottom+dy});
   });
+  if(maxLift>0) card.style.paddingTop=(44+maxLift)+'px';
  });
 }
 window.addEventListener('load',layout);window.addEventListener('resize',layout);layout();
