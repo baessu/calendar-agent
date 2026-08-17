@@ -80,6 +80,14 @@ type Goal = { goal: string; owner: string; kpi: string };
 type Pod = { face: string; name: string; slug?: string; msg?: string; askIdx?: number; state: "wait" | "active" | "idle" };
 type HbGroup = { group: string; members: Pod[] };
 type PAgent = { num: string; name: string; intro: string; purpose: string; stance: string; model: string; tok: string; collab: { who: string; rel: string; what: string }[]; principles: string };
+const REL_COLOR: Record<string, string> = { "지휘": "#141414", "동료": "#0F6B5C", "공급": "#8a6a3f", "판정": "#b45309" };
+function splitPurpose(s: string): [string, string] {
+  for (const sep of ["판별 질문:", "판별:"]) {
+    const i = s.indexOf(sep);
+    if (i >= 0) return [s.slice(0, i).trim(), s.slice(i + sep.length).trim()];
+  }
+  return [s, ""];
+}
 type Persona = { slug: string; name: string; metric: string; teams: string[]; teamData: { team: string; agents: PAgent[] }[] };
 
 export default async function CockpitPage() {
@@ -199,22 +207,32 @@ export default async function CockpitPage() {
                 {td.agents.map((a) => (
                   <div className="ck-pcard" key={a.name}>
                     <div className="ck-pnm">#{a.num} {a.name}</div>
-                    <div className="ck-pintro">{a.intro}</div>
-                    <div className="ck-ppur">{a.purpose}</div>
+                    <div className="ck-pintro">💬 {a.intro}</div>
                     <div className="ck-pchips">
-                      {[a.stance, a.model, a.tok ? `${a.tok} tok` : ""].filter(Boolean).map((c) => (
+                      {[a.stance ? `🧭 ${a.stance}` : "", a.model ? `⚙️ ${a.model}` : "", a.tok ? `📦 ${a.tok} tok` : ""].filter(Boolean).map((c) => (
                         <span className="ck-pchip" key={c}>{c}</span>
                       ))}
                     </div>
+                    <div className="ck-plab">🎯 목적</div>
+                    <div className="ck-ppur">{splitPurpose(a.purpose)[0]}</div>
+                    {splitPurpose(a.purpose)[1] && <div className="ck-pq">🔍 판별 — {splitPurpose(a.purpose)[1]}</div>}
                     {a.collab.length > 0 && (
-                      <table className="ck-ptab"><tbody>
-                        {a.collab.map((r, j) => (
-                          <tr key={j}><td>{r.who}</td><td className="rel">{r.rel}</td><td>{r.what}</td></tr>
-                        ))}
-                      </tbody></table>
+                      <>
+                        <div className="ck-plab">🤝 협업</div>
+                        <table className="ck-ptab"><tbody>
+                          <tr className="h"><td>상대</td><td>관계</td><td>주고받는 것</td></tr>
+                          {a.collab.map((r, j) => (
+                            <tr key={j}>
+                              <td className="who">{r.who}</td>
+                              <td><span className="ck-relc" style={{ color: REL_COLOR[r.rel] || "#777", borderColor: REL_COLOR[r.rel] || "#b6b6b6" }}>{r.rel}</span></td>
+                              <td>{r.what}</td>
+                            </tr>
+                          ))}
+                        </tbody></table>
+                      </>
                     )}
                     {a.principles && (
-                      <details className="ck-pprin"><summary>사고원칙</summary><div>{a.principles}</div></details>
+                      <details className="ck-pprin"><summary>🧠 사고원칙 펼치기</summary><div>{a.principles}</div></details>
                     )}
                   </div>
                 ))}
