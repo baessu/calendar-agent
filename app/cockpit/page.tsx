@@ -9,6 +9,29 @@ import "./cockpit.css";
 // 이 URL은 고정이므로 로그인 세션을 요구한다.
 export const metadata = { title: "AI Teams 조종석 · 캘린더" };
 
+// 말풍선 겹침 방지: 카드 밖 삐짐은 안쪽으로, 이웃과 겹치면 한 층 위로 (측정 후 재배치)
+const BUBBLE_JS = `
+(function(){
+function layout(){
+ document.querySelectorAll('.ck-hg').forEach(function(card){
+  var bubs=[].slice.call(card.querySelectorAll('.ck-bub'));
+  if(!bubs.length) return;
+  bubs.forEach(function(b){b.style.marginLeft='';b.style.marginBottom='';});
+  var cr=card.getBoundingClientRect(), placed=[];
+  bubs.forEach(function(b){
+   var r=b.getBoundingClientRect(), dx=0, dy=0;
+   if(r.left<cr.left+4) dx=(cr.left+4)-r.left;
+   if(r.right+dx>cr.right-4) dx=(cr.right-4)-r.right;
+   function hit(){return placed.some(function(p){return !(r.right+dx<p.l-4||r.left+dx>p.r+4||r.bottom+dy<p.t-4||r.top+dy>p.b+4);});}
+   while(hit()) dy-=r.height+6;
+   b.style.marginLeft=dx+'px'; b.style.marginBottom=(-dy)+'px';
+   placed.push({l:r.left+dx,r:r.right+dx,t:r.top+dy,b:r.bottom+dy});
+  });
+ });
+}
+window.addEventListener('load',layout);window.addEventListener('resize',layout);layout();
+})();`;
+
 type Ask = { face: string; who: string; slug?: string; msg: string; sub: string; path: string };
 type Goal = { goal: string; owner: string; kpi: string };
 type Pod = { face: string; name: string; slug?: string; msg?: string; state: "wait" | "active" | "idle" };
@@ -30,13 +53,13 @@ export default async function CockpitPage() {
       </div>
       <div className="ck-hb">
         {d.heartbeat.map((g) => (
-          <div className="ck-hg" key={g.group}>
+          <div className={`ck-hg ${g.members.some((p) => p.msg) ? "hasb" : ""}`} key={g.group}>
             <div className="ck-hgl">{g.group}</div>
             <div className="ck-hgr">
               {g.members.map((p) => (
                 <div className={`ck-hp ${p.state === "idle" ? "idle" : ""}`} key={p.name} title={p.name}>
-                  {p.state === "wait" && <span className="ck-hand">✋</span>}
                   {p.msg && <div className="ck-bub">{p.msg}</div>}
+                  {p.state === "idle" && <span className="ck-zzz">💤</span>}
                   {p.slug ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img className="ck-hav" src={`/avatars/${p.slug}.jpg`} alt={p.name} />
@@ -97,7 +120,8 @@ export default async function CockpitPage() {
           </div>
         </div>
       </div>
-      <div className="ck-foot">스냅샷 생성 {d.generated} · build_dashboard.py · ✋=대표 결정 대기, 흐림=이번 주 활동 없음</div>
+      <div className="ck-foot">스냅샷 생성 {d.generated} · build_dashboard.py · 말풍선=대표 결정 대기 · 흑백💤=휴식</div>
+      <script dangerouslySetInnerHTML={{ __html: BUBBLE_JS }} />
     </main>
   );
 }

@@ -1,5 +1,5 @@
 {
- "generated": "2026-08-17 23:01",
+ "generated": "2026-08-17 23:11",
  "date": "2026-08-17",
  "week": "W34",
  "weekStatus": "draft",
@@ -28,7 +28,7 @@
   {
    "face": "📅",
    "who": "비서",
-   "slug": "",
+   "slug": "chief",
    "msg": "W34 주간 목표를 확정해주세요",
    "sub": "킥오프 초안이 대기 중입니다",
    "path": "_System/Board/weekly_goal_2026-W34.md"
@@ -62,6 +62,18 @@
   "💰 경리: 8월 거래 데이터 미수신 — inbox가 비어 있습니다"
  ],
  "heartbeat": [
+  {
+   "group": "🤵 총괄",
+   "members": [
+    {
+     "face": "🤵",
+     "name": "비서",
+     "slug": "chief",
+     "msg": "W34 주간 목표를 확정해주세요",
+     "state": "wait"
+    }
+   ]
+  },
   {
    "group": "💡 전략기획",
    "members": [
