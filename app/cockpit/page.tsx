@@ -103,6 +103,7 @@ export default async function CockpitPage() {
       <div className="ck-bar">
         <span className="ck-ttl">AI Teams</span>
         <a className="ck-cal" href="/">📅 캘린더로</a>
+        <a className="ck-cal" href="http://localhost:4747">💬 메신저</a>
         <span className="ck-date">{d.date} · {d.week}{d.weekStatus === "draft" ? " (목표 초안 대기)" : ""}</span>
       </div>
       <div className="ck-tabbar">
