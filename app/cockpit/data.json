@@ -1,5 +1,5 @@
 {
- "generated": "2026-08-17 21:35",
+ "generated": "2026-08-17 22:44",
  "date": "2026-08-17",
  "week": "W34",
  "weekStatus": "draft",
@@ -28,6 +28,7 @@
   {
    "face": "📅",
    "who": "비서",
+   "slug": "",
    "msg": "W34 주간 목표를 확정해주세요",
    "sub": "킥오프 초안이 대기 중입니다",
    "path": "_System/Board/weekly_goal_2026-W34.md"
@@ -35,6 +36,7 @@
   {
    "face": "🤝",
    "who": "파트너십 매니저",
+   "slug": "partner",
    "msg": "콜마 RMS 문안검토 재접수 확인 질의 초안 — 승인해주세요",
    "sub": "발송은 승인 후에만 나갑니다",
    "path": "_System/06_Support/Collab/workspace/drafts/kolmar_rms_followup.md"
@@ -42,6 +44,7 @@
   {
    "face": "🤝",
    "who": "파트너십 매니저",
+   "slug": "partner",
    "msg": "희주 주간 업무 요청서 초안 (백필, 2-track) — 승인해주세요",
    "sub": "발송은 승인 후에만 나갑니다",
    "path": "_System/06_Support/Collab/workspace/drafts/heeju_weekly_request.md"
@@ -49,6 +52,7 @@
   {
    "face": "⚖️",
    "who": "법무 담당",
+   "slug": "legal",
    "msg": "크리에이터 개인정보 보존 2년 — 검토 대기",
    "sub": "COMP-007 개정건",
    "path": "_System/03_Creative_Studio/Creator_Outreach/CLAUDE.md"
@@ -64,21 +68,25 @@
     {
      "face": "📚",
      "name": "서재지기",
+     "slug": "librarian",
      "state": "active"
     },
     {
      "face": "🧠",
      "name": "CSO",
+     "slug": "cso",
      "state": "active"
     },
     {
      "face": "📅",
      "name": "콘텐츠 플래너",
+     "slug": "planner",
      "state": "active"
     },
     {
      "face": "📋",
      "name": "IR 매니저",
+     "slug": "ir",
      "state": "active"
     }
    ]
@@ -89,11 +97,13 @@
     {
      "face": "🕵️",
      "name": "정찰병",
+     "slug": "scout",
      "state": "active"
     },
     {
      "face": "⛏️",
      "name": "광부",
+     "slug": "miner",
      "state": "active"
     }
    ]
@@ -104,26 +114,31 @@
     {
      "face": "✍️",
      "name": "커머스 팀장",
+     "slug": "commerce",
      "state": "active"
     },
     {
      "face": "🎬",
      "name": "콘텐츠 PD",
+     "slug": "video",
      "state": "active"
     },
     {
      "face": "🏠",
      "name": "채널 매니저",
+     "slug": "channel",
      "state": "active"
     },
     {
      "face": "🎨",
      "name": "아트 디렉터",
+     "slug": "art",
      "state": "active"
     },
     {
      "face": "📈",
      "name": "그로스해커",
+     "slug": "growth",
      "state": "active"
     }
    ]
@@ -134,6 +149,7 @@
     {
      "face": "🎓",
      "name": "강의PD",
+     "slug": "edu",
      "state": "active"
     }
    ]
@@ -144,11 +160,13 @@
     {
      "face": "💰",
      "name": "경리",
+     "slug": "finance",
      "state": "active"
     },
     {
      "face": "🤝",
      "name": "파트너십 매니저",
+     "slug": "partner",
      "state": "wait"
     }
    ]
@@ -159,16 +177,19 @@
     {
      "face": "📊",
      "name": "퀄리티 디렉터",
+     "slug": "quality",
      "state": "active"
     },
     {
      "face": "⚖️",
      "name": "법무 담당",
+     "slug": "legal",
      "state": "wait"
     },
     {
      "face": "🧑‍💼",
      "name": "피플 옵스 리드",
+     "slug": "hr",
      "state": "active"
     }
    ]
@@ -179,6 +200,7 @@
     {
      "face": "🪞",
      "name": "회고 코치",
+     "slug": "retro",
      "state": "active"
     }
    ]

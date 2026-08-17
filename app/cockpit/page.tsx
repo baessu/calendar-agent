@@ -9,9 +9,9 @@ import "./cockpit.css";
 // 이 URL은 고정이므로 로그인 세션을 요구한다.
 export const metadata = { title: "AI Teams 조종석 · 캘린더" };
 
-type Ask = { face: string; who: string; msg: string; sub: string; path: string };
+type Ask = { face: string; who: string; slug?: string; msg: string; sub: string; path: string };
 type Goal = { goal: string; owner: string; kpi: string };
-type Pod = { face: string; name: string; state: "wait" | "active" | "idle" };
+type Pod = { face: string; name: string; slug?: string; state: "wait" | "active" | "idle" };
 type HbGroup = { group: string; members: Pod[] };
 
 export default async function CockpitPage() {
@@ -36,7 +36,12 @@ export default async function CockpitPage() {
               {g.members.map((p) => (
                 <div className={`ck-hp ${p.state === "idle" ? "idle" : ""}`} key={p.name} title={p.name}>
                   {p.state === "wait" && <span className="ck-hand">✋</span>}
-                  <span className="ck-hf">{p.face}</span>
+                  {p.slug ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img className="ck-hav" src={`/avatars/${p.slug}.jpg`} alt={p.name} />
+                  ) : (
+                    <span className="ck-hf">{p.face}</span>
+                  )}
                   <span className="ck-hn">{p.name}</span>
                 </div>
               ))}
@@ -75,7 +80,12 @@ export default async function CockpitPage() {
             {d.asks.length === 0 && <div className="ck-quiet">오늘 대표 결정 없음 — 잘 돌아가고 있습니다</div>}
             {d.asks.map((a) => (
               <div className="ck-ask" key={a.msg}>
-                <span className="ck-af">{a.face}</span>
+                {a.slug ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img className="ck-aav" src={`/avatars/${a.slug}.jpg`} alt={a.who} />
+                ) : (
+                  <span className="ck-af">{a.face}</span>
+                )}
                 <div className="ck-ab">
                   <div className="ck-am">&ldquo;{a.msg}&rdquo;</div>
                   <div className="ck-asub">{a.who} · {a.sub}</div>
