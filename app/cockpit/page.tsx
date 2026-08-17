@@ -88,7 +88,7 @@ function splitPurpose(s: string): [string, string] {
   }
   return [s, ""];
 }
-type Persona = { slug: string; name: string; metric: string; teams: string[]; teamData: { team: string; agents: PAgent[] }[] };
+type Persona = { slug: string; name: string; metric: string; selfIntro?: string; teams: string[]; teamData: { team: string; agents: PAgent[] }[] };
 
 export default async function CockpitPage() {
   const session = await auth();
@@ -200,6 +200,7 @@ export default async function CockpitPage() {
               <div className="ck-pmeta">소유 팀: {ps.teams.length ? ps.teams.join(" · ") : "Chief of Staff"} | 판별: {ps.metric}</div>
             </div>
           </div>
+          {ps.selfIntro && <div className="ck-pself">💬 {ps.selfIntro}</div>}
           {ps.teamData.length === 0 && <div className="ck-quiet">개별 인사 파일 없이 스킬·Board로 운영되는 인물입니다</div>}
           {ps.teamData.map((td) => (
             <div className="ck-pteam" key={td.team}>

@@ -105,3 +105,4 @@
 .ck-relc{display:inline-block;border:1px solid;border-radius:20px;padding:0 7px;font-weight:700;font-size:9.5px;white-space:nowrap;background:#fff}
 .ck-cal{font-size:12px;font-weight:700;color:var(--text);border:1px solid var(--text);padding:4px 12px;text-decoration:none;margin-left:14px;white-space:nowrap}
 .ck-cal:hover{background:var(--text);color:#fff}
+.ck-pself{background:#f7f7f5;border-radius:12px;padding:13px 16px;font-size:13px;line-height:1.65;margin-bottom:16px}
