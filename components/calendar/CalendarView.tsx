@@ -881,6 +881,10 @@ export function CalendarView({
         <Link href="/board" className="ed-today">
           보드
         </Link>
+        {/* Cross-link to the AI Teams cockpit dashboard (separate route). */}
+        <Link href="/cockpit" className="ed-today">
+          조종석
+        </Link>
         {/* Share (US-025): only on an individual project view. Dot when shared. */}
         {canShare && selectedProjectId !== null && (
           <button
