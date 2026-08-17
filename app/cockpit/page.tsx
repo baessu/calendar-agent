@@ -51,9 +51,9 @@ export default async function CockpitPage() {
         <span className="ck-ttl">AI Teams<span className="sl">/</span>조종석</span>
         <span className="ck-date">{d.date} · {d.week}{d.weekStatus === "draft" ? " (목표 초안 대기)" : ""}</span>
       </div>
-      <div className="ck-hb">
+      <div className={`ck-hb ${d.heartbeat.some((g) => g.members.some((p) => p.msg)) ? "hasany" : ""}`}>
         {d.heartbeat.map((g) => (
-          <div className={`ck-hg ${g.members.some((p) => p.msg) ? "hasb" : ""}`} key={g.group}>
+          <div className="ck-hg" key={g.group}>
             <div className="ck-hgl">{g.group}</div>
             <div className="ck-hgr">
               {g.members.map((p) => (
