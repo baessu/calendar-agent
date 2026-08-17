@@ -24,14 +24,14 @@
 .ck-quiet{font-size:12.5px;color:var(--muted);border:1px dashed var(--border-soft);padding:9px 13px;text-align:center}
 .ck-hb{display:flex;flex-wrap:wrap;gap:8px;padding:2px 0 14px;align-items:stretch}
 
-.ck-hg{flex:1 0 auto;display:flex;flex-direction:column;align-items:stretch;border:none;background:#f2f2f0;border-radius:14px;padding:26px 12px 8px;justify-content:flex-end;position:relative}
+.ck-hg{flex:1 0 auto;display:flex;flex-direction:column;align-items:stretch;border:none;background:#f2f2f0;border-radius:14px;padding:26px 8px 8px;justify-content:flex-end;position:relative}
 .ck-hgl{position:absolute;top:9px;left:12px;font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.04em}
 .ck-hgr{display:flex;gap:6px;flex-wrap:nowrap;justify-content:center;align-items:flex-end}
-.ck-hp{display:flex;flex-direction:column;align-items:center;width:148px;position:relative}
+.ck-hp{display:flex;flex-direction:column;align-items:center;width:142px;position:relative}
 .ck-hp.idle .ck-hav{filter:grayscale(1);opacity:.55}
 .ck-hp.idle .ck-hn{color:var(--faint)}
 .ck-hf{font-size:21px}
-.ck-hn{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:148px;margin-top:4px}
+.ck-hn{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:142px;margin-top:4px}
 @keyframes ck-wave{0%,100%{transform:rotate(0)}50%{transform:rotate(18deg)}}
 @media (prefers-reduced-motion: reduce){.ck-hand{animation:none}}
 .ck-topgrid{display:grid;grid-template-columns:1fr 1.2fr;gap:16px;margin-bottom:16px}
