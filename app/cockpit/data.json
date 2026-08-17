@@ -1,0 +1,187 @@
+{
+ "generated": "2026-08-17 21:35",
+ "date": "2026-08-17",
+ "week": "W34",
+ "weekStatus": "draft",
+ "one": {
+  "txt": "엔젤 IR 트랙 마감 — 티저 발송(마감 경과분 백필) + 8/21 강일대표님 보고 준비",
+  "sub": "📋 IR 매니저 (+💰 경리: Ask 금액 근거 시트) · 판별: 티저 2명 발송 완료 + 보고 자료 준비 완료"
+ },
+ "goals": [
+  {
+   "goal": "엔젤 IR 트랙 마감 — 티저 발송(마감 경과분 백필) + 8/21 강일대표님 보고 준비",
+   "owner": "📋 IR 매니저 (+💰 경리: Ask 금액 근거 시트)",
+   "kpi": "티저 2명 발송 완료 + 보고 자료 준비 완료"
+  },
+  {
+   "goal": "콜마 RMS 재접수 확인 — 질의 발송 + 회신 추적 개시 (R0, 마감 경과)",
+   "owner": "🤝 파트너십 매니저",
+   "kpi": "발송 완료 + 소통 원장에 회신 상태 기록"
+  },
+  {
+   "goal": "MDT 발주금액 준비 (R0, 8/18 마감)",
+   "owner": "💰 경리 (Cash Planner 발주 시뮬)",
+   "kpi": "발주 금액 근거 시트가 대표에게 도착"
+  }
+ ],
+ "asks": [
+  {
+   "face": "📅",
+   "who": "비서",
+   "msg": "W34 주간 목표를 확정해주세요",
+   "sub": "킥오프 초안이 대기 중입니다",
+   "path": "_System/Board/weekly_goal_2026-W34.md"
+  },
+  {
+   "face": "🤝",
+   "who": "파트너십 매니저",
+   "msg": "콜마 RMS 문안검토 재접수 확인 질의 초안 — 승인해주세요",
+   "sub": "발송은 승인 후에만 나갑니다",
+   "path": "_System/06_Support/Collab/workspace/drafts/kolmar_rms_followup.md"
+  },
+  {
+   "face": "🤝",
+   "who": "파트너십 매니저",
+   "msg": "희주 주간 업무 요청서 초안 (백필, 2-track) — 승인해주세요",
+   "sub": "발송은 승인 후에만 나갑니다",
+   "path": "_System/06_Support/Collab/workspace/drafts/heeju_weekly_request.md"
+  },
+  {
+   "face": "⚖️",
+   "who": "법무 담당",
+   "msg": "크리에이터 개인정보 보존 2년 — 검토 대기",
+   "sub": "COMP-007 개정건",
+   "path": "_System/03_Creative_Studio/Creator_Outreach/CLAUDE.md"
+  }
+ ],
+ "alerts": [
+  "💰 경리: 8월 거래 데이터 미수신 — inbox가 비어 있습니다"
+ ],
+ "heartbeat": [
+  {
+   "group": "💡 전략기획",
+   "members": [
+    {
+     "face": "📚",
+     "name": "서재지기",
+     "state": "active"
+    },
+    {
+     "face": "🧠",
+     "name": "CSO",
+     "state": "active"
+    },
+    {
+     "face": "📅",
+     "name": "콘텐츠 플래너",
+     "state": "active"
+    },
+    {
+     "face": "📋",
+     "name": "IR 매니저",
+     "state": "active"
+    }
+   ]
+  },
+  {
+   "group": "🔎 리서치",
+   "members": [
+    {
+     "face": "🕵️",
+     "name": "정찰병",
+     "state": "active"
+    },
+    {
+     "face": "⛏️",
+     "name": "광부",
+     "state": "active"
+    }
+   ]
+  },
+  {
+   "group": "✏️ 제작",
+   "members": [
+    {
+     "face": "✍️",
+     "name": "커머스 팀장",
+     "state": "active"
+    },
+    {
+     "face": "🎬",
+     "name": "콘텐츠 PD",
+     "state": "active"
+    },
+    {
+     "face": "🏠",
+     "name": "채널 매니저",
+     "state": "active"
+    },
+    {
+     "face": "🎨",
+     "name": "아트 디렉터",
+     "state": "active"
+    },
+    {
+     "face": "📈",
+     "name": "그로스해커",
+     "state": "active"
+    }
+   ]
+  },
+  {
+   "group": "📚 교육",
+   "members": [
+    {
+     "face": "🎓",
+     "name": "강의PD",
+     "state": "active"
+    }
+   ]
+  },
+  {
+   "group": "🧰 지원",
+   "members": [
+    {
+     "face": "💰",
+     "name": "경리",
+     "state": "active"
+    },
+    {
+     "face": "🤝",
+     "name": "파트너십 매니저",
+     "state": "wait"
+    }
+   ]
+  },
+  {
+   "group": "🚪 게이트",
+   "members": [
+    {
+     "face": "📊",
+     "name": "퀄리티 디렉터",
+     "state": "active"
+    },
+    {
+     "face": "⚖️",
+     "name": "법무 담당",
+     "state": "wait"
+    },
+    {
+     "face": "🧑‍💼",
+     "name": "피플 옵스 리드",
+     "state": "active"
+    }
+   ]
+  },
+  {
+   "group": "🪞 회고",
+   "members": [
+    {
+     "face": "🪞",
+     "name": "회고 코치",
+     "state": "active"
+    }
+   ]
+  }
+ ]
+}
