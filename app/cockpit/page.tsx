@@ -44,13 +44,13 @@ document.querySelectorAll('.ck-tsec').forEach(function(s,j){s.classList.toggle('
 document.querySelectorAll('.ck-bub').forEach(function(b){b.addEventListener('click',function(){
  var id=b.dataset.ask; goTab(1);
  var el=document.getElementById(id); if(!el) return;
- var d2=el.querySelector('.ck-detail'); if(d2){d2.hidden=false;} var tg=el.querySelector('.ck-tgb'); if(tg) tg.textContent='세부사항 ▴';
+ var d2=el.querySelector('.ck-dwrap'); if(d2){d2.classList.add('open');} var tg=el.querySelector('.ck-tgb'); if(tg) tg.textContent='세부사항 ▴';
  el.scrollIntoView({behavior:'smooth',block:'start'});
  el.classList.add('flash'); setTimeout(function(){el.classList.remove('flash')},2200);
 });});
 document.querySelectorAll('.ck-tgb').forEach(function(b){b.addEventListener('click',function(){
- var d=document.getElementById(b.dataset.d); d.hidden=!d.hidden;
- b.textContent=d.hidden?'세부사항 ▾':'세부사항 ▴';
+ var d=document.getElementById(b.dataset.d); d.classList.toggle('open');
+ b.textContent=d.classList.contains('open')?'세부사항 ▴':'세부사항 ▾';
 });});
 document.querySelectorAll('.ck-cpb').forEach(function(b){b.addEventListener('click',function(){
  var tx=document.getElementById(b.dataset.c).value;
@@ -156,7 +156,7 @@ export default async function CockpitPage() {
                   </>
                 )}
               </div>
-              {a.detail && <pre className="ck-detail" id={`d-${i}`} hidden>{a.detail}</pre>}
+              {a.detail && <div className="ck-dwrap" id={`d-${i}`}><pre className="ck-detail">{a.detail}</pre></div>}
             </div>
           </div>
         ))}
