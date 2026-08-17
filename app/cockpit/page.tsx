@@ -41,7 +41,24 @@ document.querySelectorAll('.ck-tb').forEach(function(b){b.addEventListener('clic
 });});
 function goTab(i){document.querySelectorAll('.ck-tb').forEach(function(x,j){x.classList.toggle('on',j==i)});
 document.querySelectorAll('.ck-tsec').forEach(function(s,j){s.classList.toggle('on',j==i)});}
-document.querySelectorAll('.ck-bub').forEach(function(b){b.addEventListener('click',function(){
+function showPd(slug){
+ var el=document.getElementById('pd-'+slug); if(!el) return;
+ var tb=document.querySelector('.ck-tabbar'); if(tb) tb.style.display='none';
+ document.querySelectorAll('.ck-tsec').forEach(function(s){s.classList.remove('on')});
+ document.querySelectorAll('.ck-pdet').forEach(function(s){s.classList.remove('on')});
+ el.classList.add('on'); window.scrollTo({top:0});
+}
+document.querySelectorAll('.ck-hp').forEach(function(pod){pod.addEventListener('click',function(){
+ var s=pod.dataset.slug; if(s) showPd(s);
+});});
+document.querySelectorAll('.ck-pback').forEach(function(b){b.addEventListener('click',function(){
+ document.querySelectorAll('.ck-pdet').forEach(function(s){s.classList.remove('on')});
+ var tb=document.querySelector('.ck-tabbar'); if(tb) tb.style.display='';
+ document.querySelectorAll('.ck-tb').forEach(function(x,j){x.classList.toggle('on',j==0)});
+ document.querySelectorAll('.ck-tsec').forEach(function(s,j){s.classList.toggle('on',j==0)});
+ layout();
+});});
+document.querySelectorAll('.ck-bub').forEach(function(b){b.addEventListener('click',function(e){e.stopPropagation();
  var id=b.dataset.ask; goTab(1);
  var el=document.getElementById(id); if(!el) return;
  var d2=el.querySelector('.ck-dwrap'); if(d2){d2.classList.add('open');} var tg=el.querySelector('.ck-tgb'); if(tg) tg.textContent='세부사항 ▴';
@@ -62,6 +79,8 @@ type Ask = { face: string; who: string; slug?: string; msg: string; sub: string;
 type Goal = { goal: string; owner: string; kpi: string };
 type Pod = { face: string; name: string; slug?: string; msg?: string; askIdx?: number; state: "wait" | "active" | "idle" };
 type HbGroup = { group: string; members: Pod[] };
+type PAgent = { num: string; name: string; intro: string; purpose: string; stance: string; model: string; tok: string; collab: { who: string; rel: string; what: string }[]; principles: string };
+type Persona = { slug: string; name: string; metric: string; teams: string[]; teamData: { team: string; agents: PAgent[] }[] };
 
 export default async function CockpitPage() {
   const session = await auth();
@@ -69,7 +88,7 @@ export default async function CockpitPage() {
   const d = data as {
     generated: string; date: string; week: string; weekStatus: string;
     one: { txt: string; sub: string }; goals: Goal[]; asks: Ask[];
-    alerts: string[]; heartbeat: HbGroup[];
+    alerts: string[]; heartbeat: HbGroup[]; personas?: Persona[];
   };
   return (
     <main className="ck-wrap">
@@ -105,7 +124,7 @@ export default async function CockpitPage() {
             <div className="ck-hgl">{g.group}</div>
             <div className="ck-hgr">
               {g.members.map((p) => (
-                <div className={`ck-hp ${p.state === "idle" ? "idle" : ""}`} key={p.name} title={p.name}>
+                <div className={`ck-hp ${p.state === "idle" ? "idle" : ""}`} key={p.name} title={p.name} data-slug={p.slug || ""}>
                   {p.msg && <div className="ck-bub" data-ask={`ask-${p.askIdx ?? 0}`}>{p.msg}</div>}
                   {p.state === "idle" && <span className="ck-zzz">💤</span>}
                   {p.state === "wait" && <span className="ck-handb">✋</span>}
@@ -161,6 +180,49 @@ export default async function CockpitPage() {
           </div>
         ))}
       </div>
+      {(d.personas || []).map((ps) => (
+        <div className="ck-pdet" id={`pd-${ps.slug}`} key={ps.slug}>
+          <button className="ck-pback">← 조종석</button>
+          <div className="ck-phead">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={`/avatars/${ps.slug}.jpg`} alt={ps.name} />
+            <div>
+              <div className="ck-pname">{ps.name}</div>
+              <div className="ck-pmeta">소유 팀: {ps.teams.length ? ps.teams.join(" · ") : "Chief of Staff"} | 판별: {ps.metric}</div>
+            </div>
+          </div>
+          {ps.teamData.length === 0 && <div className="ck-quiet">개별 인사 파일 없이 스킬·Board로 운영되는 인물입니다</div>}
+          {ps.teamData.map((td) => (
+            <div className="ck-pteam" key={td.team}>
+              <h3>{td.team} <span className="ck-pcnt">{td.agents.length}</span></h3>
+              <div className="ck-pgrid">
+                {td.agents.map((a) => (
+                  <div className="ck-pcard" key={a.name}>
+                    <div className="ck-pnm">#{a.num} {a.name}</div>
+                    <div className="ck-pintro">{a.intro}</div>
+                    <div className="ck-ppur">{a.purpose}</div>
+                    <div className="ck-pchips">
+                      {[a.stance, a.model, a.tok ? `${a.tok} tok` : ""].filter(Boolean).map((c) => (
+                        <span className="ck-pchip" key={c}>{c}</span>
+                      ))}
+                    </div>
+                    {a.collab.length > 0 && (
+                      <table className="ck-ptab"><tbody>
+                        {a.collab.map((r, j) => (
+                          <tr key={j}><td>{r.who}</td><td className="rel">{r.rel}</td><td>{r.what}</td></tr>
+                        ))}
+                      </tbody></table>
+                    )}
+                    {a.principles && (
+                      <details className="ck-pprin"><summary>사고원칙</summary><div>{a.principles}</div></details>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      ))}
       <div className="ck-foot">스냅샷 생성 {d.generated} · build_dashboard.py · 말풍선=대표 결정 대기 · 흑백💤=휴식</div>
       <script dangerouslySetInnerHTML={{ __html: BUBBLE_JS }} />
     </main>
