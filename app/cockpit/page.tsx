@@ -39,11 +39,24 @@ document.querySelectorAll('.ck-tb').forEach(function(b){b.addEventListener('clic
  document.querySelectorAll('.ck-tsec').forEach(function(s,j){s.classList.toggle('on',j==i)});
  if(i==0) layout();
 });});
+function goTab(i){document.querySelectorAll('.ck-tb').forEach(function(x,j){x.classList.toggle('on',j==i)});
+document.querySelectorAll('.ck-tsec').forEach(function(s,j){s.classList.toggle('on',j==i)});}
+document.querySelectorAll('.ck-bub').forEach(function(b){b.addEventListener('click',function(){
+ var id=b.dataset.ask; goTab(1);
+ var el=document.getElementById(id); if(!el) return;
+ var dt=el.querySelector('details'); if(dt) dt.open=true;
+ el.scrollIntoView({behavior:'smooth',block:'start'});
+ el.classList.add('flash'); setTimeout(function(){el.classList.remove('flash')},2200);
+});});
+document.querySelectorAll('.ck-cpb').forEach(function(b){b.addEventListener('click',function(){
+ var tx=document.getElementById(b.dataset.c).value;
+ navigator.clipboard.writeText(tx).then(function(){var o=b.textContent;b.textContent='복사됨 ✓';setTimeout(function(){b.textContent=o},1400);});
+});});
 })();`;
 
-type Ask = { face: string; who: string; slug?: string; msg: string; sub: string; path: string };
+type Ask = { face: string; who: string; slug?: string; msg: string; sub: string; path: string; detail?: string; prompt?: string };
 type Goal = { goal: string; owner: string; kpi: string };
-type Pod = { face: string; name: string; slug?: string; msg?: string; state: "wait" | "active" | "idle" };
+type Pod = { face: string; name: string; slug?: string; msg?: string; askIdx?: number; state: "wait" | "active" | "idle" };
 type HbGroup = { group: string; members: Pod[] };
 
 export default async function CockpitPage() {
@@ -57,7 +70,7 @@ export default async function CockpitPage() {
   return (
     <main className="ck-wrap">
       <div className="ck-bar">
-        <span className="ck-ttl">AI Teams<span className="sl">/</span>조종석</span>
+        <span className="ck-ttl">AI Teams</span>
         <span className="ck-date">{d.date} · {d.week}{d.weekStatus === "draft" ? " (목표 초안 대기)" : ""}</span>
       </div>
       <div className="ck-tabbar">
@@ -89,7 +102,7 @@ export default async function CockpitPage() {
             <div className="ck-hgr">
               {g.members.map((p) => (
                 <div className={`ck-hp ${p.state === "idle" ? "idle" : ""}`} key={p.name} title={p.name}>
-                  {p.msg && <div className="ck-bub">{p.msg}</div>}
+                  {p.msg && <div className="ck-bub" data-ask={`ask-${p.askIdx ?? 0}`}>{p.msg}</div>}
                   {p.state === "idle" && <span className="ck-zzz">💤</span>}
                   {p.slug ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -114,8 +127,8 @@ export default async function CockpitPage() {
       </div>
       <div className="ck-tsec">
         {d.asks.length === 0 && <div className="ck-quiet">오늘 대표 결정 없음 — 잘 돌아가고 있습니다</div>}
-        {d.asks.map((a) => (
-          <div className="ck-ask big" key={a.msg}>
+        {d.asks.map((a, i) => (
+          <div className="ck-ask big" key={a.msg} id={`ask-${i}`}>
             <div className="ck-awrap">
               {a.slug ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -129,6 +142,20 @@ export default async function CockpitPage() {
               <div className="ck-am">&ldquo;{a.msg}&rdquo;</div>
               <div className="ck-asub">{a.sub}</div>
               <div className="ck-apath">{a.path}</div>
+              <div className="ck-abtns">
+                {a.detail && (
+                  <details className="ck-det">
+                    <summary>세부사항</summary>
+                    <pre>{a.detail}</pre>
+                  </details>
+                )}
+                {a.prompt && (
+                  <>
+                    <button className="ck-cpb" data-c={`c-${i}`}>📋 파악 프롬프트 복사</button>
+                    <textarea id={`c-${i}`} hidden readOnly value={a.prompt} />
+                  </>
+                )}
+              </div>
             </div>
           </div>
         ))}

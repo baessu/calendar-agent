@@ -1,5 +1,5 @@
 {
- "generated": "2026-08-17 23:27",
+ "generated": "2026-08-17 23:29",
  "date": "2026-08-17",
  "week": "W34",
  "weekStatus": "draft",
@@ -31,7 +31,9 @@
    "slug": "chief",
    "msg": "스테피, 이번 주 목표 확정해 주세요!",
    "sub": "W34 킥오프 초안을 준비해뒀어요",
-   "path": "_System/Board/weekly_goal_2026-W34.md"
+   "path": "_System/Board/weekly_goal_2026-W34.md",
+   "detail": "---\ndocument_info:\n  title: \"주간 목표 W34 (8/17~8/23)\"\n  type: board-weekly\n  created: 2026-08-17\n  status: draft — 대표 확정 대기\n---\n\n# 이번 주 목표 (W34: 8/17~8/23) — 초안\n\n> 비서 제안 (보드 R0·R1·마감 경과 기준). 기각·수정 후 확정.\n\n## 목표 (후보 3개)\n\n1. 목표: 엔젤 IR 트랙 마감 — 티저 발송(마감 경과분 백필) + 8/21 강일대표님 보고 준비\n   담당: 📋 IR 매니저 (+💰 경리: Ask 금액 근거 시트) · 판별: 티저 2명 발송 완료 + 보고 자료 준비 완료\n2. 목표: 콜마 RMS 재접수 확인 — 질의 발송 + 회신 추적 개시 (R0, 마감 경과)\n   담당: 🤝 파트너십 매니저 · 판별: 발송 완료 + 소통 원장에 회신 상태 기록\n3. 목표: MDT 발주금액 준비 (R0, 8/18 마감)\n   담당: 💰 경리 (Cash Planner 발주 시뮬) · 판별: 발주 금액 근거 시트가 대표에게 도착\n\n## 지난주 이월\n\n- 희주 주간 요청서 (8/15 마감 경과) — 초안 완성, 업무 내용 대표 기입 대기\n\n## 이번 주 파라미터\n\n- 채굴 니치 (⛏️ 광부): {대표 확정 — 후보: 혀백태·입냄새 연속 / 투석환자 VoC}\n- 콘텐츠 편성 (📅 콘텐츠 플래너): 편성 없음 (IR 주간 — 콘텐츠는 채굴만 유지)\n- 기타: 🤵 비서 — CO 보존기간 2년 Legal 검토 대기 건 추적\n\n## 회수 (일요일 — 비서 기입)\n\n| 목표 | 판별 결과 | 달성 | 미달 사유 |\n|---|---|---|---|",
+   "prompt": "AI Teams vault의 승인 대기 건을 파악해줘.\n- 건: 스테피, 이번 주 목표 확정해 주세요! (요청자: 비서)\n- 파일: _System/Board/weekly_goal_2026-W34.md\n이 파일과 관련 문서를 읽고 ① 배경 ② 핵심 내용 ③ 리스크 ④ 내가 결정해야 할 포인트를 정리해서 보고해줘. 실행은 하지 말 것."
   },
   {
    "face": "🤝",
@@ -39,7 +41,9 @@
    "slug": "partner",
    "msg": "'콜마 RMS 문안검토 재접수 확인 질의 초안' 써뒀어요 — 스테피가 승인해 주시면 바로 보낼게요!",
    "sub": "발송은 승인 전엔 안 나가요",
-   "path": "_System/06_Support/Collab/workspace/drafts/kolmar_rms_followup.md"
+   "path": "_System/06_Support/Collab/workspace/drafts/kolmar_rms_followup.md",
+   "detail": "---\ndocument_info:\n  title: 콜마 RMS 문안검토 재접수 확인 질의 초안\n  created: 2026-08-17\n  team: Collab\n  author: Partner Liaison\n  status: 대표 승인 대기 (발송 금지)\n---\n\n# 콜마 RMS 문안검토 재접수 확인 질의 (초안)\n\n- 상대: 한국콜마 담당자 (RMS 문안검토 창구)\n- 목적: 재접수 상태 확인 세 가지만 짧게 묻는다 (재접수 여부, 예상 일정, 필요 서류)\n- 발송 채널: 대표 확정 (메일 또는 담당자 메시지)\n- 상태: **대표 승인 대기**, 이 문서는 초안이며 발송하지 않는다 (RULE-COL-001)\n\n---\n\n## 본문 초안\n\n제목: [헤이스테파니] RMS 문안검토 재접수 관련 확인 요청\n\n안녕하세요, 헤이스테파니 담당자입니다.\n\n지난번 접수드렸던 문안검토 건 관련하여 몇 가지 확인차 연락드립니다.\n\n1. 재접수가 정상적으로 처리되었는지 확인 부탁드립니다.\n2. 검토 완료까지 예상 일정이 어느 정도인지 여쭙습니다.\n3. 저희 쪽에서 추가로 준비해야 할 서류가 있다면 알려주시면 미리 준비하겠습니다.\n\n바쁘신 중에 확인해 주셔서 감사합니다.\n\n헤이스테파니 드림\n\n---\n\n## 대표 확인 필요 항목 (발송 전 채움)\n\n- [ ] 수신 담당자 성함·직함 (호칭 반영)\n- [ ] 최초 접수일·접수 번호 (본문에 한 줄 넣으면 처리 속도에 도움)\n- [ ] 발신자명 표기 (헤이스테파니 / 대표 개인명 중 택일)\n\n## 결정 트레이스\n\n- 선택한 것: 질문을 세 가지로 제한한 짧은 확인 질의. 상대 업무 부담을 줄여 회신 확률을 높인다.\n- 기각한 대안: 일정 촉구를 포함한 장문 질의 (첫 확인 단계에서 압박은 관계 비용이 크다, RULE-COL-004).\n- 깔린 가정: 재접수가 이미 이루어졌다는 전제로 썼다. 접수 자체가 안 된 상태라면 1번 문항의 답에서 드러난다.",
+   "prompt": "AI Teams vault의 승인 대기 건을 파악해줘.\n- 건: '콜마 RMS 문안검토 재접수 확인 질의 초안' 써뒀어요 — 스테피가 승인해 주시면 바로 보낼게요! (요청자: 파트너십 매니저)\n- 파일: _System/06_Support/Collab/workspace/drafts/kolmar_rms_followup.md\n이 파일과 관련 문서를 읽고 ① 배경 ② 핵심 내용 ③ 리스크 ④ 내가 결정해야 할 포인트를 정리해서 보고해줘. 실행은 하지 말 것."
   },
   {
    "face": "🤝",
@@ -47,7 +51,9 @@
    "slug": "partner",
    "msg": "'희주 주간 업무 요청서 초안 (백필, 2-track)' 써뒀어요 — 스테피가 승인해 주시면 바로 보낼게요!",
    "sub": "발송은 승인 전엔 안 나가요",
-   "path": "_System/06_Support/Collab/workspace/drafts/heeju_weekly_request.md"
+   "path": "_System/06_Support/Collab/workspace/drafts/heeju_weekly_request.md",
+   "detail": "---\ndocument_info:\n  title: 희주 주간 업무 요청서 초안 (백필, 2-track)\n  created: 2026-08-17\n  team: Collab\n  author: People Coordinator\n  status: 대표 승인 대기 (업무 내용 대표 기입 필요, 발송 금지)\n---\n\n# 희주 주간 업무 요청서 (초안, 2-track)\n\n- 상대: 고희주 (VA, HEISU·SjoGuard 담당 프리랜서)\n- 목적: 지난주에 못 보낸 요청서를 이번 주분으로 백필한다\n- 상태: **대표 승인 대기**, 구체 업무는 대표가 빈칸을 채운 뒤 발송한다 (RULE-COL-001)\n- 관례: 2-track 구조, \"과제\" 대신 \"업무\", 부담 경감 톤 (메모리 feedback_va_task_request)\n\n---\n\n## [Track 1] 노션 상세본 구조 (VA/last_tasks/26W34.md 양식)\n\n```markdown\n---\nweek: 26W34\nassignee: 희주님\nprojects: [ {대표 기입: HEISU / SjoGuard} ]\ndeadline: {대표 기입: 토요일 자정 기준 날짜}\n---\n\n# 26W34 주간 업무\n\n## 이번 주 배경\n{대표 기입: 이번 주 업무가 프로젝트 흐름에서 갖는 의미 1~2줄.\n 예: \"지난주 발굴 리스트를 바탕으로 이번 주는 실제 반응을 볼 차례입니다.\"}\n\n## 업무 1: {대표 기입: 업무 제목}\n- 목적: {이 업무가 왜 필요한지, 희주님 판단이 필요한 지점이 어디인지}\n- 할 일: {구체 범위. 수량·대상·기준}\n- 산출물: {형태와 제출 방식. 예: 노션 페이지 링크}\n- 참고자료: {링크·파일 경로}\n\n## 업무 2: {대표 기입: 업무 제목}\n- 목적: {}\n- 할 일: {}\n- 산출물: {}\n- 참고자료: {}\n\n## 업무 3 (선택): {대표 기입: 여유 있을 때만 하는 업무로 안내}\n- 목적: {}\n- 할 일: {}\n- 산출물: {}\n- 참고자료: {}\n\n## 데이터 소스 / 키워드\n{대표 기입: 검색 키워드, 참고 계정, 플랫폼}\n\n## 데드라인\n{날짜} 자정까지. 일찍 마무리되면 일찍 보내셔도 됩니다.\n```\n\n## [Track 2] 전달 메시지 초안 (카톡·메일용)\n\n> 제목(메일인 경우): [헤이스테파니<>희주님] 8월 4주차 업무 요청 - {대표 기입: 제목}\n\n희주님 안녕하세요, 수정입니다 :)\n\n지난주에는 제가 요청서를 못 챙겨 보냈네요. 한 주 쉬어가셨다 생각해 주시면 감사하겠습니다.\n\n이번 주 업무 정리해서 보내드려요.\n\n[업무]\n이번 주는 {대표 기입: 이번 주 성격 1~2줄}입니다.\n\n- {업무 1 한 줄 요약}\n- {업무 2 한 줄 요약}\n- {업무 3 한 줄 요약, 이건 여유 있을 때만 보셔도 됩니다}\n\n자세한 건 노션에서 확인해 주세요 👉 {노션 링크}\n\n[산출물 형태] {예: 노션 페이지 링크로 공유}\n[데드라인] {날짜} 자정까지인데, 너무 완벽하게 채우려 마셔요 ㅎㅎ 무리하지 마시고,\n일찍 마무리되면 일찍 보내셔도 됩니다.\n\n…(이하 생략)",
+   "prompt": "AI Teams vault의 승인 대기 건을 파악해줘.\n- 건: '희주 주간 업무 요청서 초안 (백필, 2-track)' 써뒀어요 — 스테피가 승인해 주시면 바로 보낼게요! (요청자: 파트너십 매니저)\n- 파일: _System/06_Support/Collab/workspace/drafts/heeju_weekly_request.md\n이 파일과 관련 문서를 읽고 ① 배경 ② 핵심 내용 ③ 리스크 ④ 내가 결정해야 할 포인트를 정리해서 보고해줘. 실행은 하지 말 것."
   },
   {
    "face": "⚖️",
@@ -55,7 +61,9 @@
    "slug": "legal",
    "msg": "크리에이터 개인정보를 2년 보존하는 개정안, 이대로 진행해도 될까요?",
    "sub": "COMP-007 개정건 — 제 검토는 마쳤어요",
-   "path": "_System/03_Creative_Studio/Creator_Outreach/CLAUDE.md"
+   "path": "_System/03_Creative_Studio/Creator_Outreach/CLAUDE.md",
+   "detail": "---\naliases:\n  - \"크리에이터 아웃리치팀\"\n  - \"Creator Outreach Team\"\n  - \"인플루언서 마케팅팀\"\n  - \"시딩팀\"\ntags:\n  - system/team-guide\n  - team/creator-outreach\n  - workflow/discovery-scoring-outreach-seeding-tracking\n  - agent/7-agents\ntype: team-definition\ncreated_at: \"2026-03-23\"\n---\n\n# 🤝 Creator Outreach Team (크리에이터 아웃리치 전문 AI 에이전트팀)\n\n> 유닛: ⚙️ 성장 유닛 (Creative Studio v5.5)\n\n**목적:** 크리에이터 발굴 → 핏 평가 → 개인화 아웃리치 → 시딩 운영 → 성과 추적까지 인플루언서 마케팅 파이프라인을 자동화하는 전문팀. KR/US 듀얼 모드 지원.\n\n**핵심 차별점:** 기존 Email Team이 B2B 콜드 아웃리치 이메일 특화라면, Creator Outreach Team은 **크리에이터 발굴 → 핏 스코어링 → 시딩/유료 협업 제안 → 컴플라이언스 검증 → 성과 측정 → CRM 관리**까지 인플루언서 마케팅 풀 파이프라인을 제공합니다.\n\n> ⚠️ **핵심 원칙**: \"80%의 인플루언서 매출은 추적 불가능하다.\" UTM + 프로모 코드 듀얼 트래킹 필수. EMV(Earned Media Value)를 보조 지표로 활용하되 과신하지 않는다.\n\n---\n\n## 전문성 스택 & 프로세스 연결 (v2.0 — Phase 3 전문가化)\n\n이 팀의 규칙은 [[_System/shared/standards/rule_tiers|규칙 3계층 표준]]을 따른다:\n**🔒 불변**(이탈 불가) / **📐 가이드**(기본값 — 근거 기록 후 이탈 가능) / **📊 데이터**(참조 정보, 시효 라벨 필수).\n\n작업 시작 시 순서:\n\n1. **🏆 exemplars/ 필독** — 작업 전 `exemplars/README.md`와 관련 주석 카드를 읽는다.\n   규칙 94개보다 걸작 2~3개가 더 많이 가르친다 (RULE_AUDIT §4.5 골든 샘플 팩).\n2. **🧠 instincts.md 로드** — Director가 Phase 0에서 `instincts.md`의 검증된 직감을 로드해 캠페인 설계에 반영한다.\n3. **📋 Pre-Sprint Contract** — 캠페인 시작 전 루트 `.claude/rules/quality.md`의 계약 템플릿(사각지대 점검 포함)을 작성한다. 계약 없이 생산 시작 금지 (RULE-CONTRACT-001).\n4. **🔍 사각지대 인터뷰 (Phase 0)** — 브리프에서 답에 따라 설계가 바뀌는 질문이 남아 있으면 생산 전에 유저에게 한 번에 하나씩 질문한다.\n5. **📝 이탈 로그** — 📐 가이드 규칙에서 벗어나거나 브리프 공백(unknown)을 만나면 [[_System/shared/standards/deviation_log|이탈 로그 표준]] 프로토콜 적용: ① 보수적\n…(이하 생략)",
+   "prompt": "AI Teams vault의 승인 대기 건을 파악해줘.\n- 건: 크리에이터 개인정보를 2년 보존하는 개정안, 이대로 진행해도 될까요? (요청자: 법무 담당)\n- 파일: _System/03_Creative_Studio/Creator_Outreach/CLAUDE.md\n이 파일과 관련 문서를 읽고 ① 배경 ② 핵심 내용 ③ 리스크 ④ 내가 결정해야 할 포인트를 정리해서 보고해줘. 실행은 하지 말 것."
   }
  ],
  "alerts": [
@@ -70,6 +78,7 @@
      "name": "비서",
      "slug": "chief",
      "msg": "스테피, 이번 주 목표 확정해 주세요!",
+     "askIdx": 0,
      "state": "wait"
     }
    ]
@@ -82,6 +91,7 @@
      "name": "서재지기",
      "slug": "librarian",
      "msg": "",
+     "askIdx": -1,
      "state": "active"
     },
     {
@@ -89,6 +99,7 @@
      "name": "CSO",
      "slug": "cso",
      "msg": "",
+     "askIdx": -1,
      "state": "active"
     },
     {
@@ -96,6 +107,7 @@
      "name": "콘텐츠 플래너",
      "slug": "planner",
      "msg": "",
+     "askIdx": -1,
      "state": "active"
     },
     {
@@ -103,6 +115,7 @@
      "name": "IR 매니저",
      "slug": "ir",
      "msg": "",
+     "askIdx": -1,
      "state": "active"
     }
    ]
@@ -115,6 +128,7 @@
      "name": "정찰병",
      "slug": "scout",
      "msg": "",
+     "askIdx": -1,
      "state": "active"
     },
     {
@@ -122,6 +136,7 @@
      "name": "광부",
      "slug": "miner",
      "msg": "",
+     "askIdx": -1,
      "state": "active"
     }
    ]
@@ -134,6 +149,7 @@
      "name": "커머스 팀장",
      "slug": "commerce",
      "msg": "",
+     "askIdx": -1,
      "state": "active"
     },
     {
@@ -141,6 +157,7 @@
      "name": "콘텐츠 PD",
      "slug": "video",
      "msg": "",
+     "askIdx": -1,
      "state": "active"
     },
     {
@@ -148,6 +165,7 @@
      "name": "채널 매니저",
      "slug": "channel",
      "msg": "",
+     "askIdx": -1,
      "state": "active"
     },
     {
@@ -155,6 +173,7 @@
      "name": "아트 디렉터",
      "slug": "art",
      "msg": "",
+     "askIdx": -1,
      "state": "active"
     },
     {
@@ -162,6 +181,7 @@
      "name": "그로스해커",
      "slug": "growth",
      "msg": "",
+     "askIdx": -1,
      "state": "active"
     }
    ]
@@ -174,6 +194,7 @@
      "name": "강의PD",
      "slug": "edu",
      "msg": "",
+     "askIdx": -1,
      "state": "active"
     }
    ]
@@ -186,6 +207,7 @@
      "name": "경리",
      "slug": "finance",
      "msg": "",
+     "askIdx": -1,
      "state": "active"
     },
     {
@@ -193,6 +215,7 @@
      "name": "파트너십 매니저",
      "slug": "partner",
      "msg": "'콜마 RMS 문안검토 재접수 확인 질의 초안' 써뒀어요 — 스테피가 승인해 주시면 바로 보낼게요! 외 1건",
+     "askIdx": 1,
      "state": "wait"
     }
    ]
@@ -205,6 +228,7 @@
      "name": "퀄리티 디렉터",
      "slug": "quality",
      "msg": "",
+     "askIdx": -1,
      "state": "active"
     },
     {
@@ -212,6 +236,7 @@
      "name": "법무 담당",
      "slug": "legal",
      "msg": "크리에이터 개인정보를 2년 보존하는 개정안, 이대로 진행해도 될까요?",
+     "askIdx": 3,
      "state": "wait"
     },
     {
@@ -219,6 +244,7 @@
      "name": "피플 옵스 리드",
      "slug": "hr",
      "msg": "",
+     "askIdx": -1,
      "state": "active"
     }
    ]
@@ -231,6 +257,7 @@
      "name": "회고 코치",
      "slug": "retro",
      "msg": "",
+     "askIdx": -1,
      "state": "active"
     }
    ]

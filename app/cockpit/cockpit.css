@@ -58,3 +58,9 @@
 .ck-zzz{position:absolute;top:-7px;right:2px;font-size:14px;z-index:4;animation:ck-fl 2.2s ease-in-out infinite}
 @keyframes ck-fl{0%,100%{transform:translateY(0);opacity:.85}50%{transform:translateY(-4px);opacity:.5}}
 @media (prefers-reduced-motion:reduce){.ck-bub,.ck-zzz{animation:none}}
+.ck-bub{cursor:pointer}
+.ck-abtns{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap;align-items:flex-start}
+.ck-cpb{font-family:inherit;font-size:11px;font-weight:700;letter-spacing:-0.03em;border:1px solid var(--text);background:var(--text);color:#fff;padding:4px 11px;cursor:pointer}
+.ck-det summary{font-size:11px;font-weight:700;border:1px solid var(--text);padding:4px 11px;cursor:pointer;list-style:none;display:inline-block}
+.ck-det pre{margin:10px 0 0;padding:10px 12px;background:#f7f7f5;border-radius:8px;font-size:11px;line-height:1.55;white-space:pre-wrap;word-break:break-all;max-height:320px;overflow-y:auto;font-family:inherit}
+.ck-ask.big.flash{outline:2px solid #b45309;outline-offset:2px}
