@@ -1,5 +1,5 @@
 {
- "generated": "2026-08-17 23:26",
+ "generated": "2026-08-17 23:27",
  "date": "2026-08-17",
  "week": "W34",
  "weekStatus": "draft",
@@ -29,7 +29,7 @@
    "face": "📅",
    "who": "비서",
    "slug": "chief",
-   "msg": "대표님, 이번 주 목표 확정해 주세요!",
+   "msg": "스테피, 이번 주 목표 확정해 주세요!",
    "sub": "W34 킥오프 초안을 준비해뒀어요",
    "path": "_System/Board/weekly_goal_2026-W34.md"
   },
@@ -37,7 +37,7 @@
    "face": "🤝",
    "who": "파트너십 매니저",
    "slug": "partner",
-   "msg": "'콜마 RMS 문안검토 재접수 확인 질의 초안' 써뒀어요 — 승인해 주시면 바로 보낼게요!",
+   "msg": "'콜마 RMS 문안검토 재접수 확인 질의 초안' 써뒀어요 — 스테피가 승인해 주시면 바로 보낼게요!",
    "sub": "발송은 승인 전엔 안 나가요",
    "path": "_System/06_Support/Collab/workspace/drafts/kolmar_rms_followup.md"
   },
@@ -45,7 +45,7 @@
    "face": "🤝",
    "who": "파트너십 매니저",
    "slug": "partner",
-   "msg": "'희주 주간 업무 요청서 초안 (백필, 2-track)' 써뒀어요 — 승인해 주시면 바로 보낼게요!",
+   "msg": "'희주 주간 업무 요청서 초안 (백필, 2-track)' 써뒀어요 — 스테피가 승인해 주시면 바로 보낼게요!",
    "sub": "발송은 승인 전엔 안 나가요",
    "path": "_System/06_Support/Collab/workspace/drafts/heeju_weekly_request.md"
   },
@@ -69,7 +69,7 @@
      "face": "🤵",
      "name": "비서",
      "slug": "chief",
-     "msg": "대표님, 이번 주 목표 확정해 주세요!",
+     "msg": "스테피, 이번 주 목표 확정해 주세요!",
      "state": "wait"
     }
    ]
@@ -192,7 +192,7 @@
      "face": "🤝",
      "name": "파트너십 매니저",
      "slug": "partner",
-     "msg": "'콜마 RMS 문안검토 재접수 확인 질의 초안' 써뒀어요 — 승인해 주시면 바로 보낼게요! 외 1건",
+     "msg": "'콜마 RMS 문안검토 재접수 확인 질의 초안' 써뒀어요 — 스테피가 승인해 주시면 바로 보낼게요! 외 1건",
      "state": "wait"
     }
    ]
