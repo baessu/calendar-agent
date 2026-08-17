@@ -1,5 +1,5 @@
 /* AI Teams 조종석 — Swiss monochrome shell (color-system §1 준수: UI는 흑백, 색은 상태 데이터에만) */
-.ck-wrap{max-width:1080px;margin:0 auto;padding:26px 20px 60px}
+.ck-wrap{max-width:1120px;margin:0 auto;padding:26px 20px 60px}
 .ck-bar{display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:16px}
 .ck-ttl{font-size:24px;font-weight:600;font-variant-numeric:tabular-nums}
 .ck-ttl .sl{color:var(--faint);font-weight:300;margin:0 5px}
