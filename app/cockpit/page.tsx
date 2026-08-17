@@ -33,6 +33,12 @@ function layout(){
  });
 }
 window.addEventListener('load',layout);window.addEventListener('resize',layout);layout();
+document.querySelectorAll('.ck-tb').forEach(function(b){b.addEventListener('click',function(){
+ var i=+b.dataset.t;
+ document.querySelectorAll('.ck-tb').forEach(function(x,j){x.classList.toggle('on',j==i)});
+ document.querySelectorAll('.ck-tsec').forEach(function(s,j){s.classList.toggle('on',j==i)});
+ if(i==0) layout();
+});});
 })();`;
 
 type Ask = { face: string; who: string; slug?: string; msg: string; sub: string; path: string };
@@ -53,6 +59,28 @@ export default async function CockpitPage() {
       <div className="ck-bar">
         <span className="ck-ttl">AI Teams<span className="sl">/</span>조종석</span>
         <span className="ck-date">{d.date} · {d.week}{d.weekStatus === "draft" ? " (목표 초안 대기)" : ""}</span>
+      </div>
+      <div className="ck-tabbar">
+        <button className="ck-tb on" data-t="0">조종석</button>
+        <button className="ck-tb" data-t="1">🙋 승인 대기함 <span className="cnt">{d.asks.length}</span></button>
+      </div>
+      <div className="ck-tsec on">
+      <div className="ck-topgrid">
+        <div className="ck-one">
+          <div className="lab">TODAY</div>
+          <div className="txt">{d.one.txt}</div>
+          <div className="sub">{d.one.sub}</div>
+        </div>
+        <div className="ck-panel">
+          <div className="ck-sec">이번 주 목표</div>
+          {d.goals.length === 0 && <div className="ck-quiet">이번 주 목표 없음 — 킥오프 필요</div>}
+          {d.goals.map((g) => (
+            <div className="ck-goal" key={g.goal}>
+              <span className="ck-gd" />
+              <div className="ck-gt">{g.goal}<div className="ck-gs">{g.owner} · {g.kpi}</div></div>
+            </div>
+          ))}
+        </div>
       </div>
       <div className={`ck-hb ${d.heartbeat.some((g) => g.members.some((p) => p.msg)) ? "hasany" : ""}`}>
         {d.heartbeat.map((g) => (
@@ -76,52 +104,34 @@ export default async function CockpitPage() {
           </div>
         ))}
       </div>
-      <div className="ck-cols">
-        <div>
-          <div className="ck-one">
-            <div className="lab">TODAY</div>
-            <div className="txt">{d.one.txt}</div>
-            <div className="sub">{d.one.sub}</div>
+      <div className="ck-panel">
+        <div className="ck-sec">이상 신호</div>
+        {d.alerts.length === 0 && <div className="ck-quiet">결함 0 · 기한 경과 0 — 조용합니다</div>}
+        {d.alerts.map((a) => (
+          <div className="ck-ask alert" key={a}><div className="ck-ab"><div className="ck-am">{a}</div></div></div>
+        ))}
+      </div>
+      </div>
+      <div className="ck-tsec">
+        {d.asks.length === 0 && <div className="ck-quiet">오늘 대표 결정 없음 — 잘 돌아가고 있습니다</div>}
+        {d.asks.map((a) => (
+          <div className="ck-ask big" key={a.msg}>
+            <div className="ck-awrap">
+              {a.slug ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img className="ck-aav" src={`/avatars/${a.slug}.jpg`} alt={a.who} />
+              ) : (
+                <span className="ck-af">{a.face}</span>
+              )}
+              <div className="ck-awho">{a.who}</div>
+            </div>
+            <div className="ck-ab">
+              <div className="ck-am">&ldquo;{a.msg}&rdquo;</div>
+              <div className="ck-asub">{a.sub}</div>
+              <div className="ck-apath">{a.path}</div>
+            </div>
           </div>
-          <div className="ck-panel">
-            <div className="ck-sec">이번 주 목표</div>
-            {d.goals.length === 0 && <div className="ck-quiet">이번 주 목표 없음 — 킥오프 필요</div>}
-            {d.goals.map((g) => (
-              <div className="ck-goal" key={g.goal}>
-                <span className="ck-gd" />
-                <div className="ck-gt">{g.goal}<div className="ck-gs">{g.owner} · {g.kpi}</div></div>
-              </div>
-            ))}
-          </div>
-          <div className="ck-panel" style={{ marginTop: 12 }}>
-            <div className="ck-sec">이상 신호</div>
-            {d.alerts.length === 0 && <div className="ck-quiet">결함 0 · 기한 경과 0 — 조용합니다</div>}
-            {d.alerts.map((a) => (
-              <div className="ck-ask alert" key={a}><div className="ck-ab"><div className="ck-am">{a}</div></div></div>
-            ))}
-          </div>
-        </div>
-        <div>
-          <div className="ck-panel">
-            <div className="ck-sec">🙋 승인 대기함 {d.asks.length}건</div>
-            {d.asks.length === 0 && <div className="ck-quiet">오늘 대표 결정 없음 — 잘 돌아가고 있습니다</div>}
-            {d.asks.map((a) => (
-              <div className="ck-ask" key={a.msg}>
-                {a.slug ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img className="ck-aav" src={`/avatars/${a.slug}.jpg`} alt={a.who} />
-                ) : (
-                  <span className="ck-af">{a.face}</span>
-                )}
-                <div className="ck-ab">
-                  <div className="ck-am">&ldquo;{a.msg}&rdquo;</div>
-                  <div className="ck-asub">{a.who} · {a.sub}</div>
-                </div>
-                <span className="ck-path" title={a.path}>{a.path.split("/").slice(-1)[0]}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        ))}
       </div>
       <div className="ck-foot">스냅샷 생성 {d.generated} · build_dashboard.py · 말풍선=대표 결정 대기 · 흑백💤=휴식</div>
       <script dangerouslySetInnerHTML={{ __html: BUBBLE_JS }} />
