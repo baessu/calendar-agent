@@ -24,14 +24,14 @@
 .ck-quiet{font-size:12.5px;color:var(--muted);border:1px dashed var(--border-soft);padding:9px 13px;text-align:center}
 .ck-hb{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:2px 0 14px}
 @media(max-width:760px){.ck-hb{grid-template-columns:repeat(2,1fr)}}
-.ck-hg{display:flex;flex-direction:column;align-items:stretch;gap:5px;border:1px solid var(--border-soft);padding:8px 8px 6px;min-height:88px;justify-content:flex-start}
+.ck-hg{display:flex;flex-direction:column;align-items:stretch;gap:5px;border:1px solid var(--border-soft);padding:8px 8px 6px;min-height:112px;justify-content:flex-start}
 .ck-hgl{font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.04em;text-align:left}
 .ck-hgr{display:flex;gap:4px;flex-wrap:wrap;justify-content:center;flex:1;align-items:flex-start}
-.ck-hp{display:flex;flex-direction:column;align-items:center;width:66px;position:relative}
+.ck-hp{display:flex;flex-direction:column;align-items:center;width:82px;position:relative}
 .ck-hp.idle .ck-hav{filter:grayscale(1);opacity:.55}
 .ck-hp.idle .ck-hn{color:var(--faint)}
 .ck-hf{font-size:21px}
-.ck-hn{font-size:9px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:66px;margin-top:2px}
+.ck-hn{font-size:9.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:82px;margin-top:3px}
 .ck-hand{position:absolute;top:-9px;right:3px;font-size:12px;animation:ck-wave 1.6s infinite}
 @keyframes ck-wave{0%,100%{transform:rotate(0)}50%{transform:rotate(18deg)}}
 @media (prefers-reduced-motion: reduce){.ck-hand{animation:none}}
@@ -39,5 +39,5 @@
 @media(max-width:760px){.ck-cols{grid-template-columns:1fr}}
 .ck-panel{border:1px solid var(--border-soft);padding:12px 14px}
 .ck-foot{margin-top:22px;font-size:11px;color:var(--faint);border-top:1px solid var(--border-soft);padding-top:8px;text-align:center}
-.ck-hav{width:52px;height:52px;border-radius:50%;object-fit:cover;object-position:top;display:block;background:#fff}
+.ck-hav{width:72px;height:72px;border-radius:50%;object-fit:cover;object-position:top;display:block;background:#fff}
 .ck-aav{width:38px;height:38px;border-radius:50%;object-fit:cover;object-position:top;border:1px solid var(--border-soft,#b6b6b6);flex:none;background:#fff}
