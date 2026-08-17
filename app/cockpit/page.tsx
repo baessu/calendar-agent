@@ -11,7 +11,7 @@ export const metadata = { title: "AI Teams 조종석 · 캘린더" };
 
 type Ask = { face: string; who: string; slug?: string; msg: string; sub: string; path: string };
 type Goal = { goal: string; owner: string; kpi: string };
-type Pod = { face: string; name: string; slug?: string; state: "wait" | "active" | "idle" };
+type Pod = { face: string; name: string; slug?: string; msg?: string; state: "wait" | "active" | "idle" };
 type HbGroup = { group: string; members: Pod[] };
 
 export default async function CockpitPage() {
@@ -36,6 +36,7 @@ export default async function CockpitPage() {
               {g.members.map((p) => (
                 <div className={`ck-hp ${p.state === "idle" ? "idle" : ""}`} key={p.name} title={p.name}>
                   {p.state === "wait" && <span className="ck-hand">✋</span>}
+                  {p.msg && <div className="ck-bub">{p.msg}</div>}
                   {p.slug ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img className="ck-hav" src={`/avatars/${p.slug}.jpg`} alt={p.name} />

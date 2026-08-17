@@ -1,5 +1,5 @@
 {
- "generated": "2026-08-17 22:58",
+ "generated": "2026-08-17 23:01",
  "date": "2026-08-17",
  "week": "W34",
  "weekStatus": "draft",
@@ -69,24 +69,28 @@
      "face": "📚",
      "name": "서재지기",
      "slug": "librarian",
+     "msg": "",
      "state": "active"
     },
     {
      "face": "🧠",
      "name": "CSO",
      "slug": "cso",
+     "msg": "",
      "state": "active"
     },
     {
      "face": "📅",
      "name": "콘텐츠 플래너",
      "slug": "planner",
+     "msg": "",
      "state": "active"
     },
     {
      "face": "📋",
      "name": "IR 매니저",
      "slug": "ir",
+     "msg": "",
      "state": "active"
     }
    ]
@@ -98,12 +102,14 @@
      "face": "🕵️",
      "name": "정찰병",
      "slug": "scout",
+     "msg": "",
      "state": "active"
     },
     {
      "face": "⛏️",
      "name": "광부",
      "slug": "miner",
+     "msg": "",
      "state": "active"
     }
    ]
@@ -115,30 +121,35 @@
      "face": "✍️",
      "name": "커머스 팀장",
      "slug": "commerce",
+     "msg": "",
      "state": "active"
     },
     {
      "face": "🎬",
      "name": "콘텐츠 PD",
      "slug": "video",
+     "msg": "",
      "state": "active"
     },
     {
      "face": "🏠",
      "name": "채널 매니저",
      "slug": "channel",
+     "msg": "",
      "state": "active"
     },
     {
      "face": "🎨",
      "name": "아트 디렉터",
      "slug": "art",
+     "msg": "",
      "state": "active"
     },
     {
      "face": "📈",
      "name": "그로스해커",
      "slug": "growth",
+     "msg": "",
      "state": "active"
     }
    ]
@@ -150,6 +161,7 @@
      "face": "🎓",
      "name": "강의PD",
      "slug": "edu",
+     "msg": "",
      "state": "active"
     }
    ]
@@ -161,12 +173,14 @@
      "face": "💰",
      "name": "경리",
      "slug": "finance",
+     "msg": "",
      "state": "active"
     },
     {
      "face": "🤝",
      "name": "파트너십 매니저",
      "slug": "partner",
+     "msg": "콜마 RMS 문안검토 재접수 확인 질의 초안 — 승인해주세요 외 1건",
      "state": "wait"
     }
    ]
@@ -178,18 +192,21 @@
      "face": "📊",
      "name": "퀄리티 디렉터",
      "slug": "quality",
+     "msg": "",
      "state": "active"
     },
     {
      "face": "⚖️",
      "name": "법무 담당",
      "slug": "legal",
+     "msg": "크리에이터 개인정보 보존 2년 — 검토 대기",
      "state": "wait"
     },
     {
      "face": "🧑‍💼",
      "name": "피플 옵스 리드",
      "slug": "hr",
+     "msg": "",
      "state": "active"
     }
    ]
@@ -201,6 +218,7 @@
      "face": "🪞",
      "name": "회고 코치",
      "slug": "retro",
+     "msg": "",
      "state": "active"
     }
    ]
